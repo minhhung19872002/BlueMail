@@ -103,19 +103,36 @@ public sealed class DkimInteropTests
             "--header", "Subject: OpenDKIM " + marker, "--body", "Nội dung kiểm tra\r\n\r\n");
         code.Should().Be(0, stdout + stderr);
 
-        string? path = null;
-        for (var i = 0; i < 30 && path is null; i++)
+        // Since Phase 3 Postfix relays to BlueMail.Mx, which verifies the OpenDKIM signature with BlueMail.Dkim and
+        // stores the result: the check now covers the real receiving path, not only the library.
+        string? dkim = null;
+        for (var i = 0; i < 40 && string.IsNullOrWhiteSpace(dkim); i++)
         {
-            Thread.Sleep(500);
-            var (_, found, _) = ToolsContainer.Exec("sh", "-c", $"grep -l '{marker}' /sink/*.eml 2>/dev/null | head -1");
-            path = string.IsNullOrWhiteSpace(found) ? null : found.Trim();
+            await Task.Delay(500);
+            dkim = Psql($"select auth_results->'dkim' from mail.messages where subject = 'OpenDKIM {marker}'");
         }
 
-        path.Should().NotBeNull("Postfix relays to mx.bluemail.test (phase-0 sink)");
-        var (_, b64, _) = ToolsContainer.Exec("base64", "-w0", path!);
-        var message = Convert.FromBase64String(b64.Trim());
-        var r = await Verifier().VerifyAsync(new MemoryStream(message));
-        r.Should().ContainSingle().Which.Should().Match<DkimResult>(x => x.Status == DkimStatus.Pass && x.Domain == "doitac.test" && x.KeyBits == 2048);
+        dkim.Should().NotBeNullOrWhiteSpace("Postfix relays to mx.bluemail.test (BlueMail.Mx must be running)");
+        using var doc = System.Text.Json.JsonDocument.Parse(dkim!);
+        doc.RootElement.GetArrayLength().Should().Be(1);
+        var r = doc.RootElement[0];
+        r.GetProperty("result").GetString().Should().Be("pass");
+        r.GetProperty("domain").GetString().Should().Be("doitac.test");
+        r.GetProperty("selector").GetString().Should().Be("dt2026");
+    }
+
+    private static string Psql(string sql)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo("docker") { RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var a in new[] { "exec", Environment.GetEnvironmentVariable("BM_PG_CONTAINER") ?? "bluemail-dev-postgres-1", "psql", "-U", "bluemail", "-d", "bluemail", "-tAc", sql })
+        {
+            psi.ArgumentList.Add(a);
+        }
+
+        using var p = System.Diagnostics.Process.Start(psi)!;
+        var output = p.StandardOutput.ReadToEnd();
+        p.WaitForExit();
+        return output.Trim();
     }
 }
 

@@ -344,3 +344,22 @@ internal sealed class LabelChangeConfig : IEntityTypeConfiguration<LabelChange>
         b.HasOne<Label>().WithMany().HasForeignKey(x => x.LabelId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+internal sealed class MailLogConfig : IEntityTypeConfiguration<BlueMail.Domain.Admin.MailLogEntry>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Admin.MailLogEntry> b)
+    {
+        b.ToTable("mail_log", "admin");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.RfcMessageId).HasMaxLength(998);
+        b.Property(x => x.EnvelopeFrom).HasMaxLength(320);
+        b.Property(x => x.Rcpt).HasMaxLength(320);
+        b.Property(x => x.RemoteIp).HasMaxLength(45);
+        b.Property(x => x.RemoteHost).HasMaxLength(255);
+        b.Property(x => x.SmtpResponse).HasMaxLength(1000);
+        b.Property(x => x.Details).HasColumnType("jsonb");
+        b.HasIndex(x => new { x.TenantId, x.OccurredAt });
+        b.HasIndex(x => new { x.TenantId, x.Rcpt, x.OccurredAt });
+        b.HasIndex(x => new { x.TenantId, x.RfcMessageId });
+    }
+}

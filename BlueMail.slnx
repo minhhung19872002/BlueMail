@@ -10,6 +10,7 @@
     <Project Path="src/BlueMail.Infrastructure/BlueMail.Infrastructure.csproj" />
     <Project Path="src/BlueMail.MailStore/BlueMail.MailStore.csproj" />
     <Project Path="src/BlueMail.Mime/BlueMail.Mime.csproj" />
+    <Project Path="src/BlueMail.Mx/BlueMail.Mx.csproj" />
     <Project Path="src/BlueMail.Protocols.Smtp/BlueMail.Protocols.Smtp.csproj" />
     <Project Path="src/BlueMail.Scanner/BlueMail.Scanner.csproj" />
   </Folder>

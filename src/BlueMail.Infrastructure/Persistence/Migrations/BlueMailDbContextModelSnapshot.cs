@@ -23,6 +23,93 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("BlueMail.Domain.Admin.MailLogEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("direction");
+
+                    b.Property<string>("EnvelopeFrom")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("envelope_from");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Rcpt")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("rcpt");
+
+                    b.Property<string>("RemoteHost")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("remote_host");
+
+                    b.Property<string>("RemoteIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("remote_ip");
+
+                    b.Property<string>("RfcMessageId")
+                        .HasMaxLength(998)
+                        .HasColumnType("character varying(998)")
+                        .HasColumnName("rfc_message_id");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size");
+
+                    b.Property<string>("SmtpResponse")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("smtp_response");
+
+                    b.Property<double?>("SpamScore")
+                        .HasColumnType("double precision")
+                        .HasColumnName("spam_score");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_mail_log");
+
+                    b.HasIndex("TenantId", "OccurredAt")
+                        .HasDatabaseName("ix_mail_log_tenant_id_occurred_at");
+
+                    b.HasIndex("TenantId", "RfcMessageId")
+                        .HasDatabaseName("ix_mail_log_tenant_id_rfc_message_id");
+
+                    b.HasIndex("TenantId", "Rcpt", "OccurredAt")
+                        .HasDatabaseName("ix_mail_log_tenant_id_rcpt_occurred_at");
+
+                    b.ToTable("mail_log", "admin");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Audit.AuditLog", b =>
                 {
                     b.Property<long>("Id")

@@ -71,8 +71,8 @@ Chạy: `dotnet test BlueMail.slnx` (unit + tích hợp với PostgreSQL và Val
 
 ## Phase 2 — thư viện nền tự viết
 
-Chạy: `dotnet test tests/BlueMail.InteropTests` (cần mạng dev đang chạy: container `tools`, CoreDNS, Postfix,
-bộ hứng `phase0`); `dotnet test tests/BlueMail.FuzzTests` (mặc định 1 500 lần/đích; chạy dài:
+Chạy: `dotnet test tests/BlueMail.InteropTests` (cần mạng dev đang chạy: container `tools`, CoreDNS, Postfix;
+từ Phase 3 thư tới bluemail.test do `mx` nhận); `dotnet test tests/BlueMail.FuzzTests` (mặc định 1 500 lần/đích; chạy dài:
 `BM_FUZZ_ITERATIONS=100000 BM_FUZZ_SEED=<n>`). Fuzz dài bằng libFuzzer: xem `tests/BlueMail.FuzzTests/Program.cs`.
 
 | Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
@@ -89,3 +89,32 @@ bộ hứng `phase0`); `dotnet test tests/BlueMail.FuzzTests` (mặc định 1 5
 | P2-10 | Bộ quét: mẫu sạch | 15 mẫu (PDF, ảnh, docx/xlsx, zip, csv, văn bản nhiều ngôn ngữ, tar/gz…) | `Clean` | 15/15 | ✅ |
 | P2-11 | So với ClamAV | Đưa 45 mẫu vào container ClamAV qua stdin | Có báo cáo khác biệt; ClamAV thấy EICAR | ClamAV chỉ bắt EICAR và DDE (theo chữ ký); BlueMail bắt các mẫu cấu trúc; khác biệt ngược duy nhất `eicar.txt` (lớp 8, Phase 6) | ✅ |
 | P2-12 | Fuzz | 5 đích × 100 000 lần × 3 hạt giống | Không ngoại lệ ngoài danh sách, không treo, bộ nhớ < 1,5 GB | Sạch sau khi sửa BUG-011..015 do fuzz tìm ra | ✅ |
+
+## Phase 3 — kho thư và nhận thư (BlueMail.Mx)
+
+Chạy: `sh scripts/dev-phase3-check.sh` (mạng dev có `mx` ở 10.77.0.25; CSDL đã migrate + seed bằng
+`scripts/dev-run.sh identity` một lần). Phép thử đơn vị: `--filter Smtp|MailStore`; tích hợp:
+`MailDeliveryTests` (PostgreSQL, Valkey, Garage S3 thật trong container). Máy khách đối chứng: Postfix (doitac.test),
+swaks, Python `smtplib` và socket thô (`tests/interop/mx_checks.py`).
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P3-01 | Postfix → mx | swaks gửi qua Postfix của doitac.test (ký DKIM, có trong SPF) tới `minh@` | Lưu đúng 1 bản, `spf=pass dkim=pass dmarc=pass`, có UID IMAP trong INBOX của minh | Như mong đợi | ✅ |
+| P3-02 | Không relay mở | RCPT tới `someone@example.org` | 550 5.7.1 tại RCPT | 550 | ✅ |
+| P3-03 | Người nhận không tồn tại | RCPT `no.such.user@bluemail.test` | 550 5.1.1 ngay tại RCPT (không nhận rồi trả lại) | 550, ghi `admin.mail_log` | ✅ |
+| P3-04 | Bí danh, nhóm, địa chỉ phụ | `sales@`, `kinhdoanh@`, `lan+news@` | 250; nhóm + thành viên + bí danh trong 1 giao dịch → mỗi hộp 1 bản (4 hộp) | 4 bản / 4 hộp; cùng 1 blob (khử trùng SHA-256) | ✅ |
+| P3-05 | Quá cỡ | `SIZE=` vượt giới hạn; DATA thật vượt 50 MB | 552 tại MAIL; 552 sau dấu chấm, không lưu gì | Như mong đợi | ✅ |
+| P3-06 | SMTPUTF8 | Phong bì `người.gửi@ví-dụ.test`, tiêu đề tiếng Việt | Nhận; thiếu tham số SMTPUTF8 → 553 5.6.7 | Như mong đợi (sau BUG-017) | ✅ |
+| P3-07 | BDAT | 2 khúc, có dòng bắt đầu bằng dấu chấm | 250 mỗi khúc; nội dung nguyên vẹn (không xử lý dấu chấm) | Như mong đợi | ✅ |
+| P3-08 | PIPELINING | MAIL+RCPT+RCPT(sai)+DATA trong 1 gói | Trả lời đúng thứ tự 250,250,550,354; chỉ người nhận hợp lệ được lưu | Như mong đợi | ✅ |
+| P3-09 | Tiêm lệnh STARTTLS | `STARTTLS\r\nMAIL FROM:…` trong 1 gói | Lệnh tiêm bị bỏ; trong TLS (≥1.2) phải EHLO lại; không còn quảng bá STARTTLS | Như mong đợi (cả phép thử socket trong UnitTests) | ✅ |
+| P3-10 | Nói trước lời chào | Gửi EHLO trước banner | 554 5.7.1 và đóng | Như mong đợi | ✅ |
+| P3-11 | DMARC p=reject | Giả `From: an@doitac.test` từ máy ngoài SPF, không ký | 550 5.7.1 trong phiên, không lưu, ghi mail_log | Như mong đợi | ✅ |
+| P3-12 | Tệp nguy hiểm | Đính kèm PE giả `hoa-don.pdf.exe` | 554 5.7.1 trong phiên, không lưu | Như mong đợi | ✅ |
+| P3-13 | Lỗi lặp lại | 10 lệnh sai | 421 và đóng kết nối | Như mong đợi | ✅ |
+| P3-14 | Mã hoá S3 | `MailDeliveryTests` | Đối tượng trên S3 không chứa bản rõ; đọc lại đủ và theo khoảng (3 khúc 64 KiB); tenant khác không mở được | Như mong đợi; đổi bit, đổi thứ tự khúc, cắt cụt → `CryptographicException` | ✅ |
+| P3-15 | Luồng thư | References/In-Reply-To; tiền tố `TL: Re:`; cùng tiêu đề không tiền tố | 2 trường hợp đầu vào cùng luồng; trường hợp 3 luồng mới | Như mong đợi | ✅ |
+| P3-16 | Giao song song | 24 thư cùng lúc vào 1 hộp | UID và modseq không trùng, `uid_next` > UID lớn nhất | Như mong đợi | ✅ |
+| P3-17 | Tìm kiếm đa ngôn ngữ | "hop dong" / "HỢP ĐỒNG" / "签署" | Khớp không dấu, không phân biệt hoa thường, chuỗi con CJK | Như mong đợi | ✅ |
+| P3-18 | Sự kiện thay đổi | Theo dõi kênh Valkey `bm:mbx:<id>` | Nhận `message.added`; giao vào hộp của tenant khác → từ chối | Như mong đợi | ✅ |
+| P3-19 | Fuzz | Đích `smtp` (khung dòng, DATA, BDAT, máy trạng thái) và `text` × 100 000 × 3 hạt giống | Không ngoại lệ, không treo | Sạch sau khi sửa BUG-020 (fuzz `text` tìm ra phi ký tự Unicode làm hỏng giao thư) | ✅ |

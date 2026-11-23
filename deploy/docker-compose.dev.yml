@@ -90,7 +90,28 @@ services:
     <<: *dns
     networks: { bmnet: { ipv4_address: 10.77.0.42 } }
 
-  # --- test-only, Phase 0: SMTP sink on mx.bluemail.test until BlueMail.Mx exists ---
+  # --- BlueMail.Mx on mx.bluemail.test (Phase 3). Needs a migrated database: run scripts/dev-run.sh
+  # (identity migrates and seeds) once before starting it. ---
+  mx:
+    build: { context: .., dockerfile: deploy/docker/server.Dockerfile }
+    image: bluemail/server:dev
+    command: ["mx"]
+    <<: *dns
+    sysctls: { net.ipv4.ip_unprivileged_port_start: "25" }
+    env_file: [.env.dev]
+    environment:
+      BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_VALKEY: 10.77.0.12:6379
+      BM_S3_ENDPOINT: http://10.77.0.11:3900
+      BM_DNS_SERVERS: 10.77.0.53
+      BM_MX_PORT: "25"
+      ASPNETCORE_ENVIRONMENT: Development
+    depends_on: [postgres, valkey, s3, dns]
+    networks: { bmnet: { ipv4_address: 10.77.0.25 } }
+    restart: unless-stopped
+
+  # --- test-only, Phase 0: SMTP sink that stood on mx.bluemail.test before BlueMail.Mx existed.
+  # Kept for the Phase 0 check only (profile phase0, on another address so it never collides with mx). ---
   sink:
     image: bluemail-dev/tools:0.1
     profiles: ["phase0"]
@@ -98,7 +119,7 @@ services:
     volumes:
       - ..:/work:ro
       - sink:/sink
-    networks: { bmnet: { ipv4_address: 10.77.0.25 } }
+    networks: { bmnet: { ipv4_address: 10.77.0.24 } }
 
 networks:
   bmnet:

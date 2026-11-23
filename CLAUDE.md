@@ -41,3 +41,12 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Fuzz finds a crash: keep the saved input (`tests/interop/out/fuzz`), write a red unit test, fix, log in docs/08.
 - Never write EICAR or other AV-test files to the host disk (Windows Defender deletes them); stream them into containers.
 
+## Mail flow (Phase 3)
+- `BlueMail.Protocols.Smtp`: `SmtpServerSession` (state machine, no I/O, `ISmtpHandler` hooks) + `SmtpTransport`
+  (stream framing, DATA/BDAT to temp files, STARTTLS). Reused by submission (Phase 4).
+- `BlueMail.Mx` runs in the dev compose (`mx`, 10.77.0.25, image `bluemail/server:dev`, `command: [mx]`); rebuild it
+  after code changes: `docker compose … up -d --build mx`. It needs a migrated DB (run identity once).
+- `PgMailStore.DeliverAsync`: S3 first (chunked AES-GCM per tenant, `ChunkedAead`), then one PG transaction, then
+  the Valkey event `bm:mbx:<mailbox>`. Only `MessageFacts.Extract` decides what is indexed.
+- Integration tests start Garage too (StackFixture); the Garage image has no shell: wait on log lines, not port probes.
+- Acceptance: `sh scripts/dev-phase3-check.sh` (uses `tests/interop/mx_checks.py`).

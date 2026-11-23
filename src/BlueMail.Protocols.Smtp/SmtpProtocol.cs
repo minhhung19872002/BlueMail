@@ -150,7 +150,14 @@ public static class SmtpParser
         {
             var eq = p.IndexOf('=');
             var key = eq < 0 ? p : p[..eq];
-            if (key.Length == 0 || !key.All(c => char.IsAsciiLetterOrDigit(c) || c == '-') || !parameters.TryAdd(key, eq < 0 ? null : p[(eq + 1)..]))
+            var value = eq < 0 ? null : p[(eq + 1)..];
+            if (key.Length == 0 || !key.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'))
+            {
+                return null;
+            }
+
+            // An identical repeat is harmless (Python smtplib sends SMTPUTF8 twice); conflicting values are an error.
+            if (!parameters.TryAdd(key, value) && !string.Equals(parameters[key], value, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }

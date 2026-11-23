@@ -37,6 +37,7 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<Session> Sessions => Set<Session>();
     public DbSet<LoginEvent> LoginEvents => Set<LoginEvent>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<BlueMail.Domain.Admin.MailLogEntry> MailLog => Set<BlueMail.Domain.Admin.MailLogEntry>();
 
     /// <summary>ASP.NET Core Data Protection key ring (cookies, 2FA setup tokens), shared by all instances.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();

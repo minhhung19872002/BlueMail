@@ -137,7 +137,7 @@ public class MailThread : TenantEntity
     public bool Muted { get; set; }
 }
 
-public enum VirusStatus { Clean, Infected, Unscanned }
+public enum VirusStatus { Clean, Infected, Suspicious, Unscanned }
 
 public class Attachment : TenantEntity
 {

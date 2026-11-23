@@ -12,14 +12,17 @@ for the full specification.
 | 0 | Test harness (CoreDNS, Postfix/OpenDKIM `doitac.test`, reference tools), decisions Z1–Z8, mail corpus | done |
 | 1 | Foundation: solution, BlueID (OIDC, 2FA, sessions), tenants + isolation, hash-chained audit log, health, Serilog, mail store schema (modseq/UID, partitioned), React shell | done |
 | 2 | Own libraries: BlueMail.Mime, BlueMail.Dns, BlueMail.Dkim (DKIM + ARC), BlueMail.Scanner (layers 1–6); verified against Python email, dnspython, dkimpy, OpenDKIM, Postfix and ClamAV; fuzzed | done |
-| 3 | IMailStore + encrypted S3 store, threading, multilingual search; BlueMail.Mx (SMTP in, SPF/DKIM/DMARC/ARC, scanning, delivery) | next |
+| 3 | IMailStore + encrypted S3 store, threading, multilingual search; BlueMail.Mx (SMTP in, SPF/DKIM/DMARC/ARC, scanning, delivery) | done |
 
 ## Quick start (development)
 
 ```sh
-docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev --profile phase0 up -d --build
+docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev up -d --build dns postgres s3 valkey doitac tools
 MSYS_NO_PATHCONV=1 sh scripts/s3-init.sh
 MSYS_NO_PATHCONV=1 sh scripts/dev-phase0-check.sh
+sh scripts/dev-run.sh identity     # once: migrates the database and seeds the sample tenants (Ctrl+C after start)
+docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev up -d --build mx   # mx.bluemail.test, 10.77.0.25
+sh scripts/dev-phase3-check.sh     # receive mail through Postfix, swaks/smtplib checks, database verification
 ```
 
 Run the processes on the host against the dev containers:

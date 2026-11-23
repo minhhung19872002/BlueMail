@@ -1,6 +1,7 @@
 #!/bin/sh
 # Phase 0 acceptance check for the dev test network (PROMPT Z1, Z2).
-# Requires: dev stack running with profile phase0 (sink on 10.77.0.25).
+# Requires: dev stack running. Since Phase 3, mail for bluemail.test is received by BlueMail.Mx (10.77.0.25);
+# what the Phase 0 sink checked (delivery + DKIM pass) is now checked by scripts/dev-phase3-check.sh.
 #   docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev --profile phase0 up -d --build
 set -eu
 
@@ -23,11 +24,6 @@ main() {
 
   marker="phase0-$(date +%s)"
   check "postfix: relay out to mx.bluemail.test" "$tools swaks --server 10.77.0.30 --from an@doitac.test --to lan@bluemail.test --header 'Subject: $marker' --tls"
-  sleep 3
-  check "sink: received + dkimpy pass" "$tools python -c \"
-import dkim, glob
-files=[f for f in glob.glob('/sink/*.eml') if b'$marker' in open(f,'rb').read()]
-assert files and dkim.verify(open(files[-1],'rb').read())\""
   check "postfix: inbound to binh@doitac.test" "$tools swaks --server 10.77.0.30 --from probe@bluemail.test --to binh@doitac.test --header 'Subject: in-$marker'"
   sleep 2
   check "postfix: maildir has message with Authentication-Results" "$tools sh -c 'grep -l \"in-$marker\" /doitacmail/doitac.test/binh/new/* | xargs grep -q ^Authentication-Results'"

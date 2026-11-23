@@ -82,6 +82,20 @@ public sealed class MutationFuzzTests
                 Encoding.UTF8.GetBytes("attachment; filename*0*=utf-8''%E1%BA%A1; filename*1=b.pdf"),
             ],
             "scanner" => [.. ScannerSamples.Dangerous().Concat(ScannerSamples.Clean()).Where(s => s.Data.Length < 2_000_000).Select(s => s.Data)],
+            "smtp" =>
+            [
+                Encoding.ASCII.GetBytes("\x01DATA\r\nSubject: x\r\n\r\n..dot\r\n.\r\nQUIT\r\n"),
+                Encoding.ASCII.GetBytes("\x01BDAT 5\r\nabcdeBDAT 3 LAST\r\nxyzRSET\r\nBDAT 2\r\nhi"),
+                Encoding.UTF8.GetBytes("EHLO a\r\nMAIL FROM:<ân@ví.test> SMTPUTF8 SIZE=10 BODY=8BITMIME\r\nRCPT TO:<b@c> NOTIFY=NEVER\r\nDATA\r\nx\n.\nVRFY x\r\nSTARTTLS\r\n"),
+                Encoding.ASCII.GetBytes("HELO\r\nMAIL FROM:<>\r\nRCPT TO:<\"q uo\\\"te\"@[192.0.2.1]>\r\nBDAT 99999999999999999999\r\nNOOP\r\n"),
+            ],
+            "text" =>
+            [
+                Encoding.UTF8.GetBytes("RE[2]: Fwd: TL: [team] 回复：Báo giá"),
+                Encoding.UTF8.GetBytes("v=DMARC1; p=reject; sp=none; pct=50; adkim=s; aspf=r; rua=mailto:a@b"),
+                Encoding.UTF8.GetBytes("MAIL FROM:<@a,@b:x@y.test> SIZE=1 SIZE=1"),
+                Encoding.UTF8.GetBytes("สวัสดี 合同已经签署 👨‍👩‍👧 \0 �"),
+            ],
             _ => corpus,
         };
     }

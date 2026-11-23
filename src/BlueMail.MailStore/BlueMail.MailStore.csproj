@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\BlueMail.Infrastructure\BlueMail.Infrastructure.csproj" />
+    <ProjectReference Include="..\BlueMail.Mime\BlueMail.Mime.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="BlueMail.IntegrationTests" />

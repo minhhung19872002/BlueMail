@@ -7,7 +7,7 @@ using Npgsql;
 namespace BlueMail.MailStore;
 
 /// <summary>PostgreSQL implementation of <see cref="IMailStore"/>.</summary>
-public sealed class PgMailStore(BlueMailDbContext db) : IMailStore
+public sealed partial class PgMailStore(BlueMailDbContext db, BlobStore blobs, IMailEvents events) : IMailStore
 {
     public async Task<Guid> ProvisionMailboxAsync(Guid tenantId, Guid ownerId, MailboxOwnerKind kind, CancellationToken ct = default)
     {

@@ -98,6 +98,10 @@ public sealed class SampleDataSeeder(
                          ?? await tenants.CreateAsync(new NewTenant(t.Code, t.Name, t.Domain, t.Locale, t.TimeZone, UserLimit: 100,
                              StorageQuotaBytes: 1024L * 1024 * 1024 * 1024), ct);
 
+            // The sample domains are published in the dev DNS (deploy/coredns): mark them verified so mail is accepted.
+            await db.Domains.IgnoreQueryFilters().Where(d => d.TenantId == tenant.Id && d.VerifiedAt == null)
+                .ExecuteUpdateAsync(d => d.SetProperty(x => x.VerifiedAt, DateTimeOffset.UtcNow), ct);
+
             var units = new Dictionary<string, Guid>(StringComparer.Ordinal);
             foreach (var name in t.OrgUnits)
             {

@@ -73,6 +73,8 @@ public class SmtpSessionTests
     [InlineData("MAIL FROM:<@relay.test:a@x.test>", 250)]    // source route dropped
     [InlineData("MAIL FROM:<a@@x.test>", 501)]
     [InlineData("MAIL FROM:<a b@x.test>", 501)]
+    [InlineData("MAIL FROM:<ân@ví-dụ.test> SMTPUTF8 SMTPUTF8 BODY=8BITMIME", 250)] // Python smtplib repeats SMTPUTF8
+    [InlineData("MAIL FROM:<a@x.test> BODY=7BIT BODY=8BITMIME", 501)]
     public async Task Mail_from_parameters(string line, int expected)
     {
         var s = New(new FakeHandler());

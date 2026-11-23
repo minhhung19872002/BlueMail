@@ -27,3 +27,13 @@ Mỗi RFC: phạm vi đã làm, chưa làm, bằng chứng kiểm thử. Cập n
 | RFC 8463 | `BlueMail.Dkim` | nhận diện, báo neutral | ký/kiểm Ed25519 (BCL không có) | `Rsa_sha1_fails_and_ed25519_is_neutral` |
 | RFC 8617 | `BlueMail.Dkim` | kiểm chuỗi ARC, niêm chặng mới | — | `ArcInteropTests` |
 | RFC 1952 / ZIP APPNOTE / RAR 4-5 / MS-CFB / ISO 9660 | `BlueMail.Scanner` | xem `src/BlueMail.Scanner/README.md` | liệt kê 7z có thư mục nén LZMA | `ScannerSampleTests`, `ScannerClamAvComparisonTests` |
+| RFC 5321 | `BlueMail.Protocols.Smtp`, `BlueMail.Mx` | máy trạng thái EHLO/HELO/MAIL/RCPT/DATA/RSET/NOOP/QUIT/VRFY(252)/EXPN(502)/HELP; dot-unstuffing; giới hạn dòng, người nhận (452), lỗi lặp (421); Received (4.4); từ chối tại RCPT | AUTH (Phase 4, submission), DSN NOTIFY/RET chỉ nhận chưa dùng (Phase 5) | `SmtpSessionTests`, `SmtpTransportTests`, `mx_checks.py` |
+| RFC 2920 PIPELINING | `BlueMail.Protocols.Smtp` | trả lời theo thứ tự cho nhóm lệnh | — | `Pipelined_transaction…`, P3-08 |
+| RFC 1870 SIZE | idem | quảng bá, từ chối ở MAIL (552), đếm thật khi DATA/BDAT | — | P3-05 |
+| RFC 6152 8BITMIME / RFC 3030 CHUNKING | idem | BODY=7BIT/8BITMIME/BINARYMIME; BDAT nhiều khúc, chỉ BDAT/RSET/QUIT/NOOP giữa chừng | — | `Bdat_rules`, `Bdat_chunks_are_joined…`, P3-07 |
+| RFC 6531 SMTPUTF8 | idem | phong bì UTF-8, 553 5.6.7 khi thiếu tham số, `with UTF8SMTP(S)` | hạ cấp khi gửi đi (Phase 5) | P3-06 |
+| RFC 3207 STARTTLS | idem | TLS 1.2+, bỏ dữ liệu tiêm trước bắt tay, đặt lại phiên sau TLS | DANE/MTA-STS khi gửi đi (Phase 5) | `Starttls_injection…`, P3-09 |
+| RFC 2034 ENHANCEDSTATUSCODES | idem | mã x.y.z ở mọi trả lời sau EHLO | — | `Reply_formatting_multiline_and_enhanced` |
+| RFC 8601 | `BlueMail.Mx` | thêm Authentication-Results (spf, dkim, dmarc, arc) ở đầu bản lưu | xoá A-R giả mạo cùng authserv-id (hiện chỉ không tin, Phase 6) | P3-01 |
+| RFC 7208 SPF | `BlueMail.Auth` | mọi cơ chế và modifier, giới hạn 10 tra cứu DNS / 2 void, macro, exp= | — | `SpfSuiteTests` (bộ thử chính thức rfc7208-tests.yml) |
+| RFC 7489 DMARC | `BlueMail.Auth` | tìm chính sách ở From rồi tên miền tổ chức (PSL), căn chỉnh relaxed/strict, pct, sp= | báo cáo rua/ruf (Phase 7) | `DmarcPslTests`, P3-11 |

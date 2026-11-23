@@ -34,13 +34,26 @@ public sealed class StackFixture : IAsyncLifetime
         .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("Ready to accept connections"))
         .Build();
 
+    // Garage, the S3 server of the deployment (deploy/garage), configured like scripts/s3-init.sh.
+    public const string S3AccessKey = "GK" + "00112233445566778899aabb";
+    public const string S3SecretKey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
+
+    private readonly IContainer _s3 = new ContainerBuilder("dxflrs/garage:v2.5.0")
+        .WithResourceMapping(File.ReadAllBytes(Path.Combine(RepoRoot(), "deploy", "garage", "garage.toml")), DotNet.Testcontainers.Builders.FilePath.Of("/etc/garage.toml"))
+        .WithEnvironment("GARAGE_RPC_SECRET", Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)))
+        .WithEnvironment("GARAGE_ADMIN_TOKEN", "test-admin")
+        .WithPortBinding(3900, true)
+        .WithWaitStrategy(Wait.ForUnixContainer().UntilMessageIsLogged("S3 API server listening")) // image has no shell for port probes
+        .Build();
+
     public WebApplicationFactory<SignInService> Identity { get; private set; } = null!;
     public WebApplicationFactory<BlueMail.Api.ApiAssemblyMarker> Api { get; private set; } = null!;
     public string ConnectionString { get; private set; } = "";
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(_pg.StartAsync(), _valkey.StartAsync());
+        await Task.WhenAll(_pg.StartAsync(), _valkey.StartAsync(), _s3.StartAsync());
+        await InitGarageAsync();
         ConnectionString = _pg.GetConnectionString() + ";Include Error Detail=true";
         await using (var conn = new NpgsqlConnection(ConnectionString))
         {
@@ -56,9 +69,9 @@ public sealed class StackFixture : IAsyncLifetime
             ["BM_DB_CONNECTION"] = ConnectionString,
             ["BM_MASTER_KEY"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
             ["BM_VALKEY"] = $"{_valkey.Hostname}:{_valkey.GetMappedPublicPort(6379)}",
-            ["BM_S3_ENDPOINT"] = "http://127.0.0.1:9",
-            ["BM_S3_ACCESS_KEY"] = "test",
-            ["BM_S3_SECRET_KEY"] = "test",
+            ["BM_S3_ENDPOINT"] = $"http://{_s3.Hostname}:{_s3.GetMappedPublicPort(3900)}",
+            ["BM_S3_ACCESS_KEY"] = S3AccessKey,
+            ["BM_S3_SECRET_KEY"] = S3SecretKey,
             ["BM_IDENTITY_URL"] = IdentityUrl,
             ["BM_WEB_URL"] = WebUrl,
             ["BM_MAIL_HOSTNAME"] = "mx.bluemail.test",
@@ -88,6 +101,52 @@ public sealed class StackFixture : IAsyncLifetime
         await Identity.DisposeAsync();
         await _pg.DisposeAsync();
         await _valkey.DisposeAsync();
+        await _s3.DisposeAsync();
+    }
+
+    private async Task InitGarageAsync()
+    {
+        async Task<string> Garage(params string[] args)
+        {
+            var r = await _s3.ExecAsync(["/garage", .. args]);
+            if (r.ExitCode != 0)
+            {
+                throw new InvalidOperationException($"garage {string.Join(' ', args)}: {r.Stderr}");
+            }
+
+            return r.Stdout;
+        }
+
+        string status = "";
+        for (var i = 0; i < 30; i++)
+        {
+            var r = await _s3.ExecAsync(["/garage", "status"]);
+            if (r.ExitCode == 0 && System.Text.RegularExpressions.Regex.IsMatch(r.Stdout, "(?m)^[0-9a-f]{16}"))
+            {
+                status = r.Stdout;
+                break;
+            }
+
+            await Task.Delay(500);
+        }
+
+        var node = System.Text.RegularExpressions.Regex.Match(status, "(?m)^([0-9a-f]{16})").Groups[1].Value;
+        await Garage("layout", "assign", "-z", "dc1", "-c", "1G", node);
+        await Garage("layout", "apply", "--version", "1");
+        await Garage("key", "import", "--yes", "-n", "bluemail", S3AccessKey, S3SecretKey);
+        await Garage("bucket", "create", "bm-messages");
+        await Garage("bucket", "allow", "--read", "--write", "--owner", "bm-messages", "--key", S3AccessKey);
+    }
+
+    public static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "BlueMail.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        return dir?.FullName ?? throw new InvalidOperationException("Repository root not found.");
     }
 
     public AsyncServiceScope ApiScope() => Api.Services.CreateAsyncScope();
