@@ -194,3 +194,28 @@ kết quả mới nhất ghi ở `tests/BlueMail.SpamCorpus/last-report.txt` m�
 
 Chưa làm trong Phase 6 (đúng phase sau): trừ điểm người gửi có trong danh bạ (danh bạ ở Phase 8); giao diện quản trị
 cho cài đặt rác, danh sách chặn và cách ly (Phase 9 — API đã có); quản trị viên xem bảng điểm ở tìm vết thư (Phase 9).
+
+## Phase 7 — tìm kiếm toán tử, bộ lọc, chặn, trả lời tự động, chuyển tiếp
+
+Chạy: `dotnet test --filter "Search|Rules"` (đơn vị), `dotnet test tests/BlueMail.IntegrationTests --filter RulesTests`,
+web `npx vitest run`. Kiểm thật qua SMTP: `docker compose … up -d --build mx outbound`, `sh scripts/dev-phase7-check.sh`
+(gửi qua Postfix của doitac.test bằng `tests/interop/rules_checks.py`, đọc Maildir của doitac).
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P7-01 | Bộ phân tích toán tử | Mỗi toán tử ở mục 6.7; 27 câu sai | Cây đúng; câu sai báo mã lỗi rõ (ngoặc, ngày, kích thước, OR treo, khoảng ngày ngược…), không coi là từ khoá | Như mong đợi (`SearchParserTests`, 84 ca) | ✅ |
+| P7-02 | Một luật, hai lối | 33 câu trên 4 thư đa ngôn ngữ | SQL tìm kiếm và bộ so khớp của bộ lọc cho cùng kết quả | Như mong đợi | ✅ |
+| P7-03 | Tìm kiếm trên web | Ô tìm kiếm, `(bao gia` | Kết quả; câu sai hiện lý do bằng tiếng của người dùng | Như mong đợi sau BUG-035 | ✅ |
+| P7-04 | Tìm kiếm nâng cao | Biểu mẫu → chuỗi toán tử; "Tạo bộ lọc"; 375 px | Đúng chuỗi; mở bộ lọc với tiêu chí; trên điện thoại là hộp thoại | Như mong đợi sau BUG-040 | ✅ |
+| P7-05 | Bộ lọc qua SMTP | Postfix → mx, bộ lọc "from:… subject:…" bỏ hộp thư đến + đọc + sao | Thư khớp: không ở Hộp thư đến, đã đọc, gắn sao; thư không khớp ở Hộp thư đến | Như mong đợi | ✅ |
+| P7-06 | Áp dụng cho thư có sẵn | Lưu bộ lọc, chọn "áp dụng cho N thư" | Chạy nền, có tiến độ; kết quả như lúc giao thư | Như mong đợi (`FilterJobWorker`, SKIP LOCKED + lease) | ✅ |
+| P7-07 | Gmail XML | Nhập tệp xuất của Gmail; xuất rồi nhập lại | Tiêu chí thành câu toán tử, nhãn tạo nếu thiếu, mục không hỗ trợ được báo; DOCTYPE bị từ chối | Như mong đợi | ✅ |
+| P7-08 | Chặn người gửi | Chặn binh@doitac.test; gửi qua Postfix | Vào Thư rác; bộ lọc "không bao giờ là rác" không kéo ra được | Như mong đợi | ✅ |
+| P7-09 | Trả lời tự động | Bật; gửi 2 thư cùng người; thư danh sách; thư Auto-Submitted | Đúng 1 trả lời, `MAIL FROM:<>`, `Auto-Submitted: auto-replied`, In-Reply-To đúng; không trả lời danh sách/thư tự động | Như mong đợi sau BUG-037 | ✅ |
+| P7-10 | Chuyển tiếp có xác minh | Thêm địa chỉ → mã 6 số gửi tới địa chỉ; nhập sai/đúng; bật | Chưa xác minh không bật được; sai mã 400; đúng mã bật được | Như mong đợi | ✅ |
+| P7-11 | Chuyển tiếp thật | ngoc → binh@doitac.test qua Outbound | Postfix nhận: Return-Path SRS0, ARC-Seal i=1 d=bluemail.test, DKIM gốc của doitac.test vẫn pass, có dấu chống vòng | Như mong đợi | ✅ |
+| P7-12 | Chống vòng, chính sách | Thư đã có dấu của hộp thư; quản trị cấm chuyển ra ngoài | Không chuyển tiếp lại; chuyển tiếp ra ngoài dừng, thêm địa chỉ ngoài bị 403 | Như mong đợi | ✅ |
+| P7-13 | SRS ngược | Bounce tới địa chỉ SRS; người gửi thường; địa chỉ giả; chuyển tiếp tới địa chỉ không tồn tại | Bounce chuyển về người gửi gốc; 550 cho người gửi thường và hash sai; DSN của Outbound về người gửi gốc | Như mong đợi sau BUG-039 | ✅ |
+
+Chưa làm trong Phase 7 (đúng phase sau): gợi ý khi gõ ở ô tìm kiếm (danh bạ ở Phase 8), "chỉ trả lời danh bạ" dùng
+danh bạ thật (Phase 8), giao diện quản trị chính sách chuyển tiếp (Phase 9 — API đã có).

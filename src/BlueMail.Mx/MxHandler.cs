@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using BlueMail.Antispam;
+using BlueMail.Application.Features.Rules;
 using BlueMail.Auth;
 using BlueMail.Dkim;
 using BlueMail.Dns;
@@ -43,6 +44,9 @@ public sealed class MxHandler(
     ILogger<MxHandler> log) : ISmtpHandler
 {
     private readonly Dictionary<string, ResolvedRecipient> _recipients = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Bounces to our SRS addresses (rcpt -> original sender, tenant), relayed back (PROMPT 6.8).</summary>
+    private readonly Dictionary<string, (string Original, Guid Tenant)> _srsBounces = new(StringComparer.OrdinalIgnoreCase);
     private string? _ptr;
     private SpfOutcome? _spf;
 
@@ -72,6 +76,7 @@ public sealed class MxHandler(
     public async ValueTask<SmtpReply?> OnMailFromAsync(SmtpEnvelope session, SmtpPath from, CancellationToken ct)
     {
         _recipients.Clear();
+        _srsBounces.Clear();
         var spf = new SpfEvaluator(new DnsClientSpfDns(dns));
         _spf = await spf.CheckAsync(session.RemoteAddress, from.Address, session.Helo, ct);
         if (_spf.Result == SpfResult.Fail)
@@ -88,6 +93,21 @@ public sealed class MxHandler(
         using var scope = scopes.CreateScope();
         var resolver = scope.ServiceProvider.GetRequiredService<RecipientResolver>();
         var r = await resolver.ResolveAsync(recipient.Address, session.DeclaredSize ?? 0, ct);
+        if (r.Status == RecipientStatus.Unknown && Application.Features.Rules.Srs.IsSrs(recipient.Address))
+        {
+            // A bounce for mail we forwarded: valid hash and age, and only from the null sender (no relaying through SRS).
+            var original = scope.ServiceProvider.GetRequiredService<Application.Features.Rules.Srs>().Reverse(recipient.Address);
+            if (original is not null && session.From is { IsNull: true })
+            {
+                _srsBounces[recipient.Address] = (original, r.TenantId);
+                return null;
+            }
+
+            var refused = new SmtpReply(550, "5.1.1", "No such user here");
+            await LogAsync(scope, session, r.TenantId, recipient.Address, null, 0, MailLogStatus.Rejected, refused, null, new { srs = original is null ? "invalid" : "not a bounce" }, ct);
+            return refused;
+        }
+
         SmtpReply? reply = r.Status switch
         {
             RecipientStatus.Ok => null,
@@ -276,6 +296,20 @@ public sealed class MxHandler(
             return reject;
         }
 
+        var rules = scope.ServiceProvider.GetRequiredService<MailboxRules>();
+        var receivedAt = DateTimeOffset.UtcNow;
+        var raw = new Lazy<byte[]>(() =>
+        {
+            var pos = final.Position;
+            final.Position = 0;
+            var buffer = new byte[final.Length];
+            final.ReadExactly(buffer);
+            final.Position = pos;
+            return buffer;
+        });
+        // Authentication results as an ARC-Authentication-Results value, when we pass the message on.
+        var authValue = arHeader[(arHeader.IndexOf(';', StringComparison.Ordinal) + 1)..].Replace("\r\n\t", " ", StringComparison.Ordinal).Trim();
+        var after = new List<(Guid Tenant, Guid Mailbox, MailboxPlan Plan, IncomingMessage Incoming)>();
         try
         {
             foreach (var group in plan.GroupBy(p => (p.Tenant, Kind: p.Verdict.Decision is SpamDecision.Reject or SpamDecision.Quarantine)))
@@ -289,11 +323,23 @@ public sealed class MxHandler(
 
                 foreach (var v in group.Select(g => g.Verdict))
                 {
-                    var labels = v.Decision == SpamDecision.Spam ? new[] { SystemLabels.Spam } : new[] { SystemLabels.Inbox, SystemLabels.CategoryPrimary };
-                    await store.DeliverAsync(new DeliveryRequest(group.Key.Tenant, final, facts, [new MailboxDelivery(v.MailboxId, labels)], DateTimeOffset.UtcNow,
+                    // Blocked senders, filters, forwarding and vacation of the mailbox (PROMPT 6.8).
+                    var incoming = new IncomingMessage(facts, raw.Value, session.From is { IsNull: false } ef ? ef.Address : null, receivedAt,
+                        v.Decision == SpamDecision.Spam, v.Final, options.AuthServId, authValue, arc.Status);
+                    var rcpts = accepted.Where(a => a.TenantId == group.Key.Tenant && a.MailboxIds.Contains(v.MailboxId)).Select(a => a.Address).ToList();
+                    var mailboxPlan = await rules.PlanAsync(group.Key.Tenant, v.MailboxId, rcpts, incoming, ct);
+                    await store.DeliverAsync(new DeliveryRequest(group.Key.Tenant, final, facts, [mailboxPlan.Delivery], receivedAt,
                         authJson, v.Score, v.ReportJson, statuses), ct);
                     final.Position = 0;
+                    after.Add((group.Key.Tenant, v.MailboxId, mailboxPlan, incoming));
                 }
+            }
+
+            foreach (var (srsRcpt, (original, srsTenant)) in _srsBounces.Where(b => session.Recipients.Any(r => r.Address.Equals(b.Key, StringComparison.OrdinalIgnoreCase))))
+            {
+                // The bounce goes back to the original sender, unchanged, from the null sender.
+                await scope.ServiceProvider.GetRequiredService<Application.Features.Rules.SystemMail>()
+                    .SendAsync(srsTenant, null, "", original, raw.Value, notification: true, null, msgId, ct);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -303,6 +349,11 @@ public sealed class MxHandler(
             var temp = new SmtpReply(451, "4.3.0", "Temporary storage failure, try again later");
             await LogAllAsync(scope, session, msgId, message.Length, MailLogStatus.Deferred, temp, null, auth, ct);
             return temp;
+        }
+
+        foreach (var (t, mb, mailboxPlan, incoming) in after)
+        {
+            await rules.AfterDeliveryAsync(t, mb, mailboxPlan, incoming, ct);
         }
 
         var ok = new SmtpReply(250, "2.0.0", "Message accepted for delivery");

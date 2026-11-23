@@ -36,7 +36,10 @@
     "account": "Account",
     "labels": "Labels",
     "labelsHeading": "Labels",
-    "signatures": "Signatures and templates"
+    "signatures": "Signatures and templates",
+    "filters": "Filters and blocked addresses",
+    "vacation": "Auto-reply",
+    "forwarding": "Forwarding"
   },
   "theme": {
     "title": "Theme",
@@ -143,7 +146,10 @@
       "saved": "Done."
     },
     "reportPhishing": "Report phishing",
-    "phishingDone": "Reported as phishing. Thank you."
+    "phishingDone": "Reported as phishing. Thank you.",
+    "blockSender": "Block {address}",
+    "blockSenderBody": "Future messages from this sender will go to Spam.",
+    "blocked": "{address} is blocked."
   },
   "sessions": {
     "title": "Security and devices",
@@ -391,5 +397,149 @@
       "BAYES_05": "Content like mail you keep.",
       "BAYES_00": "Content very much like mail you keep."
     }
+  },
+  "search": {
+    "placeholder": "Search mail",
+    "advanced": "Advanced search",
+    "resultsFor": "Results for “{q}”",
+    "search": "Search",
+    "clear": "Clear",
+    "createFilter": "Create filter",
+    "larger": "Larger than",
+    "smaller": "Smaller than",
+    "unit": "Unit",
+    "f": {
+      "from": "From",
+      "to": "To",
+      "subject": "Subject",
+      "hasWords": "Has the words",
+      "notWords": "Doesn't have",
+      "size": "Size",
+      "within": "Date within",
+      "date": "of date (yyyy/mm/dd)",
+      "where": "Search in",
+      "hasAttachment": "Has attachment",
+      "unread": "Unread"
+    },
+    "within": {
+      "any": "Any time",
+      "1d": "1 day",
+      "3d": "3 days",
+      "7d": "1 week",
+      "14d": "2 weeks",
+      "1m": "1 month",
+      "2m": "2 months",
+      "6m": "6 months",
+      "1y": "1 year"
+    },
+    "where": {
+      "all": "All mail",
+      "inbox": "Inbox",
+      "starred": "Starred",
+      "sent": "Sent",
+      "drafts": "Drafts",
+      "spam": "Spam",
+      "trash": "Trash",
+      "anywhere": "Mail & Spam & Trash"
+    }
+  },
+  "filters": {
+    "title": "Filters and blocked addresses",
+    "filters": "Filters",
+    "blocked": "Blocked addresses",
+    "new": "Create filter",
+    "edit": "Edit filter",
+    "delete": "Delete filter",
+    "deleteConfirm": "Delete this filter?",
+    "save": "Save filter",
+    "saved": "Filter saved.",
+    "none": "No filters yet.",
+    "import": "Import Gmail filters",
+    "export": "Export (Gmail format)",
+    "imported": "{count, plural, =0 {No filter imported} one {# filter imported} other {# filters imported}}.",
+    "importProblems": "Some entries were not imported as they are:",
+    "importProblem": "Entry {entry}: {reason} {detail}",
+    "problem": {
+      "no_criteria": "no condition",
+      "no_action": "no action",
+      "unknown_property": "unsupported settings ignored:",
+      "forward_not_verified": "forwarding dropped, address not verified:"
+    },
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "disabled": "Off",
+    "enabled": "On",
+    "criteria": "Matching mail (search operators, as in the search box)",
+    "criteriaHint": "for example from:an@acme.vn subject:\"invoice\"",
+    "matchesNow": "{count, plural, =0 {No conversation matches now} one {# conversation matches now} other {# conversations match now}}",
+    "whenMatches": "When a message arrives that matches:",
+    "unchanged": "Unchanged",
+    "noVerified": "Add and verify an address under Forwarding first",
+    "applyExisting": "Also apply to {count, plural, one {# matching conversation} other {# matching conversations}}",
+    "jobRunning": "Applying… {done} of {total}",
+    "jobDone": "Applied to {total, plural, one {# message} other {# messages}}.",
+    "jobFailed": "Applying to existing mail failed.",
+    "a": {
+      "skipInbox": "Skip the Inbox (archive)",
+      "markRead": "Mark as read",
+      "star": "Star it",
+      "label": "Apply labels",
+      "labelNamed": "Label “{name}”",
+      "forward": "Forward to",
+      "forwardTo": "Forward to {address}",
+      "trash": "Delete it",
+      "neverSpam": "Never send it to Spam",
+      "important": "Importance",
+      "alwaysImportant": "Always mark as important",
+      "neverImportant": "Never mark as important",
+      "category": "Categorise as",
+      "categoryNamed": "Category {name}"
+    },
+    "cat": {
+      "PRIMARY": "Primary",
+      "SOCIAL": "Social",
+      "PROMOTIONS": "Promotions",
+      "UPDATES": "Updates",
+      "FORUMS": "Forums"
+    },
+    "blockedHint": "Mail from these addresses or domains goes straight to Spam.",
+    "blockPlaceholder": "Address or domain, e.g. ads@shop.vn or shop.vn",
+    "block": "Block",
+    "unblock": "Unblock",
+    "noneBlocked": "Nobody is blocked."
+  },
+  "vacation": {
+    "title": "Auto-reply",
+    "on": "On",
+    "off": "Off",
+    "from": "First day",
+    "until": "Last day",
+    "subject": "Subject (empty: “Auto: ” + original subject)",
+    "message": "Auto-reply message",
+    "onlyContacts": "Only reply to people I have written to",
+    "onlyOrganization": "Only reply to people in my organisation",
+    "rules": "Each sender gets at most one reply every 4 days. Mailing lists, automatic messages and bulk mail never get one (RFC 3834).",
+    "save": "Save",
+    "saved": "Auto-reply saved.",
+    "banner": "Your auto-reply is on.",
+    "turnOff": "Turn off"
+  },
+  "forwarding": {
+    "title": "Forwarding",
+    "add": "Forwarding address",
+    "sendCode": "Send confirmation code",
+    "codeSent": "A confirmation code was sent to that address.",
+    "code": "Code",
+    "verify": "Confirm",
+    "resend": "Send again",
+    "verified": "Address confirmed.",
+    "verifiedTag": "Confirmed",
+    "remove": "Remove {address}",
+    "none": "No forwarding address.",
+    "automatic": "Automatic forwarding",
+    "off": "Do not forward",
+    "to": "Forward a copy of incoming mail to {address}",
+    "keepCopy": "Keep BlueMail's copy in the Inbox",
+    "externalForbidden": "Your organisation only allows forwarding to addresses inside the organisation."
   }
 }

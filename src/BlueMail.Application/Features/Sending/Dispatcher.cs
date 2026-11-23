@@ -128,7 +128,15 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
                     {
                         if (!await HasMessageAsync(db, r.TenantId, mb, rfcId, ct))
                         {
-                            await DeliverRawAsync(store, r.TenantId, forRecipients, new MailboxDelivery(mb, [SystemLabels.Inbox, SystemLabels.CategoryPrimary]), ct);
+                            // Internal mail goes through the recipient's rules too: blocks, filters, forwarding, vacation (PROMPT 6.8).
+                            var rules = sp.GetRequiredService<Rules.MailboxRules>();
+                            var s = new MemoryStream(forRecipients, writable: false);
+                            var facts = MessageFacts.Extract(MimeMessage.Parse(s), s);
+                            var incoming = new Rules.IncomingMessage(facts, forRecipients, o.FromAddress, DateTimeOffset.UtcNow, IsSpam: false, SpamIsFinal: false);
+                            var plan = await rules.PlanAsync(r.TenantId, mb, [rcpt], incoming, ct);
+                            s.Position = 0;
+                            await store.DeliverAsync(new DeliveryRequest(r.TenantId, s, facts, [plan.Delivery], incoming.ReceivedAt), ct);
+                            await rules.AfterDeliveryAsync(r.TenantId, mb, plan, incoming, ct);
                         }
                     }
 

@@ -93,6 +93,15 @@ public partial class LocalizationTests
             }
         }
 
+        // Search syntax errors reach the API as "search_<code>" (SearchContexts.Parse).
+        foreach (var code in BlueMail.MailStore.Search.SearchParser.ErrorCodes)
+        {
+            if (!en.ContainsKey("error.search_" + code))
+            {
+                missing.Add($"error.search_{code} (SearchParser)");
+            }
+        }
+
         missing.Distinct().Should().BeEmpty();
     }
 
@@ -162,7 +171,8 @@ public partial class MailStoreGateTests
         offenders.Should().BeEmpty("every mailbox write goes through IMailStore (PROMPT principle 1)");
     }
 
-    [GeneratedRegex("\\.(Messages|MessageLabels|Labels|Mailboxes|Threads|Attachments|LabelChanges|Blobs)\\s*\\.\\s*(Add|AddRange|Update|UpdateRange|Remove|RemoveRange|Attach|ExecuteUpdate|ExecuteUpdateAsync|ExecuteDelete|ExecuteDeleteAsync)\\b|(INSERT INTO|UPDATE|DELETE FROM)\\s+mail\\.")]
+    [GeneratedRegex("\\.(Messages|MessageLabels|Labels|Mailboxes|Threads|Attachments|LabelChanges|Blobs)\\s*\\.\\s*(Add|AddRange|Update|UpdateRange|Remove|RemoveRange|Attach|ExecuteUpdate|ExecuteUpdateAsync|ExecuteDelete|ExecuteDeleteAsync)\\b|(INSERT INTO|UPDATE|DELETE FROM)\\s+mail\\.(messages|message_labels|labels|mailboxes|threads|attachments|label_changes|blobs)\\b")]
+    // Mailbox content only; per-user settings in the mail schema (filters, filter_jobs, vacation_replies, forwarding) are not mailbox writes.
     private static partial Regex MailWrite();
 }
 

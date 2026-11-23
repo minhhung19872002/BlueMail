@@ -58,6 +58,15 @@ answer `404` (indistinguishable from "does not exist").
 | OPTIONS / POST / HEAD / PATCH / DELETE | `/api/v1/uploads[/{id}]` | self | tus 1.0 resumable upload (`Upload-Length`, `Upload-Metadata`, `Upload-Offset`, `application/offset+octet-stream`, chunk ≤ 8 MiB); scanned on completion |
 | GET | `/api/v1/uploads/{id}/content` | self | Uploaded image for the editor preview |
 | GET | `/api/v1/files/{token}` | link token (hashed in DB, 30 days, counted) | Download of a file sent as a link (> 25 MB) |
+| GET | `/api/v1/mail/conversations?…&q=` | self | `q`: Gmail operator query (PROMPT 6.7); 400 `search_<reason>` (unbalanced_parenthesis, invalid_date, date_range_reversed, …) with the position |
+| GET / POST / PUT / DELETE | `/api/v1/mail/filters[/{id}]`, `PUT /api/v1/mail/filters/order` | self | Filters: `{ criteria (query), actions { skipInbox, markRead, star, labelIds, forwardTo (verified only), trash, neverSpam, important ALWAYS/NEVER, category }, isEnabled }` |
+| GET | `/api/v1/mail/filters/matches?q=` | self | How many messages a query matches now (preview, max 5000) |
+| POST / GET | `/api/v1/mail/filters/{id}/apply`, `/api/v1/mail/filter-jobs/{id}` | self | Apply to existing mail in the background; progress `{ status, total, done }` |
+| GET / POST | `/api/v1/mail/filters/export`, `/api/v1/mail/filters/import` (multipart `file`) | self | Gmail mailFilters.xml; import reports entries it could not take |
+| GET / POST / DELETE | `/api/v1/mail/blocked[/{id}]` | self | Blocked addresses or domains (`@shop.vn` or `shop.vn`) |
+| GET / PUT | `/api/v1/mail/vacation` | self | Auto reply `{ enabled, startAt, endAt, subject, html, onlyContacts, onlyOrganization }` |
+| GET / POST / DELETE | `/api/v1/mail/forwarding[/{id}]`, `POST …/{id}/verify { code }`, `PUT /api/v1/mail/forwarding/active { id?, keepCopy }` | self | Forwarding addresses: a 6-digit code is mailed to the address (24 h, 5 tries); one active automatic forward |
+| GET / PUT | `/api/v1/admin/policy` | `mail.admin.policy.edit` | `{ allowExternalForwarding }` |
 | GET | `/api/v1/account/sessions` | self | Signed-in devices |
 | DELETE | `/api/v1/account/sessions/{id}` | self | Sign a device out (immediate) |
 | GET | `/api/v1/admin/users?search=&page=&pageSize=` | `mail.admin.users.view` | Users of the caller's tenant |

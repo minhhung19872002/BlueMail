@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { App as AntApp, ConfigProvider, Result, Spin } from "antd";
 import enUS from "antd/locale/en_US";
 import viVN from "antd/locale/vi_VN";
+import type { Locale } from "antd/es/locale";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "./api/client";
@@ -16,10 +17,15 @@ import { AppShell } from "./layout/AppShell";
 import { MailboxPage } from "./modules/mail/MailboxPage";
 import { SessionsPage } from "./modules/settings/SessionsPage";
 import { SignaturesPage } from "./modules/settings/SignaturesPage";
+import { FiltersPage } from "./modules/settings/FiltersPage";
+import { VacationPage } from "./modules/settings/VacationPage";
+import { ForwardingPage } from "./modules/settings/ForwardingPage";
 import { UsersPage } from "./modules/admin/UsersPage";
 import { TenantsPage } from "./modules/admin/TenantsPage";
 
-const antdLocales = { en: enUS, vi: viVN } as const;
+// Vite may hand over the CommonJS build of antd/locale wrapped in { default } (seen: dialogs in English for vi).
+const unwrap = (m: Locale): Locale => (m as Locale & { default?: Locale }).default ?? m;
+const antdLocales = { en: unwrap(enUS), vi: unwrap(viVN) } as const;
 
 function useSystemDark(): boolean {
   const query = "(prefers-color-scheme: dark)";
@@ -63,6 +69,9 @@ function Authenticated() {
           <Route path="/mail/:label" element={<MailboxPage />} />
           <Route path="/settings/sessions" element={<SessionsPage />} />
           <Route path="/settings/signatures" element={<SignaturesPage />} />
+          <Route path="/settings/filters" element={<FiltersPage />} />
+          <Route path="/settings/vacation" element={<VacationPage />} />
+          <Route path="/settings/forwarding" element={<ForwardingPage />} />
           <Route path="/admin/users" element={<UsersPage />} />
           <Route path="/admin/tenants" element={<TenantsPage />} />
           <Route path="*" element={<Navigate to="/mail/inbox" replace />} />

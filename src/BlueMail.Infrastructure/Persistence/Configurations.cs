@@ -598,3 +598,77 @@ internal sealed class QuarantineConfig : IEntityTypeConfiguration<QuarantinedMes
         b.HasIndex(x => new { x.TenantId, x.Status, x.CreatedAt });
     }
 }
+
+internal sealed class MailFilterConfig : IEntityTypeConfiguration<MailFilter>
+{
+    public void Configure(EntityTypeBuilder<MailFilter> b)
+    {
+        b.ToTable("filters", "mail");
+        b.Property(x => x.Criteria).HasMaxLength(2000);
+        b.Property(x => x.Actions).HasColumnType("jsonb");
+        b.HasIndex(x => new { x.TenantId, x.MailboxId, x.SortOrder }).HasFilter("deleted_at IS NULL");
+    }
+}
+
+internal sealed class FilterJobConfig : IEntityTypeConfiguration<FilterJob>
+{
+    public void Configure(EntityTypeBuilder<FilterJob> b)
+    {
+        b.ToTable("filter_jobs", "mail");
+        b.Property(x => x.Error).HasMaxLength(1000);
+        b.HasIndex(x => new { x.Status, x.CreatedAt });
+    }
+}
+
+internal sealed class BlockedSenderConfig : IEntityTypeConfiguration<BlockedSender>
+{
+    public void Configure(EntityTypeBuilder<BlockedSender> b)
+    {
+        b.ToTable("blocked_senders", "mail");
+        b.Property(x => x.AddressOrDomain).HasMaxLength(320);
+        b.HasIndex(x => new { x.TenantId, x.UserId, x.AddressOrDomain }).IsUnique().HasFilter("deleted_at IS NULL");
+    }
+}
+
+internal sealed class VacationConfig : IEntityTypeConfiguration<Vacation>
+{
+    public void Configure(EntityTypeBuilder<Vacation> b)
+    {
+        b.ToTable("vacation", "mail");
+        b.HasKey(x => x.UserId);
+        b.Property(x => x.Subject).HasMaxLength(998);
+        b.Property(x => x.Html).HasMaxLength(100_000);
+    }
+}
+
+internal sealed class VacationReplyConfig : IEntityTypeConfiguration<VacationReply>
+{
+    public void Configure(EntityTypeBuilder<VacationReply> b)
+    {
+        b.ToTable("vacation_replies", "mail");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.Sender).HasMaxLength(320);
+        b.HasIndex(x => new { x.UserId, x.Sender }).IsUnique();
+    }
+}
+
+internal sealed class ForwardingAddressConfig : IEntityTypeConfiguration<ForwardingAddress>
+{
+    public void Configure(EntityTypeBuilder<ForwardingAddress> b)
+    {
+        b.ToTable("forwarding", "mail");
+        b.Property(x => x.TargetEmail).HasMaxLength(320);
+        b.HasIndex(x => new { x.TenantId, x.UserId, x.TargetEmail }).IsUnique().HasFilter("deleted_at IS NULL");
+        // "Only one active automatic forward per user" is a database rule (PROMPT 0, 14).
+        b.HasIndex(x => x.UserId).IsUnique().HasFilter("is_active AND deleted_at IS NULL").HasDatabaseName("ux_forwarding_one_active");
+    }
+}
+
+internal sealed class TenantMailPolicyConfig : IEntityTypeConfiguration<TenantMailPolicy>
+{
+    public void Configure(EntityTypeBuilder<TenantMailPolicy> b)
+    {
+        b.ToTable("mail_policy", "tenant");
+        b.HasKey(x => x.TenantId);
+    }
+}

@@ -14,6 +14,7 @@ import { act, getBody, getOriginal, getThread, mailKeys, trustImages, type MailA
 import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
 import { PdfPreview } from "./PdfPreview";
 import { SpamReasons } from "./SpamReasons";
+import { rulesApi } from "../settings/rulesApi";
 import { composeApi } from "../compose/composeApi";
 import { useCompose } from "../compose/composeStore";
 
@@ -133,6 +134,7 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
   const { t } = useTranslation();
   const me = useMe();
   const fmt = useUserFormat();
+  const { message, modal } = App.useApp();
   const [showImages, setShowImages] = useState(false);
   const [original, setOriginal] = useState(false);
   const msg = m.message;
@@ -156,12 +158,24 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
     );
   }
 
+  const sender = msg.from?.address;
   const more: MenuProps = {
     items: [
       { key: "original", label: t("mail.showOriginal") },
       { key: "eml", label: <a href={m.rawUrl} download>{t("mail.downloadEml")}</a> },
+      ...(sender && sender.toLowerCase() !== me.email.toLowerCase() ? [{ key: "block", danger: true, label: t("mail.blockSender", { address: sender }) }] : []),
     ],
-    onClick: ({ key }) => { if (key === "original") setOriginal(true); },
+    onClick: ({ key }) => {
+      if (key === "original") setOriginal(true);
+      if (key === "block" && sender) {
+        modal.confirm({
+          title: t("mail.blockSender", { address: sender }),
+          content: t("mail.blockSenderBody"),
+          okButtonProps: { danger: true },
+          onOk: () => rulesApi.block(sender).then(() => message.success(t("mail.blocked", { address: sender }))),
+        });
+      }
+    },
   };
 
   return (

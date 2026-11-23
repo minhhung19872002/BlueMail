@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
+import { Alert, App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
-  BulbOutlined, ClusterOutlined, DeleteOutlined, EditOutlined, LayoutOutlined, LogoutOutlined, MenuOutlined, PlusOutlined, SafetyOutlined,
-  SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined,
+  BulbOutlined, ClusterOutlined, CoffeeOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
+  MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,8 @@ import { countFor, labelPalette, systemViews, userLabels } from "../modules/mail
 import { act, createLabel, deleteLabel, mailKeys } from "../modules/mail/mailApi";
 import { dragType } from "../modules/mail/ConversationList";
 import { useMailboxLive } from "../modules/mail/realtime";
+import { SearchBox } from "../modules/mail/SearchBox";
+import { rulesApi, rulesKeys, vacationActive } from "../modules/settings/rulesApi";
 import { ComposeDock } from "../modules/compose/ComposeDock";
 import { useCompose } from "../modules/compose/composeStore";
 import { useCan, useMe } from "../session";
@@ -48,6 +50,7 @@ export function AppShell() {
   const canUsers = useCan(Permission.AdminUsersView);
   const canTenants = useCan(Permission.PlatformTenantsView);
   const labels = useQuery({ queryKey: mailKeys.labels, queryFn: () => api.get<Labels>("/api/v1/mail/labels") });
+  const vacation = useQuery({ queryKey: rulesKeys.vacation, queryFn: rulesApi.vacation });
   const [newLabel, setNewLabel] = useState<string | null>(null);
   const [newColor, setNewColor] = useState<string | null>(null);
   useMailboxLive();
@@ -158,6 +161,9 @@ export function AppShell() {
       { type: "divider" },
       { key: "/settings/sessions", icon: <SafetyOutlined />, label: t("nav.sessions") },
       { key: "/settings/signatures", icon: <SignatureFilled />, label: t("nav.signatures") },
+      { key: "/settings/filters", icon: <FilterOutlined />, label: t("nav.filters") },
+      { key: "/settings/vacation", icon: <CoffeeOutlined />, label: t("nav.vacation") },
+      { key: "/settings/forwarding", icon: <ForwardOutlined />, label: t("nav.forwarding") },
       {
         key: "undo", icon: <UndoOutlined />, label: t("compose.undoSetting"),
         children: [5, 10, 20, 30].map((n) => ({ key: `undo:${n}`, label: t("compose.undoSeconds", { n }) })),
@@ -197,6 +203,7 @@ export function AppShell() {
       <Header className="bm-header">
         <Button type="text" icon={<MenuOutlined />} onClick={toggle} aria-label={t("nav.toggleMenu")} aria-expanded={!collapsed} />
         <span className="bm-brand">{me.tenantName}</span>
+        <SearchBox />
         <span className="bm-header-spacer" />
         <Dropdown menu={accountMenu} trigger={["click"]}>
           <Button type="text" aria-label={t("nav.account")}>
@@ -253,6 +260,13 @@ export function AppShell() {
           </div>
         </Modal>
         <Content className="bm-content">
+          {vacationActive(vacation.data) && (
+            // "While it is on there is a reminder at the top of the page" (PROMPT 6.8)
+            <Alert className="bm-banner bm-vacation-banner" type="info" showIcon message={t("vacation.banner")} action={
+              <Button size="small" onClick={() => void rulesApi.saveVacation({ ...vacation.data!, enabled: false })
+                .then(() => qc.invalidateQueries({ queryKey: rulesKeys.vacation }))}>{t("vacation.turnOff")}</Button>
+            } />
+          )}
           <div className="bm-panel">
             <Outlet />
           </div>

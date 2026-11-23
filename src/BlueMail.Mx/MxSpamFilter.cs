@@ -13,7 +13,8 @@ namespace BlueMail.Mx;
 public enum SpamDecision { Inbox, Spam, Quarantine, Reject }
 
 /// <summary>The verdict for one mailbox: where it goes and the score report shown in "Why is this in Spam?".</summary>
-public sealed record MailboxVerdict(Guid MailboxId, SpamDecision Decision, double Score, string ReportJson);
+/// <remarks><see cref="Final"/>: Spam because of a suspicious file; a "never spam" filter cannot move it back.</remarks>
+public sealed record MailboxVerdict(Guid MailboxId, SpamDecision Decision, double Score, string ReportJson, bool Final = false);
 
 /// <summary>
 /// Scores an incoming message for each recipient mailbox (PROMPT 2.3): rules + Bayes (global, tenant and the
@@ -50,7 +51,7 @@ public sealed class MxSpamFilter(BlueMailDbContext db, BayesStore bayes, DnsblCh
             var decision = verdict.Score >= settings.RejectThreshold ? SpamDecision.Reject
                 : hasSuspiciousFile && settings.SuspiciousAttachments == SuspiciousAttachmentAction.Reject ? SpamDecision.Reject
                 : hasSuspiciousFile && settings.SuspiciousAttachments == SuspiciousAttachmentAction.Quarantine ? SpamDecision.Quarantine
-                : verdict.IsSpam(settings.SpamThreshold) ? SpamDecision.Spam
+                : hasSuspiciousFile || verdict.IsSpam(settings.SpamThreshold) ? SpamDecision.Spam
                 : SpamDecision.Inbox;
             var report = JsonSerializer.Serialize(new
             {
@@ -64,7 +65,7 @@ public sealed class MxSpamFilter(BlueMailDbContext db, BayesStore bayes, DnsblCh
                 },
                 findings,
             });
-            result.Add(new MailboxVerdict(mb, decision, verdict.Score, report));
+            result.Add(new MailboxVerdict(mb, decision, verdict.Score, report, Final: hasSuspiciousFile));
         }
 
         return result;

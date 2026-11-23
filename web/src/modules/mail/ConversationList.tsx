@@ -134,7 +134,11 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
   );
 
   if (page.isPending) return <>{toolbar}<Spin className="bm-list-spin" /></>;
-  if (page.isError) return <>{toolbar}<Empty description={t("errors.loadList")} /></>;
+  // A broken search query is explained (the server says what is wrong), never shown as "no results".
+  if (page.isError) {
+    const e = page.error;
+    return <>{toolbar}<Empty description={e instanceof ApiError && e.code.startsWith("search_") ? e.title : t("errors.loadList")} /></>;
+  }
 
   return (
     <>

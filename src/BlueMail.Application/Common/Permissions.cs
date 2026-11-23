@@ -14,11 +14,12 @@ public static class Permissions
     public const string AdminQuarantineView = "mail.admin.quarantine.view";
     public const string AdminQuarantineEdit = "mail.admin.quarantine.edit";
     public const string AdminSpamEdit = "mail.admin.spam.edit";
+    public const string AdminPolicyEdit = "mail.admin.policy.edit";
 
     public static readonly IReadOnlyList<string> Platform = [PlatformTenantsView, PlatformTenantsEdit];
 
     public static readonly IReadOnlyList<string> TenantAdmin =
-        [AdminUsersView, AdminUsersEdit, AdminAuditView, AdminQuarantineView, AdminQuarantineEdit, AdminSpamEdit];
+        [AdminUsersView, AdminUsersEdit, AdminAuditView, AdminQuarantineView, AdminQuarantineEdit, AdminSpamEdit, AdminPolicyEdit];
 
     public static IReadOnlySet<string> For(bool isPlatformAdmin, bool isTenantAdmin)
     {

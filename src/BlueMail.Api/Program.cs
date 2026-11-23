@@ -38,6 +38,8 @@ builder.Services.AddHostedService<BlueMail.Application.Scanning.ScannerFeeds>();
 builder.Services.AddSingleton<BlueMail.Scanner.IFileScanner>(sp => BlueMail.Scanner.BlueMailScanners.Create(sp.GetRequiredService<BlueMail.Scanner.MalwareHashList>(), sp.GetRequiredService<BlueMail.Scanner.PatternRuleScanner>()));
 builder.Services.AddSignalR().AddJsonProtocol(o => WebJson.Configure(o.PayloadSerializerOptions));
 builder.Services.AddHostedService<BlueMail.Api.Realtime.MailEventRelay>();
+builder.Services.AddSingleton<BlueMail.Application.Features.Rules.FilterJobWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Rules.FilterJobWorker>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new() { Title = "BlueMail API", Version = "v1" }));
 builder.Services.AddResponseCompression(o => o.EnableForHttps = true);

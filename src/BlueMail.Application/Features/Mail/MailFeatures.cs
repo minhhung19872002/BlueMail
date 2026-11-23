@@ -26,8 +26,8 @@ public sealed class MailboxOpener(IMailStore store, ICurrentUser me)
 
 // ---------- list ----------
 
-public sealed record ListConversationsQuery(Guid? MailboxId, Guid? LabelId, string? View, bool UnreadOnly, bool Threads, string? Cursor, int Limit)
-    : IRequest<ConversationPage>;
+public sealed record ListConversationsQuery(Guid? MailboxId, Guid? LabelId, string? View, bool UnreadOnly, bool Threads, string? Cursor, int Limit,
+    string? Q = null) : IRequest<ConversationPage>;
 
 public sealed class ListConversationsValidator : AbstractValidator<ListConversationsQuery>
 {
@@ -37,16 +37,26 @@ public sealed class ListConversationsValidator : AbstractValidator<ListConversat
         RuleFor(x => x.View).Must(v => v is null or "label" or "all").WithErrorCode("invalid_view");
         RuleFor(x => x.LabelId).NotNull().When(x => x.View is null or "label");
         RuleFor(x => x.Cursor).MaximumLength(200);
+        RuleFor(x => x.Q).MaximumLength(MailStore.Search.SearchParser.MaxLength).WithErrorCode(ValidationCodes.TooLong);
     }
 }
 
-public sealed class ListConversationsHandler(MailboxOpener opener, PgMailStore store) : IRequestHandler<ListConversationsQuery, ConversationPage>
+public sealed class ListConversationsHandler(MailboxOpener opener, PgMailStore store, SearchContexts contexts) : IRequestHandler<ListConversationsQuery, ConversationPage>
 {
     public async Task<ConversationPage> Handle(ListConversationsQuery q, CancellationToken ct)
     {
         var access = await opener.OpenAsync(q.MailboxId, ct);
         var view = q.View == "all" ? MailView.AllMail : MailView.Label;
-        return await store.ListConversationsAsync(access, new ConversationQuery(view, q.LabelId, q.UnreadOnly, q.Threads, q.Cursor, q.Limit), ct);
+        MailStore.Search.SearchNode? search = null;
+        IReadOnlyList<string> me = [];
+        if (!string.IsNullOrWhiteSpace(q.Q))
+        {
+            var owner = await contexts.ForMailboxAsync(access.TenantId, access.MailboxId, access.ActorUserId, ct);
+            search = SearchContexts.Parse(q.Q, owner);
+            me = owner.Addresses;
+        }
+
+        return await store.ListConversationsAsync(access, new ConversationQuery(view, q.LabelId, q.UnreadOnly, q.Threads, q.Cursor, q.Limit, search, me), ct);
     }
 }
 

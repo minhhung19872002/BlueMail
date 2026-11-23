@@ -62,11 +62,17 @@ public sealed class SessionValidator : ISessionValidator, IDisposable
             return cached;
         }
 
-        var token = _userTokens.GetOrAdd(userId, _ => new CancellationTokenSource());
+        // Take the token before loading: an invalidation during the load cancels (and disposes) the source, and the
+        // state just read may predate it, so it must not be cached (BUG-041).
+        var invalidated = _userTokens.GetOrAdd(userId, _ => new CancellationTokenSource()).Token;
         var state = await LoadAsync(userId, sessionId, securityStamp, ct);
-        _cache.Set(key, state, new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(CacheFor)
-            .AddExpirationToken(new CancellationChangeToken(token.Token)));
+        if (!invalidated.IsCancellationRequested)
+        {
+            _cache.Set(key, state, new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(CacheFor)
+                .AddExpirationToken(new CancellationChangeToken(invalidated)));
+        }
+
         return state;
     }
 
@@ -119,8 +125,8 @@ public sealed class SessionValidator : ISessionValidator, IDisposable
     {
         if (_userTokens.TryRemove(userId, out var cts))
         {
+            // Cancel only: a request may still be reading .Token; a source without timers holds nothing to dispose.
             cts.Cancel();
-            cts.Dispose();
         }
     }
 

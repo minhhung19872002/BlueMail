@@ -195,3 +195,17 @@ body { background: var(--bm-bg); color: var(--bm-text); }
 .bm-spam-plus { color: var(--ant-color-error, #cf1322); font-variant-numeric: tabular-nums; }
 .bm-spam-minus { color: var(--ant-color-success, #389e0d); font-variant-numeric: tabular-nums; }
 .bm-spam-hint { margin-block-start: 12px; }
+.bm-search { flex: 1 1 auto; max-width: 720px; margin-inline: 12px; }
+.bm-advanced-search { width: min(460px, 100%); }
+.ant-popover .bm-advanced-search { width: 460px; }
+.bm-query { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; word-break: break-word; }
+.bm-within { min-width: 160px; }
+.bm-filter-select { min-width: 220px; }
+.bm-settings-form { max-width: 760px; }
+.bm-settings-gap { margin-block-start: 12px; }
+.bm-code-input { width: 110px; }
+.bm-vacation-banner { margin: 8px 8px 0; }
+@media (max-width: 767px) {
+  .bm-search { margin-inline: 4px; min-width: 0; }
+  .bm-brand { display: none; }
+}

@@ -92,6 +92,10 @@ public class Message : TenantEntity
     public string CcAddrs { get; set; } = "[]";
     public string BccAddrs { get; set; } = "[]";
     public string ReplyTo { get; set; } = "[]";
+
+    /// <summary>Envelope recipients that led to this mailbox (lower case): what Gmail calls Delivered-To.</summary>
+    public List<string> DeliveredTo { get; set; } = [];
+
     public DateTimeOffset? SentAt { get; set; }
     public DateTimeOffset ReceivedAt { get; set; }
     public long Size { get; set; }

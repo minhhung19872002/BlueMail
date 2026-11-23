@@ -264,3 +264,21 @@ tính là đã giao (phép thử `Worker_killed_before_the_final_reply…`).
 Thư trả lại đến chậm (bounce không đồng bộ, ARF) được xử lý ở Phase 12 (PROMPT mục 13). Tới lúc đó envelope-from là
 chính địa chỉ người gửi để thư trả lại của máy khác về đúng hộp thư người gửi, thay vì một địa chỉ VERP mà `mx` chưa
 biết xử lý (sẽ bị từ chối 550 và mất).
+
+## D15. Một cây biểu thức cho tìm kiếm và bộ lọc; gấp chữ bằng PostgreSQL
+
+`SearchParser` (BlueMail.MailStore/Search) dựng cây; `SearchSql` dịch sang SQL tham số hoá cho tìm kiếm, `SearchMatcher`
+chạy cây trong bộ nhớ cho bộ lọc lúc giao thư (thư chưa nằm trong CSDL). Để hai lối không lệch nhau, việc bỏ dấu và
+chữ thường ở bộ lọc **cũng do PostgreSQL làm** (`PgTextFolder`: một truy vấn `f_unaccent(lower(x))` cho cả lô chuỗi),
+đúng hàm mà SQL tìm kiếm dùng. Phép thử `Search_in_sql_and_the_filter_matcher_agree_on_every_operator` chạy 33 câu
+trên thư tiếng Việt, Nhật, Trung, Ba Lan, Đức và đòi hai lối cho cùng kết quả.
+
+## D16. Chuyển tiếp: SRS với khoá suy ra từ khoá chủ; trả lời tự động 4 ngày/lần
+
+- SRS0 (hash 4 ký tự base32 từ HMAC-SHA256, ngày mod 1024, hạn 21 ngày); khoá = HKDF(khoá chủ, "bluemail-srs-v1"),
+  không thêm biến môi trường. Địa chỉ SRS chỉ nhận thư trả về (người gửi rỗng) — không thành relay mở.
+- Thư chuyển tiếp mang bộ ARC của tên miền người dùng (ghi kết quả SPF/DKIM/DMARC đã kiểm) và tiêu đề
+  `X-BlueMail-Loop` (mã băm hộp thư); thư đã đi qua hộp thư này hoặc có > 25 `Received` thì không chuyển tiếp nữa.
+- Thư chuyển tiếp bị trả lại: DSN của BlueMail.Outbound về **người gửi gốc** (giải SRS), như MTA khác sẽ làm.
+- Trả lời tự động: mỗi người gửi một lần trong 4 ngày (như Gmail), bộ đếm xoá khi người dùng lưu lại thiết lập.
+  "Chỉ trả lời danh bạ" tạm hiểu là "người mình đã từng gửi thư"; danh bạ thật thay vào ở Phase 8.

@@ -29,7 +29,9 @@ public static class Problems
     public static ApiProblem Build(HttpContext http, HttpStatusCode status, string code, IReadOnlyDictionary<string, object?>? args = null,
         IReadOnlyList<FieldError>? fields = null)
     {
-        var culture = CultureInfo.CurrentUICulture;
+        // The error middleware runs outside request localization: by the time an exception reaches it, the
+        // thread culture is back to the default. The culture chosen for the request stays on the context (BUG-035).
+        var culture = http.Features.Get<Microsoft.AspNetCore.Localization.IRequestCultureFeature>()?.RequestCulture.UICulture ?? CultureInfo.CurrentUICulture;
         var title = JsonStringLocalizerFactory.Format(JsonStringLocalizerFactory.Get("error." + code, culture), culture, args);
         var errors = (fields ?? []).Select(f => new ApiFieldError(f.Field, f.Code,
             JsonStringLocalizerFactory.Format(JsonStringLocalizerFactory.Get("error." + f.Code, culture), culture, f.Args))).ToList();

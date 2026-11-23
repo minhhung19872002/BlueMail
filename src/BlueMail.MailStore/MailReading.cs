@@ -12,13 +12,19 @@ namespace BlueMail.MailStore;
 /// <summary>Which messages a list shows. A label, or one of the virtual views.</summary>
 public enum MailView { Label, AllMail }
 
+/// <summary>
+/// A list request. With <see cref="Search"/> the view's label still applies (search inside a label); in the
+/// All Mail view Spam and Trash stay hidden unless the query names them (in:spam, in:trash, in:anywhere).
+/// </summary>
 public sealed record ConversationQuery(
     MailView View,
     Guid? LabelId,
     bool UnreadOnly = false,
     bool Threads = true,
     string? Cursor = null,
-    int Limit = 50);
+    int Limit = 50,
+    Search.SearchNode? Search = null,
+    IReadOnlyList<string>? MyAddresses = null);
 
 public sealed record Participant(string? Name, string Address, bool Unread);
 
@@ -107,13 +113,16 @@ public sealed partial class PgMailStore
         var key = q.Threads ? "m.thread_id" : "m.id";
         var labelFilter = q.View == MailView.Label
             ? "AND EXISTS (SELECT 1 FROM mail.message_labels ml WHERE ml.tenant_id = m.tenant_id AND ml.message_id = m.id AND ml.label_id = @label)"
-            : """
-              AND NOT EXISTS (SELECT 1 FROM mail.message_labels ml JOIN mail.labels l ON l.id = ml.label_id
-                              WHERE ml.tenant_id = m.tenant_id AND ml.message_id = m.id AND l.system_key = ANY(@hidden))
-              """;
+            : Search.SearchParser.LooksInSpamOrTrash(q.Search)
+                ? ""
+                : """
+                  AND NOT EXISTS (SELECT 1 FROM mail.message_labels ml JOIN mail.labels l ON l.id = ml.label_id
+                                  WHERE ml.tenant_id = m.tenant_id AND ml.message_id = m.id AND l.system_key = ANY(@hidden))
+                  """;
+        var (searchSql, searchParams) = q.Search is null ? ("true", []) : Search.SearchSql.Translate(q.Search, q.MyAddresses ?? []);
         var baseSql = $"""
             FROM mail.messages m
-            WHERE m.tenant_id = @t AND m.mailbox_id = @mb AND m.deleted_at IS NULL AND m.expunged_at IS NULL {labelFilter}
+            WHERE m.tenant_id = @t AND m.mailbox_id = @mb AND m.deleted_at IS NULL AND m.expunged_at IS NULL {labelFilter} AND {searchSql}
             GROUP BY {key}
             {(q.UnreadOnly ? "HAVING count(*) FILTER (WHERE NOT m.seen) > 0" : "")}
             """;
@@ -124,6 +133,10 @@ public sealed partial class PgMailStore
             cmd.Parameters.AddWithValue("mb", access.MailboxId);
             cmd.Parameters.AddWithValue("label", q.LabelId ?? Guid.Empty);
             cmd.Parameters.AddWithValue("hidden", HiddenFromAllMail);
+            foreach (var p in searchParams)
+            {
+                cmd.Parameters.Add(p.Clone());
+            }
         }
 
         long total;
@@ -164,6 +177,47 @@ public sealed partial class PgMailStore
         var ordered = page.Select(p => items.TryGetValue(p.Key, out var s) ? s with { MessageCount = p.Count, UnreadCount = p.Unread, LastMessageAt = p.Last } : null)
             .Where(s => s is not null).Select(s => s!).ToList();
         return new ConversationPage(ordered, next, total);
+    }
+
+    /// <summary>
+    /// Ids of messages matching a query, newest first, after <paramref name="before"/> (keyset paging). Spam and
+    /// Trash are left out unless the query names them, as in the list.
+    /// </summary>
+    public async Task<IReadOnlyList<(Guid Id, DateTimeOffset At)>> SearchMessagesAsync(MailboxAccess access, Search.SearchNode node, IReadOnlyList<string> me,
+        (DateTimeOffset At, Guid Id)? before, int limit, CancellationToken ct = default)
+    {
+        access.Require(MailboxRights.Read);
+        var c = await OpenConnAsync(ct);
+        var (where, ps) = Search.SearchSql.Translate(node, me);
+        var hidden = Search.SearchParser.LooksInSpamOrTrash(node) ? "" : """
+            AND NOT EXISTS (SELECT 1 FROM mail.message_labels ml JOIN mail.labels l ON l.id = ml.label_id
+                            WHERE ml.tenant_id = m.tenant_id AND ml.message_id = m.id AND l.system_key = ANY(@hidden))
+            """;
+        await using var cmd = new NpgsqlCommand($"""
+            SELECT m.id, m.received_at FROM mail.messages m
+            WHERE m.tenant_id = @t AND m.mailbox_id = @mb AND m.deleted_at IS NULL AND m.expunged_at IS NULL {hidden} AND {where}
+              AND (@bAt IS NULL OR (m.received_at, m.id) < (@bAt, @bId))
+            ORDER BY m.received_at DESC, m.id DESC LIMIT @lim
+            """, c);
+        cmd.Parameters.AddWithValue("t", access.TenantId);
+        cmd.Parameters.AddWithValue("mb", access.MailboxId);
+        cmd.Parameters.AddWithValue("hidden", HiddenFromAllMail);
+        cmd.Parameters.Add(new NpgsqlParameter("bAt", NpgsqlTypes.NpgsqlDbType.TimestampTz) { Value = before is { } b1 ? b1.At : DBNull.Value });
+        cmd.Parameters.AddWithValue("bId", before?.Id ?? Guid.Empty);
+        cmd.Parameters.AddWithValue("lim", Math.Clamp(limit, 1, 5000));
+        foreach (var p in ps)
+        {
+            cmd.Parameters.Add(p.Clone());
+        }
+
+        var list = new List<(Guid, DateTimeOffset)>();
+        await using var rd = await cmd.ExecuteReaderAsync(ct);
+        while (await rd.ReadAsync(ct))
+        {
+            list.Add((rd.GetGuid(0), rd.GetFieldValue<DateTimeOffset>(1)));
+        }
+
+        return list;
     }
 
     /// <summary>Details of the listed rows: latest message, participants, labels, attachment names.</summary>

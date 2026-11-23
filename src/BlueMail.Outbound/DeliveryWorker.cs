@@ -408,10 +408,31 @@ public sealed class DeliveryWorker(
         return status == RecipientDeliveryStatus.Deferred ? "4.0.0" : status == RecipientDeliveryStatus.Expired ? "4.4.7" : "5.0.0";
     }
 
-    /// <summary>The sender is always one of our users: DSNs go straight into their mailbox.</summary>
+    /// <summary>
+    /// DSNs for our users' own mail go straight into their mailbox. A forwarded message (SRS return path) bounces to
+    /// the original sender, as SRS intends (PROMPT 6.8), from the null sender.
+    /// </summary>
     private async Task NotifyAsync(IServiceProvider sp, OutboundMessage msg, List<DsnRecipient> rcpts, CancellationToken ct)
     {
         var db = sp.GetRequiredService<BlueMailDbContext>();
+        if (Application.Features.Rules.Srs.IsSrs(msg.EnvelopeFrom))
+        {
+            var originalSender = sp.GetRequiredService<Application.Features.Rules.Srs>().Reverse(msg.EnvelopeFrom);
+            if (originalSender is null)
+            {
+                return;
+            }
+
+            var raw0 = new MemoryStream();
+            await sp.GetRequiredService<BlobStore>().ReadAsync(msg.TenantId, msg.BlobSha256, raw0, ct: ct);
+            var forwarded = raw0.ToArray();
+            var dsnId = $"dsn-{Guid.NewGuid():N}@{options.Helo}";
+            var bounce = DsnBuilder.Build(options.Helo, originalSender, null, MimeSubject(forwarded), msg.RfcMessageId, DsnBuilder.HeadersOf(forwarded), rcpts, msg.CreatedAt,
+                dsnId, options.Clock());
+            await sp.GetRequiredService<Application.Features.Rules.SystemMail>().SendAsync(msg.TenantId, null, "", originalSender, bounce, notification: true, null, dsnId, ct);
+            return;
+        }
+
         if (msg.SenderUserId is not { } user)
         {
             return;

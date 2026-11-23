@@ -13,16 +13,18 @@ export const mailKeys = {
 
 export interface ListScope {
   labelId: string | null; // null = All Mail
+  q?: string; // Gmail-style search query (PROMPT 6.7)
 }
 
 export function scopeKey(s: ListScope): string {
-  return s.labelId ?? "all";
+  return (s.labelId ?? "all") + (s.q ? "?" + s.q : "");
 }
 
 export function listConversations(scope: ListScope, cursor: string | null, limit = 50): Promise<ConversationPage> {
   const q = new URLSearchParams({ limit: String(limit) });
   if (scope.labelId) q.set("labelId", scope.labelId);
   else q.set("view", "all");
+  if (scope.q) q.set("q", scope.q);
   if (cursor) q.set("cursor", cursor);
   return api.get<ConversationPage>(`/api/v1/mail/conversations?${q.toString()}`);
 }

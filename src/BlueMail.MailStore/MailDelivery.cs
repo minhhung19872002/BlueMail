@@ -8,8 +8,12 @@ using StackExchange.Redis;
 
 namespace BlueMail.MailStore;
 
+/// <summary>
+/// One copy to store. <see cref="DeliveredTo"/> are the envelope recipients that led to this mailbox (deliveredto:).
+/// Starred is the STARRED system label (the flag mirrors it).
+/// </summary>
 public sealed record MailboxDelivery(Guid MailboxId, IReadOnlyList<string> SystemLabels, bool Seen = false, string? Category = null, bool Important = false,
-    IReadOnlyList<Guid>? ExtraLabelIds = null, bool Draft = false);
+    IReadOnlyList<Guid>? ExtraLabelIds = null, bool Draft = false, IReadOnlyList<string>? DeliveredTo = null);
 
 public sealed record DeliveryRequest(
     Guid TenantId,
@@ -106,31 +110,32 @@ public sealed partial class PgMailStore
         }
 
         var messageId = Guid.NewGuid();
-        var people = string.Join(' ', new[] { f.From }.Concat(f.To).Concat(f.Cc).Where(a => a is not null)
-            .SelectMany(a => new[] { a!.Name, a.Address, a.Address.Split('@')[0], a.Address.Contains('@', StringComparison.Ordinal) ? a.Address.Split('@')[1].Replace('.', ' ') : null }));
+        var people = SearchText.People(f);
         var files = string.Join(' ', f.Attachments.Select(a => a.FileName));
         static string Addrs(IEnumerable<BlueMail.Mime.MailboxAddress> list) => JsonSerializer.Serialize(list.Select(a => new { name = a.Name, address = a.Address }));
         await Exec(c, tx, ct, """
             INSERT INTO mail.messages (tenant_id, id, mailbox_id, blob_sha256, thread_id, rfc_message_id, in_reply_to, "references", subject, normalized_subject,
                 from_addr, from_name, to_addrs, cc_addrs, bcc_addrs, reply_to, sent_at, received_at, size, snippet, has_attachments, mime_structure,
                 seen, flagged, answered, forwarded, draft, keywords, spam_score, spam_report, auth_results, list_id, list_unsubscribe, category, is_important,
-                modseq, legal_hold_count, search_vector, created_at, updated_at)
-            VALUES (@t, @id, @mb, @sha, @thread, @mid, @irt, @refs, @subj, @ns, @from, @fromName, @to::jsonb, @cc::jsonb, '[]'::jsonb, @replyTo::jsonb,
-                @sent, @recv, @size, @snippet, @hasAtt, @mime::jsonb, @seen, false, false, false, @draft, '{}', @spam, @spamReport::jsonb, @auth::jsonb,
+                modseq, legal_hold_count, search_vector, delivered_to, created_at, updated_at)
+            VALUES (@t, @id, @mb, @sha, @thread, @mid, @irt, @refs, @subj, @ns, @from, @fromName, @to::jsonb, @cc::jsonb, @bcc::jsonb, @replyTo::jsonb,
+                @sent, @recv, @size, @snippet, @hasAtt, @mime::jsonb, @seen, @flagged, false, false, @draft, '{}', @spam, @spamReport::jsonb, @auth::jsonb,
                 @listId, @unsub::jsonb, @category, @important, @modseq, 0,
                 setweight(to_tsvector('simple', public.f_unaccent(@vSubject)), 'A') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vPeople)), 'B') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vFiles)), 'B') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vBody)), 'D'),
-                now(), now())
+                @deliveredTo, now(), now())
             """,
             ("t", r.TenantId), ("id", messageId), ("mb", target.MailboxId), ("sha", sha), ("thread", threadId.Value),
             ("mid", (object?)Trunc(f.RfcMessageId, 998) ?? DBNull.Value), ("irt", (object?)Trunc(f.InReplyTo, 998) ?? DBNull.Value),
             ("refs", f.References.Select(x => Trunc(x, 998)!).ToArray()), ("subj", (object?)Trunc(f.Subject, 4000) ?? DBNull.Value),
             ("ns", Trunc(f.NormalizedSubject, 998)), ("from", (object?)Trunc(f.From?.Address, 320) ?? DBNull.Value),
-            ("fromName", (object?)Trunc(f.From?.Name, 400) ?? DBNull.Value), ("to", Addrs(f.To)), ("cc", Addrs(f.Cc)), ("replyTo", Addrs(f.ReplyTo)),
+            ("fromName", (object?)Trunc(f.From?.Name, 400) ?? DBNull.Value), ("to", Addrs(f.To)), ("cc", Addrs(f.Cc)), ("bcc", Addrs(f.Bcc)), ("replyTo", Addrs(f.ReplyTo)),
             ("sent", (object?)f.Date ?? DBNull.Value), ("recv", r.ReceivedAt), ("size", r.Content.Length), ("snippet", f.Snippet),
             ("hasAtt", f.HasAttachments), ("mime", JsonSerializer.Serialize(f.Parts, MessageFacts.Json)), ("seen", target.Seen), ("draft", target.Draft),
+            ("flagged", target.SystemLabels.Contains(SystemLabels.Starred)),
+            ("deliveredTo", (target.DeliveredTo ?? []).Select(a => a.ToLowerInvariant()).Distinct().ToArray()),
             ("spam", (object?)r.SpamScore ?? DBNull.Value), ("spamReport", (object?)r.SpamReportJson ?? DBNull.Value), ("auth", (object?)r.AuthResultsJson ?? DBNull.Value),
             ("listId", (object?)Trunc(f.ListId, 998) ?? DBNull.Value),
             ("unsub", f.ListUnsubscribe is null ? DBNull.Value : JsonSerializer.Serialize(new { header = f.ListUnsubscribe, post = f.ListUnsubscribePost })),

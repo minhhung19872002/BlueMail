@@ -28,14 +28,15 @@ export function MailboxPage() {
 
   if (!labels.data) return <Spin className="bm-list-spin" />;
   const all = labels.data.labels;
-  const view = labelId ? undefined : systemViews.find((v) => v.route === label);
+  const query = label === "search" ? search.get("q") ?? "" : "";
+  const view = labelId ? undefined : systemViews.find((v) => v.route === (query ? "all" : label));
   const userLabel = labelId ? all.find((l) => l.id === labelId) : undefined;
   const systemLabel = view?.systemKey ? all.find((l) => l.systemKey === view.systemKey) : undefined;
   const scopeLabelId = userLabel?.id ?? systemLabel?.id ?? null;
   if (!view && !userLabel) return <Typography.Text>{t("mail.labelNotFound")}</Typography.Text>;
   if (view && view.systemKey && !systemLabel) return <Typography.Text>{t("mail.labelNotFound")}</Typography.Text>;
 
-  const title = view ? t(view.i18nKey) : userLabel!.name;
+  const title = query ? t("search.resultsFor", { q: query }) : view ? t(view.i18nKey) : userLabel!.name;
   // Drafts open in the editor, everything else in the reading pane.
   const open = (id: string, latestMessageId: string) => {
     if (view?.systemKey === "DRAFTS") {
@@ -50,8 +51,8 @@ export function MailboxPage() {
 
   const list = (
     <ConversationList
-      key={scopeLabelId ?? "all"}
-      scope={{ labelId: view?.route === "all" ? null : scopeLabelId }}
+      key={(scopeLabelId ?? "all") + query}
+      scope={{ labelId: view?.route === "all" ? null : scopeLabelId, q: query || undefined }}
       systemKey={view?.systemKey ?? null}
       labels={all}
       title={title}

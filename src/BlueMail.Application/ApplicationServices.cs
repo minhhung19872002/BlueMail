@@ -77,6 +77,11 @@ public static class ApplicationServices
         services.AddScoped<Features.Sending.DraftService>();
         services.AddScoped<Features.Sending.SendService>();
         services.AddSingleton<Features.Sending.OutgoingDispatcher>();
+        services.AddScoped<Features.Mail.SearchContexts>();
+        services.AddSingleton<Features.Rules.Srs>();
+        services.AddScoped<Features.Rules.SystemMail>();
+        services.AddScoped<Features.Rules.MailboxRules>();
+        services.AddScoped<Features.Rules.FilterRules>();
         services.AddScoped<Features.Antispam.BayesStore>();
         services.AddScoped<Features.Antispam.SpamLearning>();
         services.AddScoped<Features.Antispam.Greylisting>();

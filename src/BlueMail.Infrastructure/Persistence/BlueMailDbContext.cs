@@ -69,6 +69,13 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<SpamTraining> SpamTrainings => Set<SpamTraining>();
     public DbSet<GreylistEntry> Greylist => Set<GreylistEntry>();
     public DbSet<QuarantinedMessage> Quarantine => Set<QuarantinedMessage>();
+    public DbSet<MailFilter> Filters => Set<MailFilter>();
+    public DbSet<FilterJob> FilterJobs => Set<FilterJob>();
+    public DbSet<BlockedSender> BlockedSenders => Set<BlockedSender>();
+    public DbSet<Vacation> Vacations => Set<Vacation>();
+    public DbSet<VacationReply> VacationReplies => Set<VacationReply>();
+    public DbSet<ForwardingAddress> ForwardingAddresses => Set<ForwardingAddress>();
+    public DbSet<TenantMailPolicy> MailPolicies => Set<TenantMailPolicy>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

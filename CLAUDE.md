@@ -76,3 +76,11 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - After changing rules run `SpamQualityTests` (2-fold CV on `tests/BlueMail.SpamCorpus/corpus.jsonl`); false positives must stay 0.
 - Acceptance: `sh scripts/dev-phase6-check.sh` (rebuild mx first). Keep the phishing sample below the reject threshold (15).
 
+## Search and rules (Phase 7)
+- Query language: `BlueMail.MailStore/Search` (parser → `SearchSql` for search, `SearchMatcher` for filters). A new operator needs
+  both evaluators and a case in `RulesTests.Search_in_sql_and_the_filter_matcher_agree…`; new parser error codes go into
+  `SearchParser.ErrorCodes` + `error.search_<code>` translations.
+- Mailbox rules run in `MailboxRules` from both MX and the dispatcher's internal delivery; forwards/vacation go out via `SystemMail`.
+- Acceptance: `sh scripts/dev-phase7-check.sh` (rebuild mx + outbound first).
+- A vite dev server may already be running on 5173 (BM_WEB_URL); reuse it instead of starting a second one on another port.
+

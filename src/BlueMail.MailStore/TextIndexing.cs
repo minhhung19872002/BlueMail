@@ -71,6 +71,10 @@ public static class SearchText
 {
     public const int MaxBodyChars = 200_000;
 
+    /// <summary>The "people" part of the search vector: names, addresses, local parts and domain words of From/To/Cc.</summary>
+    public static string People(MessageFacts f) => string.Join(' ', new[] { f.From }.Concat(f.To).Concat(f.Cc).Where(a => a is not null)
+        .SelectMany(a => new[] { a!.Name, a.Address, a.Address.Split('@')[0], a.Address.Contains('@', StringComparison.Ordinal) ? a.Address.Split('@')[1].Replace('.', ' ') : null }));
+
     public static string Prepare(string? text, int maxChars = MaxBodyChars)
     {
         if (string.IsNullOrEmpty(text))

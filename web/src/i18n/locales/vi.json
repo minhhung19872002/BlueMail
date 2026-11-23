@@ -36,7 +36,10 @@
     "account": "Tài khoản",
     "labels": "Nhãn",
     "labelsHeading": "Nhãn",
-    "signatures": "Chữ ký và mẫu thư"
+    "signatures": "Chữ ký và mẫu thư",
+    "filters": "Bộ lọc và địa chỉ bị chặn",
+    "vacation": "Trả lời tự động",
+    "forwarding": "Chuyển tiếp"
   },
   "theme": {
     "title": "Chủ đề",
@@ -143,7 +146,10 @@
       "saved": "Đã xong."
     },
     "reportPhishing": "Báo cáo lừa đảo",
-    "phishingDone": "Đã báo cáo lừa đảo. Cảm ơn bạn."
+    "phishingDone": "Đã báo cáo lừa đảo. Cảm ơn bạn.",
+    "blockSender": "Chặn {address}",
+    "blockSenderBody": "Thư sau này từ người gửi này sẽ vào Thư rác.",
+    "blocked": "Đã chặn {address}."
   },
   "sessions": {
     "title": "Bảo mật và thiết bị",
@@ -391,5 +397,149 @@
       "BAYES_05": "Nội dung giống thư bạn thường giữ lại.",
       "BAYES_00": "Nội dung rất giống thư bạn thường giữ lại."
     }
+  },
+  "search": {
+    "placeholder": "Tìm thư",
+    "advanced": "Tìm kiếm nâng cao",
+    "resultsFor": "Kết quả cho “{q}”",
+    "search": "Tìm",
+    "clear": "Xoá",
+    "createFilter": "Tạo bộ lọc",
+    "larger": "Lớn hơn",
+    "smaller": "Nhỏ hơn",
+    "unit": "Đơn vị",
+    "f": {
+      "from": "Từ",
+      "to": "Đến",
+      "subject": "Tiêu đề",
+      "hasWords": "Có các từ",
+      "notWords": "Không có các từ",
+      "size": "Kích thước",
+      "within": "Trong khoảng",
+      "date": "quanh ngày (yyyy/mm/dd)",
+      "where": "Tìm trong",
+      "hasAttachment": "Có tệp đính kèm",
+      "unread": "Chưa đọc"
+    },
+    "within": {
+      "any": "Mọi lúc",
+      "1d": "1 ngày",
+      "3d": "3 ngày",
+      "7d": "1 tuần",
+      "14d": "2 tuần",
+      "1m": "1 tháng",
+      "2m": "2 tháng",
+      "6m": "6 tháng",
+      "1y": "1 năm"
+    },
+    "where": {
+      "all": "Tất cả thư",
+      "inbox": "Hộp thư đến",
+      "starred": "Có gắn dấu sao",
+      "sent": "Đã gửi",
+      "drafts": "Thư nháp",
+      "spam": "Thư rác",
+      "trash": "Thùng rác",
+      "anywhere": "Thư, Thư rác và Thùng rác"
+    }
+  },
+  "filters": {
+    "title": "Bộ lọc và địa chỉ bị chặn",
+    "filters": "Bộ lọc",
+    "blocked": "Địa chỉ bị chặn",
+    "new": "Tạo bộ lọc",
+    "edit": "Sửa bộ lọc",
+    "delete": "Xoá bộ lọc",
+    "deleteConfirm": "Xoá bộ lọc này?",
+    "save": "Lưu bộ lọc",
+    "saved": "Đã lưu bộ lọc.",
+    "none": "Chưa có bộ lọc nào.",
+    "import": "Nhập bộ lọc Gmail",
+    "export": "Xuất (định dạng Gmail)",
+    "imported": "{count, plural, =0 {Không nhập được bộ lọc nào} other {Đã nhập # bộ lọc}}.",
+    "importProblems": "Một số mục không nhập được nguyên vẹn:",
+    "importProblem": "Mục {entry}: {reason} {detail}",
+    "problem": {
+      "no_criteria": "không có điều kiện",
+      "no_action": "không có hành động",
+      "unknown_property": "bỏ qua thiết lập không hỗ trợ:",
+      "forward_not_verified": "bỏ chuyển tiếp vì địa chỉ chưa xác minh:"
+    },
+    "moveUp": "Chuyển lên",
+    "moveDown": "Chuyển xuống",
+    "disabled": "Tắt",
+    "enabled": "Bật",
+    "criteria": "Thư khớp với (toán tử tìm kiếm, như ô tìm kiếm)",
+    "criteriaHint": "ví dụ from:an@acme.vn subject:\"hoá đơn\"",
+    "matchesNow": "{count, plural, =0 {Hiện không có thư nào khớp} other {Hiện có # thư khớp}}",
+    "whenMatches": "Khi có thư khớp thì:",
+    "unchanged": "Không đổi",
+    "noVerified": "Hãy thêm và xác minh địa chỉ ở mục Chuyển tiếp trước",
+    "applyExisting": "Áp dụng cả cho {count} thư đang khớp",
+    "jobRunning": "Đang áp dụng… {done}/{total}",
+    "jobDone": "Đã áp dụng cho {total} thư.",
+    "jobFailed": "Áp dụng cho thư có sẵn bị lỗi.",
+    "a": {
+      "skipInbox": "Bỏ qua Hộp thư đến (lưu trữ)",
+      "markRead": "Đánh dấu đã đọc",
+      "star": "Gắn dấu sao",
+      "label": "Gắn nhãn",
+      "labelNamed": "Nhãn “{name}”",
+      "forward": "Chuyển tiếp tới",
+      "forwardTo": "Chuyển tiếp tới {address}",
+      "trash": "Xoá",
+      "neverSpam": "Không bao giờ chuyển vào Thư rác",
+      "important": "Mức quan trọng",
+      "alwaysImportant": "Luôn đánh dấu quan trọng",
+      "neverImportant": "Không bao giờ đánh dấu quan trọng",
+      "category": "Phân loại vào",
+      "categoryNamed": "Tab {name}"
+    },
+    "cat": {
+      "PRIMARY": "Chính",
+      "SOCIAL": "Mạng xã hội",
+      "PROMOTIONS": "Quảng cáo",
+      "UPDATES": "Cập nhật",
+      "FORUMS": "Diễn đàn"
+    },
+    "blockedHint": "Thư từ các địa chỉ hoặc tên miền này vào thẳng Thư rác.",
+    "blockPlaceholder": "Địa chỉ hoặc tên miền, ví dụ ads@shop.vn hoặc shop.vn",
+    "block": "Chặn",
+    "unblock": "Bỏ chặn",
+    "noneBlocked": "Chưa chặn ai."
+  },
+  "vacation": {
+    "title": "Trả lời tự động",
+    "on": "Bật",
+    "off": "Tắt",
+    "from": "Từ ngày",
+    "until": "Đến hết ngày",
+    "subject": "Tiêu đề (để trống: “Auto: ” + tiêu đề gốc)",
+    "message": "Nội dung trả lời tự động",
+    "onlyContacts": "Chỉ trả lời người tôi đã từng gửi thư",
+    "onlyOrganization": "Chỉ trả lời người trong tổ chức",
+    "rules": "Mỗi người gửi nhận tối đa một thư trả lời trong 4 ngày. Không trả lời danh sách thư, thư tự động và thư hàng loạt (RFC 3834).",
+    "save": "Lưu",
+    "saved": "Đã lưu trả lời tự động.",
+    "banner": "Trả lời tự động đang bật.",
+    "turnOff": "Tắt"
+  },
+  "forwarding": {
+    "title": "Chuyển tiếp",
+    "add": "Địa chỉ chuyển tiếp",
+    "sendCode": "Gửi mã xác nhận",
+    "codeSent": "Đã gửi mã xác nhận tới địa chỉ đó.",
+    "code": "Mã",
+    "verify": "Xác nhận",
+    "resend": "Gửi lại",
+    "verified": "Đã xác nhận địa chỉ.",
+    "verifiedTag": "Đã xác nhận",
+    "remove": "Xoá {address}",
+    "none": "Chưa có địa chỉ chuyển tiếp.",
+    "automatic": "Tự động chuyển tiếp",
+    "off": "Không chuyển tiếp",
+    "to": "Chuyển tiếp bản sao thư đến tới {address}",
+    "keepCopy": "Giữ bản sao trong Hộp thư đến của BlueMail",
+    "externalForbidden": "Tổ chức của bạn chỉ cho phép chuyển tiếp tới địa chỉ trong tổ chức."
   }
 }
