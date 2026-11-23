@@ -17,4 +17,7 @@
     <ProjectReference Include="..\..\src\BlueMail.Dkim\BlueMail.Dkim.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Scanner\BlueMail.Scanner.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\BlueMail.InteropTests\ScannerSamples.cs" Link="Scanner\ScannerSamples.cs" />
+  </ItemGroup>
 </Project>

@@ -62,6 +62,7 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | FluentAssertions | 7.2.0 | Apache-2.0 | Kiểm thử (bản ≥ 8 là thương mại) |
 | Testcontainers.PostgreSql | 4.17.0 | MIT | Kiểm thử tích hợp |
 | Microsoft.AspNetCore.Mvc.Testing | 10.0.15 | MIT | Kiểm thử tích hợp |
+| SharpFuzz | 2.3.0 | MIT | Fuzzing (libFuzzer/AFL) cho bộ phân tích tự viết |
 
 ## npm
 

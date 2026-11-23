@@ -13,3 +13,17 @@ Mỗi RFC: phạm vi đã làm, chưa làm, bằng chứng kiểm thử. Cập n
 | RFC 5322 3.4.1 / RFC 6531 3.3 địa chỉ | `Domain/Common/EmailAddress` | dot-atom, phần cục bộ UTF-8 (NFC), độ dài 64/253/320 | quoted-string phần cục bộ (cố ý từ chối khi tạo tài khoản; bộ phân tích MIME ở Phase 2 sẽ đọc được) | `EmailAddressTests` |
 | IDNA2008 / UTS #46 | `EmailAddress` (`IdnMapping`, `UseStd3AsciiRules`) | A-label khi lưu, U-label khi hiển thị | Cảnh báo trộn hệ chữ (Phase 8) | `Normalises_to_lower_case_and_a_label` (đối chứng `idna` của Python) |
 | WCAG 2.1 AA 1.4.3 | `web/src/theme/tokens.ts` | Tương phản ≥ 4,5:1 mọi cặp chữ/nền ở sáng và tối | Đo trên toàn trang bằng trình duyệt (Phase 13) | `tokens.test.ts` |
+| RFC 5322 | `BlueMail.Mime` | tiêu đề, gấp dòng, địa chỉ (nhóm, chú thích, route cũ), ngày (cả dạng cũ 4.3), Message-ID | sinh phần cục bộ quoted-string | `MimeCorpusTests`, `AddressTests`, `DateTests` |
+| RFC 2045/2046 | `BlueMail.Mime` | multipart lồng, preamble/epilogue, message/rfc822, digest, base64/QP khoan dung + luồng | CTE `binary` coi như identity | `MimeCorpusTests`, `ParserTests`, `TransferEncodingTests` |
+| RFC 2047 | `BlueMail.Mime` | B/Q, ghép từ kề nhau theo byte, mã hoá theo grapheme | — | `EncodedWordTests` |
+| RFC 2231 | `BlueMail.Mime` | nối đoạn, bảng mã/ngôn ngữ, ưu tiên tham số mở rộng | — | `ParameterTests`, `Rfc2231_segments_never_split_an_escape` |
+| RFC 2183 / 2392 | `BlueMail.Mime` | inline/attachment, filename, Content-ID | tham số size/date | `MimeCorpusTests` |
+| RFC 3676 | `BlueMail.Mime` | giải format=flowed (DelSp, trích dẫn, chữ ký) | mã hoá flowed | `Format_flowed_joins_soft_breaks…` |
+| RFC 6532 | `BlueMail.Mime` | tiêu đề UTF-8 thô; báo cần SMTPUTF8 | — | `eai-utf8-headers`, `Smtputf8_needed_only…` |
+| RFC 3464 | `BlueMail.Mime` | đọc message/delivery-status | — | `Delivery_status_is_read` |
+| RFC 1035 / 3596 / 6891 / 7766 / 2308 | `BlueMail.Dns` | xem `src/BlueMail.Dns/README.md` | DNSSEC (Phase 12) | `DnsInteropTests`, `DnsWireTests` |
+| RFC 6376 | `BlueMail.Dkim` | ký/kiểm, chuẩn hoá simple/relaxed, bản ghi khoá, ký thừa tiêu đề | z= | `DkimInteropTests`, `DkimCanonicalizationTests` (ví dụ RFC 3.4.5) |
+| RFC 8301 | `BlueMail.Dkim` | từ chối rsa-sha1, khoá < 1024 bit; ký ≥ 2048 bit | — | `DkimVerifierTests` |
+| RFC 8463 | `BlueMail.Dkim` | nhận diện, báo neutral | ký/kiểm Ed25519 (BCL không có) | `Rsa_sha1_fails_and_ed25519_is_neutral` |
+| RFC 8617 | `BlueMail.Dkim` | kiểm chuỗi ARC, niêm chặng mới | — | `ArcInteropTests` |
+| RFC 1952 / ZIP APPNOTE / RAR 4-5 / MS-CFB / ISO 9660 | `BlueMail.Scanner` | xem `src/BlueMail.Scanner/README.md` | liệt kê 7z có thư mục nén LZMA | `ScannerSampleTests`, `ScannerClamAvComparisonTests` |

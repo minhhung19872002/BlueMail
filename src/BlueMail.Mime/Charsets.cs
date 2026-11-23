@@ -74,9 +74,9 @@ public static class Charsets
                 // Replacement fallbacks: invalid bytes become U+FFFD instead of throwing.
                 return Encoding.GetEncoding(name, EncoderFallback.ReplacementFallback, DecoderFallback.ReplacementFallback);
             }
-            catch (ArgumentException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
             {
-                return null;
+                return null; // unknown label, or disabled by .NET (UTF-7)
             }
         });
     }

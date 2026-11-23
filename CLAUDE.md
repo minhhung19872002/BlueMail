@@ -31,3 +31,13 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Server strings: `src/BlueMail.Infrastructure/Localization/Resources/{en,vi}.json`; web: `web/src/i18n/locales`.
 - New endpoint: add `[RequirePermission]` or `[SelfGuarded("why")]`; new package: list it in docs/09.
 - Python heredocs: never put `\r\n` / `\n` escapes for C# strings inside them (they become real newlines); use the Edit tool.
+
+## Own libraries (Phase 2)
+- `BlueMail.Mime`, `BlueMail.Dns`, `BlueMail.Dkim`, `BlueMail.Scanner`: standalone (BCL only), each with a README of
+  RFC coverage. Reference checks live in `tests/BlueMail.InteropTests` and run tools in the `tools` container
+  (`tests/interop/*.py`); outputs go to `tests/interop/out/` (git-ignored).
+- New corpus message: add it to `tests/BlueMail.Corpus/generate.py`, regenerate, run `MimeCorpusTests`; record any
+  intended difference with a reason in `python-differences.json`.
+- Fuzz finds a crash: keep the saved input (`tests/interop/out/fuzz`), write a red unit test, fix, log in docs/08.
+- Never write EICAR or other AV-test files to the host disk (Windows Defender deletes them); stream them into containers.
+

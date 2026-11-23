@@ -221,3 +221,18 @@ token (`offline_access`), mỗi lần làm mới BlueID hỏi lại `ISessionVal
 Chỉ đọc `X-Forwarded-For/Proto` từ các dải `BM_TRUSTED_PROXIES` (mặc định 10/8, 172.16/12, 192.168/16 — mạng Docker).
 Bằng chứng cần thiết: lần chạy thật đầu tiên mạng Docker là 192.168.16.0/20, mặc định cũ chỉ có 172.16/12 nên BlueID
 coi yêu cầu là HTTP và OpenIddict trả `ID2083` (docs/08 BUG-004).
+
+## D10. 7z: không liệt kê được thư mục nén LZMA — **[CẦN CHỦ SẢN PHẨM]**
+
+7-Zip mặc định nén thư mục (kEncodedHeader) bằng LZMA. BCL không có LZMA; nguyên tắc "không thư viện xử lý của bên
+thứ ba" (PROMPT 0) không cho thêm thư viện, còn tự viết bộ giải LZMA chỉ để đọc tên tệp là khối lượng lớn. Quyết định
+hiện tại: tệp 7z có thư mục nén → `archive_unlistable`, mức theo chính sách (mặc định **nghi ngờ**, quản trị viên có
+thể chặn hẳn). 7z với thư mục không nén thì liệt kê tên và áp luật chặn bình thường. Phương án khác cần chủ sản phẩm
+quyết: (a) tự viết bộ giải LZMA (ước lượng vài ngày, kèm fuzz), (b) chặn mọi 7z như Gmail không chặn.
+
+## D11. Khác biệt với Python `email` là quyết định có lý do
+
+So sánh với `email` của Python (PROMPT 11) cho thấy 8 điểm BlueMail chủ ý khác (danh sách và lý do trong
+`tests/BlueMail.Corpus/python-differences.json`): ở các thư sai chuẩn, BlueMail đọc ra chữ có nghĩa thay vì ký tự
+thay thế (đoán bảng mã có kiểm soát, ghép từ mã hoá bị cắt), giới hạn độ sâu lồng, và hiểu `-0000` là UTC theo
+RFC 5322. Mục nào trong danh sách không còn khác biệt thì phép thử đỏ để buộc dọn danh sách.

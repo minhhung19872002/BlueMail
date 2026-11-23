@@ -12,6 +12,7 @@
     <Project Path="src/BlueMail.Scanner/BlueMail.Scanner.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/BlueMail.FuzzTests/BlueMail.FuzzTests.csproj" />
     <Project Path="tests/BlueMail.IntegrationTests/BlueMail.IntegrationTests.csproj" />
     <Project Path="tests/BlueMail.InteropTests/BlueMail.InteropTests.csproj" />
     <Project Path="tests/BlueMail.UnitTests/BlueMail.UnitTests.csproj" />

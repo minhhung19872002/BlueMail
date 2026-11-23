@@ -68,3 +68,24 @@ Chạy: `dotnet test BlueMail.slnx` (unit + tích hợp với PostgreSQL và Val
 | P1-14 | Khổ 375×812 | Giả lập điện thoại, mở danh sách người dùng | Không cuộn ngang trang; cột nhãn đóng | `scrollWidth` 375, cột 0 px | ✅ |
 | P1-15 | Tương phản | Mọi cặp token chữ/nền, sáng và tối | ≥ 4,5:1 | `tokens.test.ts` (18 cặp) | ✅ |
 | P1-16 | Giờ theo múi người dùng | 20:30Z hiển thị cho Asia/Ho_Chi_Minh | 03:30 ngày hôm sau, không giờ UTC; đúng cả ngày đổi giờ châu Âu | `format.test.ts` | ✅ |
+
+## Phase 2 — thư viện nền tự viết
+
+Chạy: `dotnet test tests/BlueMail.InteropTests` (cần mạng dev đang chạy: container `tools`, CoreDNS, Postfix,
+bộ hứng `phase0`); `dotnet test tests/BlueMail.FuzzTests` (mặc định 1 500 lần/đích; chạy dài:
+`BM_FUZZ_ITERATIONS=100000 BM_FUZZ_SEED=<n>`). Fuzz dài bằng libFuzzer: xem `tests/BlueMail.FuzzTests/Program.cs`.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P2-01 | MIME ↔ Python `email` | `MimeCorpusTests` trên 46 thư mẫu | Khớp tiêu đề, địa chỉ, ngày, Message-ID, cây phần, tên tệp, băm nội dung, chữ | Khớp, trừ 8 khác biệt có lý do trong `python-differences.json` | ✅ |
+| P2-02 | Thư dựng ra đọc được | `MimeBuilderInteropTests` (5 kiểu thư) | Python đọc đúng tiêu đề/tên/tệp/băm; dòng ≤ 998; CRLF | Như mong đợi | ✅ |
+| P2-03 | Postfix nhận thư dựng ra | swaks gửi thư có tệp tên Unicode + 300 KB | Giao vào Maildir, Python đọc đúng 3 tệp | Như mong đợi | ✅ |
+| P2-04 | DNS ↔ dnspython | 21 truy vấn trên CoreDNS | Cùng trạng thái (Ok/NoData/NxDomain), cùng bản ghi, cùng tên chuẩn | Như mong đợi | ✅ |
+| P2-05 | Cắt UDP → TCP | TXT 40 bản ghi, UDP 512 | Đủ 40 bản ghi | Như mong đợi | ✅ |
+| P2-06 | DKIM của mình → dkimpy | ký 3 kiểu chuẩn hoá | dkimpy `pass`; sửa 1 byte → `fail`; thêm From → `fail` | Như mong đợi | ✅ |
+| P2-07 | DKIM của dkimpy/OpenDKIM → mình | dkimpy ký 3 kiểu; Postfix+OpenDKIM ký thật | `pass`, sửa byte → `fail` | Như mong đợi | ✅ |
+| P2-08 | ARC | mình niêm 1 và 2 chặng; dkimpy niêm | Hai bên `pass`; sửa → `fail` | Như mong đợi | ✅ |
+| P2-09 | Bộ quét: mẫu nguy hiểm | 30 mẫu tự dựng (PE giả, macro, mẫu từ xa, DDE, PDF JS/Launch, smuggling, bom nén, RLO…) | Đúng mức và đúng mã lý do | 30/30 | ✅ |
+| P2-10 | Bộ quét: mẫu sạch | 15 mẫu (PDF, ảnh, docx/xlsx, zip, csv, văn bản nhiều ngôn ngữ, tar/gz…) | `Clean` | 15/15 | ✅ |
+| P2-11 | So với ClamAV | Đưa 45 mẫu vào container ClamAV qua stdin | Có báo cáo khác biệt; ClamAV thấy EICAR | ClamAV chỉ bắt EICAR và DDE (theo chữ ký); BlueMail bắt các mẫu cấu trúc; khác biệt ngược duy nhất `eicar.txt` (lớp 8, Phase 6) | ✅ |
+| P2-12 | Fuzz | 5 đích × 100 000 lần × 3 hạt giống | Không ngoại lệ ngoài danh sách, không treo, bộ nhớ < 1,5 GB | Sạch sau khi sửa BUG-011..015 do fuzz tìm ra | ✅ |

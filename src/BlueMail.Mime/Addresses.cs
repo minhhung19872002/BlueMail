@@ -269,6 +269,13 @@ public static class AddressParser
                 i++;
             }
 
+            if (i == startAtom)
+            {
+                // A delimiter with no meaning here (stray ')' or ']'): skip it. Every iteration must consume input.
+                i++;
+                continue;
+            }
+
             tokens.Add(new Token(T.Atom, s[startAtom..i]));
         }
 
@@ -367,13 +374,21 @@ public static class DateParser
             }
         }
 
-        if (month is < 1 or > 12 || day < 1 || day > DateTime.DaysInMonth(Math.Clamp(year, 1, 9999), month)
-            || hour > 23 || minute > 59 || second > 60 || Math.Abs(offsetMinutes) > 18 * 60)
+        if (year is < 1 or > 9999 || month is < 1 or > 12 || day < 1 || day > DateTime.DaysInMonth(year, month)
+            || hour > 23 || minute > 59 || second > 60 || Math.Abs(offsetMinutes) > 14 * 60)
         {
             return null;
         }
 
-        return new DateTimeOffset(year, month, day, hour, minute, Math.Min(second, 59), TimeSpan.FromMinutes(offsetMinutes));
+        // The UTC instant must be representable too (0001-01-01 00:00 +1400 is before DateTime.MinValue in UTC).
+        var local = new DateTime(year, month, day, hour, minute, Math.Min(second, 59), DateTimeKind.Unspecified);
+        var offset = TimeSpan.FromMinutes(offsetMinutes);
+        if (local.Ticks - offset.Ticks < DateTime.MinValue.Ticks || local.Ticks - offset.Ticks > DateTime.MaxValue.Ticks)
+        {
+            return null;
+        }
+
+        return new DateTimeOffset(local, offset);
     }
 
     /// <summary>RFC 5322 date-time for generated headers, e.g. "Mon, 23 Nov 2026 13:05:00 +0700".</summary>

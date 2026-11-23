@@ -328,3 +328,41 @@ public class BuilderTests
         new MessageBuilder { From = new MailboxAddress(null, "ân@x.test"), MessageId = "a@x" }.RequiresSmtpUtf8.Should().BeTrue();
     }
 }
+
+public class AddressParserRegressionTests
+{
+    // docs/08 BUG-011: found by fuzzing (mime-36). A stray ')' or ']' produced an empty atom and an endless loop.
+    [Theory]
+    [InlineData("An)Nguyen <an@doitac.test>", "an@doitac.test")]
+    [InlineData("]x <b@y.test>", "b@y.test")]
+    [InlineData(")))) c@z.test", "c@z.test")]
+    public async Task Stray_closing_brackets_do_not_hang(string input, string address)
+    {
+        var parse = Task.Run(() => AddressParser.Parse(input));
+        (await Task.WhenAny(parse, Task.Delay(TimeSpan.FromSeconds(3)))).Should().BeSameAs(parse, "parsing must terminate");
+        (await parse).Select(a => a.Address).Should().Contain(a => a.EndsWith(address, StringComparison.Ordinal));
+    }
+}
+
+public class DateParserRegressionTests
+{
+    // docs/08 BUG-012: found by fuzzing (mime-9531). Out-of-range years threw ArgumentOutOfRangeException.
+    [Theory]
+    [InlineData("1 Jan 0000 00:00 +0000")]
+    [InlineData("31 Dec 99999 23:59 -0000")]
+    [InlineData("1 Jan 0001 00:00 +1400")]   // would be before 0001-01-01 in UTC
+    [InlineData("31 Dec 9999 23:59 -1400")]  // would be after 9999-12-31 in UTC
+    public void Unrepresentable_dates_are_null_not_exceptions(string input) => DateParser.Parse(input).Should().BeNull();
+}
+
+public class CharsetRegressionTests
+{
+    // docs/08 BUG-013: found by fuzzing (mime-headers-7177). "utf-7" threw NotSupportedException.
+    [Fact]
+    public void Utf7_is_treated_as_unknown_charset()
+    {
+        Charsets.GetEncoding("utf-7").Should().BeNull("UTF-7 is disabled in .NET and is a known XSS vector");
+        EncodedWords.Decode("=?utf-7?Q?abc?=").Should().Be("abc");
+        Charsets.Decode("Grüße"u8.ToArray(), "UTF-7").Should().Be("Grüße");
+    }
+}

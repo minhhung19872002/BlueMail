@@ -11,7 +11,8 @@ for the full specification.
 |---|---|---|
 | 0 | Test harness (CoreDNS, Postfix/OpenDKIM `doitac.test`, reference tools), decisions Z1–Z8, mail corpus | done |
 | 1 | Foundation: solution, BlueID (OIDC, 2FA, sessions), tenants + isolation, hash-chained audit log, health, Serilog, mail store schema (modseq/UID, partitioned), React shell | done |
-| 2 | Own libraries: BlueMail.Mime, BlueMail.Dns, BlueMail.Dkim, BlueMail.Scanner | next |
+| 2 | Own libraries: BlueMail.Mime, BlueMail.Dns, BlueMail.Dkim (DKIM + ARC), BlueMail.Scanner (layers 1–6); verified against Python email, dnspython, dkimpy, OpenDKIM, Postfix and ClamAV; fuzzed | done |
+| 3 | IMailStore + encrypted S3 store, threading, multilingual search; BlueMail.Mx (SMTP in, SPF/DKIM/DMARC/ARC, scanning, delivery) | next |
 
 ## Quick start (development)
 
