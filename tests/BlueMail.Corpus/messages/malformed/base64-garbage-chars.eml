@@ -1,0 +1,10 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: base64 with garbage
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <b64-garbage@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+TuG7mWkgZH!!**VuZyBiYXNl	~NjQgY8OzIHLDoWM=

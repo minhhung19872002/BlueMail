@@ -1,0 +1,11 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: first subject
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <dup-headers@corpus.bluemail.test>
+MIME-Version: 1.0
+Subject: second subject
+Content-Type: text/plain
+Content-Type: text/html
+
+duplicated headers

@@ -1,0 +1,10 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: header without colon
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <no-colon@corpus.bluemail.test>
+MIME-Version: 1.0
+This-Is-Not-A-Header
+Content-Type: text/plain
+
+x

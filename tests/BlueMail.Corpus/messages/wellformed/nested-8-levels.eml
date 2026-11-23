@@ -1,0 +1,41 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: nested
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <nested-8@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="NEST7"
+
+--NEST7
+Content-Type: multipart/mixed; boundary="NEST6"
+
+--NEST6
+Content-Type: multipart/mixed; boundary="NEST5"
+
+--NEST5
+Content-Type: multipart/mixed; boundary="NEST4"
+
+--NEST4
+Content-Type: multipart/mixed; boundary="NEST3"
+
+--NEST3
+Content-Type: multipart/mixed; boundary="NEST2"
+
+--NEST2
+Content-Type: multipart/mixed; boundary="NEST1"
+
+--NEST1
+Content-Type: multipart/mixed; boundary="NEST0"
+
+--NEST0
+Content-Type: text/plain; charset=utf-8
+
+leaf
+--NEST0--
+--NEST1--
+--NEST2--
+--NEST3--
+--NEST4--
+--NEST5--
+--NEST6--
+--NEST7--

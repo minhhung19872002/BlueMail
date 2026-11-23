@@ -1,0 +1,16 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: missing close boundary
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <missing-close@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="NO_CLOSE"
+
+--NO_CLOSE
+Content-Type: text/plain
+
+part one
+--NO_CLOSE
+Content-Type: text/plain
+
+part two, then EOF

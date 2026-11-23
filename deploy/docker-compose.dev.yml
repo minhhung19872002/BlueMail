@@ -1,0 +1,114 @@
+# BlueMail development / test network (PROMPT Phase 0, Z1-Z2).
+#   docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev up -d
+# Network 10.77.0.0/24 is isolated: test domains resolve only through CoreDNS (10.77.0.53).
+name: bluemail-dev
+
+x-dns: &dns
+  dns: [10.77.0.53]
+
+services:
+  dns:
+    image: coredns/coredns:1.12.4
+    command: ["-conf", "/etc/coredns/Corefile"]
+    volumes:
+      - ./coredns/Corefile:/etc/coredns/Corefile:ro
+      - ./coredns/zones:/zones:ro
+    ports: ["127.0.0.1:${BM_DEV_DNS_PORT:-55353}:53/udp", "127.0.0.1:${BM_DEV_DNS_PORT:-55353}:53/tcp"]
+    networks: { bmnet: { ipv4_address: 10.77.0.53 } }
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.16-alpine
+    environment:
+      POSTGRES_USER: ${BM_DB_USER:?BM_DB_USER is required}
+      POSTGRES_PASSWORD: ${BM_DB_PASSWORD:?BM_DB_PASSWORD is required}
+      POSTGRES_DB: bluemail
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports: ["127.0.0.1:${BM_DEV_PG_PORT:-55432}:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d bluemail"]
+      interval: 5s
+      retries: 20
+    networks: { bmnet: { ipv4_address: 10.77.0.10 } }
+    restart: unless-stopped
+
+  s3:
+    image: dxflrs/garage:v2.5.0
+    environment:
+      GARAGE_RPC_SECRET: ${BM_S3_RPC_SECRET:?BM_S3_RPC_SECRET is required}
+      GARAGE_ADMIN_TOKEN: ${BM_S3_ADMIN_TOKEN:?BM_S3_ADMIN_TOKEN is required}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - s3meta:/var/lib/garage/meta
+      - s3data:/var/lib/garage/data
+    ports: ["127.0.0.1:${BM_DEV_S3_PORT:-53900}:3900"]
+    networks: { bmnet: { ipv4_address: 10.77.0.11 } }
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8.1.12-alpine3.24
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    ports: ["127.0.0.1:${BM_DEV_VALKEY_PORT:-56379}:6379"]
+    networks: { bmnet: { ipv4_address: 10.77.0.12 } }
+    restart: unless-stopped
+
+  # --- test-only: "external" mail server for doitac.test ---
+  doitac:
+    build: ./dev/postfix
+    image: bluemail-dev/doitac-postfix:0.1
+    hostname: mail.doitac.test
+    <<: *dns
+    volumes:
+      - ./dev/dkim/doitac.test.private.pem:/dkim/doitac.test.private.pem:ro
+      - doitacmail:/var/mail/vhosts
+    networks: { bmnet: { ipv4_address: 10.77.0.30 } }
+    restart: unless-stopped
+
+  # --- test-only: reference tools (swaks, dkimpy, authheaders, checkdmarc, dnspython) ---
+  tools:
+    build: ./dev/tools
+    image: bluemail-dev/tools:0.1
+    <<: *dns
+    volumes:
+      - ..:/work
+      - sink:/sink
+      - doitacmail:/doitacmail:ro
+    networks: { bmnet: { ipv4_address: 10.77.0.40 } }
+
+  # --- test-only: ClamAV, only to compare verdicts with BlueMail.Scanner ---
+  clamav:
+    image: clamav/clamav:1.5.5
+    profiles: ["scanner-compare"]
+    networks: { bmnet: { ipv4_address: 10.77.0.41 } }
+
+  # --- test-only: Dovecot imaptest (IMAP compliance, Phase 11) ---
+  imaptest:
+    image: dovecot/imaptest@sha256:34e3a745a033e16faccf03e68309b97311cd2a42d0c377b5d983bd2b88dbf918
+    profiles: ["imap-compliance"]
+    <<: *dns
+    networks: { bmnet: { ipv4_address: 10.77.0.42 } }
+
+  # --- test-only, Phase 0: SMTP sink on mx.bluemail.test until BlueMail.Mx exists ---
+  sink:
+    image: bluemail-dev/tools:0.1
+    profiles: ["phase0"]
+    command: ["python", "/work/deploy/dev/sink/sink.py"]
+    volumes:
+      - ..:/work:ro
+      - sink:/sink
+    networks: { bmnet: { ipv4_address: 10.77.0.25 } }
+
+networks:
+  bmnet:
+    driver: bridge
+    ipam:
+      config: [{ subnet: 10.77.0.0/24 }]
+
+volumes:
+  pgdata:
+  s3meta:
+  s3data:
+  doitacmail:
+  sink:

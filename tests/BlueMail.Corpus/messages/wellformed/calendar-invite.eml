@@ -1,0 +1,32 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: =?utf-8?B?TOG7nWkgbeG7nWk6IEjhu41wIHThu5VuZyBr4bq/dCBxdcO9?=
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <calendar-invite@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="CAL_BOUNDARY"
+
+--CAL_BOUNDARY
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+
+Mời anh tham dự họp tổng kết quý.
+--CAL_BOUNDARY
+Content-Type: text/calendar; charset=utf-8; method=REQUEST
+Content-Transfer-Encoding: 8bit
+
+BEGIN:VCALENDAR
+PRODID:-//Corpus//EN
+VERSION:2.0
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:evt-123@doitac.test
+DTSTAMP:20261101T000000Z
+DTSTART:20261120T020000Z
+DTEND:20261120T030000Z
+SUMMARY:Họp tổng kết quý
+ORGANIZER;CN=An:mailto:an@doitac.test
+ATTENDEE;RSVP=TRUE;PARTSTAT=NEEDS-ACTION:mailto:lan@bluemail.test
+END:VEVENT
+END:VCALENDAR
+--CAL_BOUNDARY--

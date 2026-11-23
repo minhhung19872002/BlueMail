@@ -1,0 +1,15 @@
+From: Reports <noreply@notify.example>
+To: lan@bluemail.test
+Subject: Your weekly report
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <bulk-newsletter@corpus.bluemail.test>
+MIME-Version: 1.0
+List-Id: Weekly Reports <weekly.notify.example>
+List-Unsubscribe: <https://notify.example/u/abc123>, <mailto:unsub@notify.example?subject=unsub>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Precedence: bulk
+Auto-Submitted: auto-generated
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+<html><body><img src="https://tracker.notify.example/p.gif"><a href="https://notify.example/r">Report</a></body></html>

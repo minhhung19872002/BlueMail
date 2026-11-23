@@ -1,0 +1,13 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: declared boundary differs
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <wrong-boundary@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="DECLARED"
+
+--ACTUAL
+Content-Type: text/plain
+
+text
+--ACTUAL--

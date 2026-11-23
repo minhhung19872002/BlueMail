@@ -1,0 +1,3 @@
+# Fixed test addresses used by interop tests (PROMPT section 11)
+tempfail@doitac.test   451 4.3.0 Temporary failure for interop test
+reject@doitac.test     550 5.1.1 Mailbox does not exist (interop test)

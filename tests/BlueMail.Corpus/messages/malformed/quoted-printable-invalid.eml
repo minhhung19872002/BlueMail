@@ -1,0 +1,11 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: bad qp
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <bad-qp@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Soft=
+break and =ZZ invalid escape and trailing =

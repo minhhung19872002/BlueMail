@@ -1,0 +1,35 @@
+From: Lan Tran <lan.tran@gmail.example>
+To: lan@bluemail.test
+Subject: =?utf-8?B?8J+OiSBDaMO6YyBt4burbmcg4oCTIOWQiOS9nOaEieW/qyDigJMg0J/QvtC30LTRgNCw0LLQu9GP0LXQvA==?=
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <gmail-emoji@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="0000000000001a2b3c05e9f0mixed"
+
+--0000000000001a2b3c05e9f0mixed
+Content-Type: multipart/alternative; boundary="0000000000001a2b3c05e9f0alt"
+
+--0000000000001a2b3c05e9f0alt
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: base64
+
+Q2jDumMgbeG7q25nISDwn46JIOWQiOS9nOaEieW/qyDQn9C+0LfQtNGA0LDQstC70Y/QtdC8Cg==
+--0000000000001a2b3c05e9f0alt
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: base64
+
+PGRpdiBkaXI9Imx0ciI+Q2jDumMgbeG7q25nISDwn46JIOWQiOS9nOaEieW/qyDQn9C+0LfQtNGA
+0LDQstC70Y/QtdC8PC9kaXY+
+--0000000000001a2b3c05e9f0alt--
+
+--0000000000001a2b3c05e9f0mixed
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+Content-Disposition: attachment;
+ filename*0*=utf-8'vi'H%E1%BB%A3p%20%C4%91%E1%BB%93ng%20nguy%C3%AAn%20t%E1%BA%AFc%;
+ filename*1*=20h%E1%BB%A3p%20t%C3%A1c%20chi%E1%BA%BFn%20l%C6%B0%E1%BB%A3c;
+ filename*2*=%20giai%20%C4%91o%E1%BA%A1n%202026%E2%80%932030%20%28b%E1%BA;
+ filename*3*=%A3n%20k%C3%BD%29%20%F0%9F%93%84.xlsx
+Content-Transfer-Encoding: base64
+
+UEsDBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+--0000000000001a2b3c05e9f0mixed--

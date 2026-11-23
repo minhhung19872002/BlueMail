@@ -1,0 +1,9 @@
+From: An Nguyen <an@doitac.test>
+To: lan@bluemail.test
+Subject: Đơn hàng số 123 – không khai báo
+Date: Mon, 2 Nov 2026 09:15:00 +0700
+Message-ID: <raw-8bit-header@corpus.bluemail.test>
+MIME-Version: 1.0
+Content-Type: text/plain
+
+8-bit subject undeclared

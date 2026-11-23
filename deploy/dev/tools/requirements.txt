@@ -1,0 +1,7 @@
+dkimpy==1.1.8
+authheaders==0.16.3
+authres==1.2.0
+checkdmarc==6.0.4
+dnspython==2.9.2
+aiosmtpd==1.4.6
+vobject==0.9.9

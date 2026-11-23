@@ -1,0 +1,30 @@
+# --- doitac.test test server ---
+myhostname = mail.doitac.test
+mydomain = doitac.test
+myorigin = doitac.test
+mydestination = localhost
+inet_protocols = ipv4
+# The tools container (10.77.0.40) may relay out through this server as a doitac.test sender.
+mynetworks = 127.0.0.0/8 10.77.0.40/32
+virtual_mailbox_domains = doitac.test
+virtual_mailbox_maps = hash:/etc/postfix/virtual_mailboxes
+virtual_mailbox_base = /var/mail/vhosts
+virtual_uid_maps = static:5000
+virtual_gid_maps = static:5000
+smtpd_recipient_restrictions = check_recipient_access hash:/etc/postfix/recipient_access, permit_mynetworks, reject_unauth_destination
+smtpd_tls_cert_file = /etc/postfix/tls/cert.pem
+smtpd_tls_key_file = /etc/postfix/tls/key.pem
+smtpd_tls_security_level = may
+smtp_tls_security_level = may
+smtp_tls_loglevel = 1
+smtputf8_enable = yes
+message_size_limit = 52428800
+virtual_mailbox_limit = 0
+maillog_file = /dev/stdout
+milter_default_action = accept
+milter_protocol = 6
+smtpd_milters = inet:127.0.0.1:8891
+non_smtpd_milters = inet:127.0.0.1:8891
+# Short retry schedule so retry behaviour of BlueMail can be observed quickly
+maximal_queue_lifetime = 1h
+bounce_queue_lifetime = 1h
