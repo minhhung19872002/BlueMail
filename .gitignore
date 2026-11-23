@@ -17,3 +17,4 @@ deploy/data/
 *.log
 logs/
 deploy/.env.local
+tests/interop/out/
