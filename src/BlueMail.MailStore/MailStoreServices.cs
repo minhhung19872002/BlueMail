@@ -10,6 +10,7 @@ public static class MailStoreServices
         services.AddScoped<UploadStore>();
         services.AddScoped<ExportStore>();
         services.AddSingleton<IMailEvents, ValkeyMailEvents>();
+        services.AddSingleton<MailboxCountCache>();
         services.AddScoped<PgMailStore>();
         services.AddScoped<RecipientResolver>();
         services.AddScoped<IMailStore>(sp => sp.GetRequiredService<PgMailStore>());

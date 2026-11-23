@@ -87,11 +87,13 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     }
 });
 
+// Requests per client IP and minute (PROMPT 8.1). Configurable: offices behind one NAT address, load tests (docs/06 P13-05).
+var perMinute = int.TryParse(builder.Configuration["BM_API_RATE_PER_MINUTE"], out var rpm) && rpm > 0 ? rpm : 600;
 builder.Services.AddRateLimiter(o =>
 {
     o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>
         RateLimitPartition.GetFixedWindowLimiter(http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = 600, Window = TimeSpan.FromMinutes(1) }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = perMinute, Window = TimeSpan.FromMinutes(1) }));
     o.OnRejected = (ctx, _) => new ValueTask(Problems.WriteAsync(ctx.HttpContext, HttpStatusCode.TooManyRequests, "rate_limited"));
 });
 

@@ -139,8 +139,14 @@ public sealed partial class PgMailStore
         // CountCap" and the page comes from walking messages newest first (PROMPT 8.2; counting or grouping every
         // conversation of a huge label on each view, or walking 1M messages for a rare phrase, is what was slow).
         var hits = new List<(Guid Id, Guid Key, DateTimeOffset At, bool Seen)>();
-        await using (var cmd = new NpgsqlCommand($"SELECT m.id, {key}, m.received_at, m.seen FROM mail.messages m WHERE {where} LIMIT {CountCap + 1}", c))
+
+        // A big label without a query: its (cached, exact) message count already says "more than CountCap", so the
+        // read below would only be thrown away.
+        var knownBig = q.View == MailView.Label && q.Search is null && q.LabelId is { } lid
+                       && (await LabelCountsAsync(access, ct)).TryGetValue(lid, out var lc) && lc.Total > CountCap;
+        if (!knownBig)
         {
+            await using var cmd = new NpgsqlCommand($"SELECT m.id, {key}, m.received_at, m.seen FROM mail.messages m WHERE {where} LIMIT {CountCap + 1}", c);
             Bind(cmd);
             await using var rd = await cmd.ExecuteReaderAsync(ct);
             while (await rd.ReadAsync(ct))
@@ -149,7 +155,7 @@ public sealed partial class PgMailStore
             }
         }
 
-        var exact = hits.Count <= CountCap;
+        var exact = !knownBig && hits.Count <= CountCap;
         long total = CountCap;
 
         // Page order: conversations by their newest message (time, then id in PostgreSQL's uuid order). The cursor is

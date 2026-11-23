@@ -417,3 +417,11 @@ Service worker (`web/public/sw.js`) chỉ cache khung ứng dụng (tệp `/asse
 không cache API, tệp đính kèm hay bất cứ dữ liệu người dùng nào — máy dùng chung/mất máy không lộ thư. Ngoại tuyến: mở
 được khung và báo không kết nối. Các trang ít dùng (quản trị, cài đặt, danh bạ, trang xem thư bảo mật) và trình soạn
 thảo (tiptap), xem PDF được tải khi cần: gói đầu từ 2,9 MB xuống 510 kB (162 kB gzip).
+
+## D33. Số đếm nhãn nhớ theo modseq
+
+Mọi thay đổi có thể làm đổi số đếm (giao thư, đổi cờ/nhãn, xoá, tạo/xoá nhãn) đều cấp `highest_modseq` mới của hộp thư
+trong cùng giao dịch. `MailboxCountCache` (mỗi tiến trình) nhớ số đếm theo nhãn và dung lượng theo (hộp thư, modseq):
+cùng modseq thì đúng bằng kết quả đếm lại, nên vẫn giữ "số đếm lấy từ chính các hàng" (PROMPT 14.7); các yêu cầu đồng
+thời cùng modseq dùng chung một lần tính. Mỗi lượt xem chỉ còn một truy vấn đọc `highest_modseq`.
+
