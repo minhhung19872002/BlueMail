@@ -101,3 +101,4 @@ Danh sách đầy đủ có chú thích trong `deploy/.env.example`. Thiếu bi�
   `caddy validate` rồi `caddy reload` (không tạo lại container caddy).
 - Điều kiện trước khi gửi thử: PTR 14.225.83.93 → `mail.bm.bluestar.com.vn` (VNPT) và các bản ghi DNS ở docs/06 P12-12,
   thêm A cho `bm`, `id.bm`, `smtp.bm`, `imap.bm` → 14.225.83.93.
+- Trên VM (đã chạy 2026-11-24): `~/BlueMail/bm.sh` gói lệnh compose (base + `vm` overlay + `deploy/vm/local.yml` cục bộ, không trong git: submission/imap dùng chứng chỉ `mail.bm` khi `smtp.bm`/`imap.bm` chưa có DNS). `~/proxy/sites/bluemail.caddy` hiện chỉ có `mail.bm`; khi đủ DNS thay bằng `deploy/vm/bluemail.caddy` và `docker network connect bluemail_default proxy-caddy`. Mật khẩu quản trị đầu tiên nằm trong `deploy/.env` trên VM.
