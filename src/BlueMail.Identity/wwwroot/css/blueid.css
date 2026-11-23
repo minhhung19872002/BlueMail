@@ -1,0 +1,51 @@
+/* BlueID sign-in pages. Colours are tokens (custom properties) with light and dark values; logical
+   properties keep the layout correct for right-to-left scripts. System font stacks per script so every
+   language renders with native glyphs (PROMPT 14.20). */
+:root {
+  --bm-bg: #f3f6fb;
+  --bm-surface: #ffffff;
+  --bm-text: #1b1f24;
+  --bm-muted: #4a5360;
+  --bm-primary: #0b57d0;
+  --bm-primary-text: #ffffff;
+  --bm-border: #c4ccd8;
+  --bm-error-bg: #fdecea;
+  --bm-error-text: #8c1d18;
+  --bm-focus: #0b57d0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans CJK SC", "Noto Sans Arabic",
+    "Noto Sans Hebrew", "Noto Sans Thai", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bm-bg: #111418;
+    --bm-surface: #1c2026;
+    --bm-text: #e7eaee;
+    --bm-muted: #b3bcc8;
+    --bm-primary: #a8c7fa;
+    --bm-primary-text: #062e6f;
+    --bm-border: #48505c;
+    --bm-error-bg: #4a1512;
+    --bm-error-text: #ffdad6;
+    --bm-focus: #a8c7fa;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-block-size: 100vh; display: grid; place-items: center; background: var(--bm-bg); color: var(--bm-text); }
+.card { inline-size: min(28rem, 100% - 2rem); background: var(--bm-surface); border: 1px solid var(--bm-border);
+  border-radius: 1rem; padding-block: 2rem; padding-inline: 2rem; }
+.brand { font-weight: 700; color: var(--bm-primary); margin-block-end: 1rem; }
+h1 { font-size: 1.5rem; margin-block: 0 0.5rem; }
+p { color: var(--bm-muted); line-height: 1.5; }
+label { display: block; margin-block: 1rem 0.25rem; font-weight: 600; }
+input[type=email], input[type=password], input[type=text] { inline-size: 100%; padding: 0.7rem 0.8rem; font: inherit;
+  color: var(--bm-text); background: var(--bm-surface); border: 1px solid var(--bm-border); border-radius: 0.5rem; }
+input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--bm-focus); outline-offset: 2px; }
+.check { display: flex; gap: 0.5rem; align-items: center; margin-block-start: 1rem; }
+.check label { margin: 0; font-weight: 400; }
+button { margin-block-start: 1.5rem; inline-size: 100%; padding: 0.75rem; font: inherit; font-weight: 600; cursor: pointer;
+  color: var(--bm-primary-text); background: var(--bm-primary); border: 0; border-radius: 0.5rem; }
+.error { background: var(--bm-error-bg); color: var(--bm-error-text); padding: 0.75rem; border-radius: 0.5rem; margin-block: 1rem; }
+.links { display: flex; flex-wrap: wrap; gap: 1rem; margin-block-start: 2rem; font-size: 0.875rem; }
+.links a, a { color: var(--bm-primary); }
+code.secret { display: block; padding: 0.75rem; overflow-wrap: anywhere; background: var(--bm-bg); border-radius: 0.5rem; }
+ul.codes { columns: 2; font-family: ui-monospace, monospace; }

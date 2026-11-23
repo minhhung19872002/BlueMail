@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BlueMail.Api/BlueMail.Api.csproj" />
+    <Project Path="src/BlueMail.Application/BlueMail.Application.csproj" />
+    <Project Path="src/BlueMail.Domain/BlueMail.Domain.csproj" />
+    <Project Path="src/BlueMail.Identity/BlueMail.Identity.csproj" />
+    <Project Path="src/BlueMail.Infrastructure/BlueMail.Infrastructure.csproj" />
+    <Project Path="src/BlueMail.MailStore/BlueMail.MailStore.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BlueMail.IntegrationTests/BlueMail.IntegrationTests.csproj" />
+    <Project Path="tests/BlueMail.UnitTests/BlueMail.UnitTests.csproj" />
+  </Folder>
+</Solution>

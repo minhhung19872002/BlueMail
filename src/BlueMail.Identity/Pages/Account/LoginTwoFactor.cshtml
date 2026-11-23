@@ -1,0 +1,21 @@
+@page "/account/login-2fa"
+@model BlueMail.Identity.Pages.Account.LoginTwoFactorModel
+@{
+    ViewData["Title"] = L["id.2fa.title"];
+}
+<h1 id="page-title">@L["id.2fa.title"]</h1>
+<p>@L["id.2fa.subtitle"]</p>
+@if (Model.ErrorKey is not null)
+{
+    <div class="error" role="alert">@L[Model.ErrorKey]</div>
+}
+<form method="post">
+    <input type="hidden" asp-for="ReturnUrl" />
+    <label for="code">@L["id.field.code"]</label>
+    <input id="code" type="text" asp-for="Code" inputmode="numeric" autocomplete="one-time-code" required autofocus />
+    <div class="check">
+        <input id="recovery" type="checkbox" asp-for="IsRecoveryCode" />
+        <label for="recovery">@L["id.2fa.use_recovery"]</label>
+    </div>
+    <button type="submit">@L["id.2fa.submit"]</button>
+</form>

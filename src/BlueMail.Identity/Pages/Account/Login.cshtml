@@ -1,0 +1,23 @@
+@page "/account/login"
+@model BlueMail.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = L["id.login.title"];
+}
+<h1 id="page-title">@L["id.login.title"]</h1>
+<p>@L["id.login.subtitle"]</p>
+@if (Model.ErrorKey is not null)
+{
+    <div class="error" role="alert">@L[Model.ErrorKey]</div>
+}
+<form method="post">
+    <input type="hidden" asp-for="ReturnUrl" />
+    <label for="email">@L["id.field.email"]</label>
+    <input id="email" type="email" asp-for="Email" autocomplete="username" required autofocus dir="auto" />
+    <label for="password">@L["id.field.password"]</label>
+    <input id="password" type="password" asp-for="Password" autocomplete="current-password" required />
+    <div class="check">
+        <input id="remember" type="checkbox" asp-for="Remember" />
+        <label for="remember">@L["id.login.remember"]</label>
+    </div>
+    <button type="submit">@L["id.login.submit"]</button>
+</form>

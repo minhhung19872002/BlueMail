@@ -30,6 +30,37 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | vobject | 0.9.9 | Apache-2.0 |
 | Python | 3.12.12 | PSF |
 
-## NuGet / npm
+## NuGet
 
-(Phase 1 trở đi.)
+| Gói | Phiên bản | Giấy phép | Lý do |
+|---|---|---|---|
+| Microsoft.EntityFrameworkCore | 10.0.15 | MIT | ORM |
+| Microsoft.EntityFrameworkCore.Design | 10.0.15 | MIT | Công cụ migration (chỉ lúc build) |
+| Microsoft.EntityFrameworkCore.Relational | 10.0.15 | MIT | ORM |
+| Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.4 | PostgreSQL License | Trình cung cấp EF cho PostgreSQL |
+| Npgsql | 10.0.4 | PostgreSQL License | Trình kết nối PostgreSQL (đường nóng SMTP/IMAP) |
+| EFCore.NamingConventions | 10.0.1 | Apache-2.0 | Tên bảng/cột snake_case |
+| Microsoft.AspNetCore.Identity.EntityFrameworkCore | 10.0.15 | MIT | ASP.NET Core Identity |
+| Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | 10.0.15 | MIT | Lưu khoá Data Protection trong PostgreSQL |
+| OpenIddict.AspNetCore | 7.9.0 | Apache-2.0 | Máy chủ OIDC (BlueID) |
+| OpenIddict.EntityFrameworkCore | 7.9.0 | Apache-2.0 | Lưu ứng dụng/thẻ OIDC |
+| Microsoft.AspNetCore.Authentication.JwtBearer | 10.0.15 | MIT | API kiểm thẻ truy cập |
+| MediatR | 12.5.0 | Apache-2.0 | CQRS (bản Apache cuối, không nâng lên 13+) |
+| FluentValidation | 12.2.0 | Apache-2.0 | Kiểm dữ liệu vào |
+| FluentValidation.DependencyInjectionExtensions | 12.2.0 | Apache-2.0 | Đăng ký validator |
+| Serilog.AspNetCore | 10.0.0 | Apache-2.0 | Log có cấu trúc |
+| Serilog.Sinks.File | 7.0.0 | Apache-2.0 | Log ra tệp |
+| Serilog.Sinks.PostgreSQL | 2.3.0 | MIT | Log vào PostgreSQL |
+| Konscious.Security.Cryptography.Argon2 | 1.3.1 | MIT | Băm mật khẩu Argon2id (BCL chưa có Argon2; docs/00 D2) |
+| StackExchange.Redis | 3.4.35 | MIT | Kết nối Valkey |
+| AWSSDK.S3 | 4.1.2 | Apache-2.0 | Kết nối kho S3 |
+| Swashbuckle.AspNetCore | 10.3.1 | MIT | Swagger |
+| Microsoft.Extensions.Caching.Memory | 10.0.15 | MIT | Đệm trong bộ nhớ |
+| Microsoft.NET.Test.Sdk | 18.12.0 | MIT | Kiểm thử |
+| xunit | 2.9.3 | Apache-2.0 | Kiểm thử |
+| xunit.runner.visualstudio | 3.1.5 | Apache-2.0 | Kiểm thử |
+| FluentAssertions | 7.2.0 | Apache-2.0 | Kiểm thử (bản ≥ 8 là thương mại) |
+| Testcontainers.PostgreSql | 4.17.0 | MIT | Kiểm thử tích hợp |
+| Microsoft.AspNetCore.Mvc.Testing | 10.0.15 | MIT | Kiểm thử tích hợp |
+
+## npm

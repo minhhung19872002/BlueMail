@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\BlueMail.MailStore\BlueMail.MailStore.csproj" />
+    <ProjectReference Include="..\BlueMail.Infrastructure\BlueMail.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\*.resx" />
+  </ItemGroup>
+</Project>
