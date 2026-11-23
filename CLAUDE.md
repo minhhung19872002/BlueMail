@@ -106,3 +106,11 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
   Never add another `expunged_at = now()` path; a change of hold scope calls `RecomputeHoldCountsAsync`.
 - Import/export jobs use the lease pattern like FilterJobWorker; workers are singletons (tests call `RunOnceAsync`/`HousekeepingAsync`).
 - Python's mailbox appends to existing files: delete outputs before writing in interop tests.
+
+## Mail programs (Phase 11)
+- `BlueMail.Submission` (compose `submission`, 10.77.0.27, host ports 55587/55465) and `BlueMail.Imap` (`imap`, 10.77.0.28,
+  55143/55994) use the dev certificate `deploy/dev/tls` (SANs smtp/imap/mx.bluemail.test). Rebuild them with mx.
+- Sign-in for both: `MailLoginService` (passwords, app passwords, BlueID tokens, brute-force counters in Valkey).
+- IMAP session code: `src/BlueMail.Imap/ImapSession*.cs`; store queries `MailStore/ImapStore.cs`; writes only through
+  `ApplyAsync`/`DeliverAsync`. After IMAP changes run `sh scripts/dev-phase11-check.sh` (imaptest must stay 0/460).
+- SMTP AUTH lives in `SmtpServerSession` (pending SASL line state); MX passes no Authenticate and offers no AUTH.

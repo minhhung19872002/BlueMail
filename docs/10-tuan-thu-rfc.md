@@ -59,3 +59,10 @@ Mỗi RFC: phạm vi đã làm, chưa làm, bằng chứng kiểm thử. Cập n
 | RFC 5530 mã phản hồi IMAP | `ImapCommandException` | AUTHENTICATIONFAILED/AUTHORIZATIONFAILED → lỗi đăng nhập rõ ràng | — | `Wrong_password_is_an_authentication_failure…` |
 | Gmail IMAP X-GM-EXT-1 | `ImapClient`, `ImportMapping.GmailLabels` | X-GM-LABELS → nhãn hệ thống và nhãn người dùng lồng nhau | X-GM-THRID (luồng được ghép lại bằng tiêu đề) | `ImapParserTests.Gmail_labels…`, `ImportMappingTests` |
 | RFC 4155 mbox (mboxrd) | `BlueMail.Mime/Mbox` | Ghi mboxrd; đọc mboxrd và mboxo; ngày dòng "From "; giới hạn cỡ thư | Content-Length (mboxcl) | `MboxInteropTests` (Python mailbox hai chiều), `ImportMappingTests` |
+
+| RFC 3501 IMAP4rev1 (máy chủ) | `BlueMail.Imap` | Mọi lệnh cơ bản; \Recent trong tiến trình; nhãn là thư mục | "Tất cả thư" chưa là thư mục; đăng ký thư mục không tồn tại | `imaptest` 0/460 lệnh cơ bản sai |
+| RFC 2177 IDLE, RFC 4315 UIDPLUS, RFC 6851 MOVE, RFC 6154 SPECIAL-USE, RFC 5258 LIST-EXTENDED, RFC 2342 NAMESPACE, RFC 2971 ID, RFC 5161 ENABLE, RFC 3691 UNSELECT, RFC 3348 CHILDREN, RFC 7888 LITERAL+, RFC 4959 SASL-IR | `BlueMail.Imap` | Đủ phần bắt buộc | LIST-EXTENDED: `\NonExistent` | `imaptest`, `imap_submission_checks.py` |
+| RFC 7162 CONDSTORE/QRESYNC | `BlueMail.Imap` | MODSEQ, CHANGEDSINCE, UNCHANGEDSINCE + [MODIFIED], SEARCH MODSEQ, SELECT QRESYNC, VANISHED (EARLIER), CLOSED | ESEARCH kèm MODSEQ | `imap_submission_checks.py` (QRESYNC) |
+| RFC 4978 COMPRESS=DEFLATE | `BlueMail.Imap` | DEFLATE hai chiều sau OK | — | thủ công |
+| RFC 6409 / RFC 8314 SMTP nộp thư | `BlueMail.Submission` | 587 STARTTLS, 465 TLS ngầm định, MAIL trước AUTH bị từ chối, thêm Message-ID/Date, bỏ Bcc, chân thư bắt buộc | — | `imap_submission_checks.py`, `SmtpAuthTests` |
+| RFC 4954 SMTP AUTH, RFC 4616 PLAIN, RFC 7628 OAUTHBEARER | `Protocols.Smtp` | PLAIN, LOGIN, XOAUTH2, OAUTHBEARER (thử thách lỗi), 538/535/454 | — | `SmtpAuthTests` |

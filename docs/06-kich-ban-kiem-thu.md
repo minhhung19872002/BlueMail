@@ -291,3 +291,25 @@ Chạy: `dotnet test tests/BlueMail.UnitTests --filter "Imap|Imports"`, `dotnet 
 | P10-10 | eDiscovery xuất | Tìm trên hai hộp thư, xuất mbox | Mỗi hộp thư một mbox + manifest.csv; băm khớp; liên kết chỉ cho người yêu cầu; SHA-256 tệp khớp | Như mong đợi | ✅ |
 | P10-11 | Tải dữ liệu của tôi | Yêu cầu; yêu cầu lần hai | ZIP `mail/INBOX.mbox`, `contacts.vcf`, `settings.json`; 409 | Như mong đợi | ✅ |
 | P10-12 | Nhập thật từ Gmail và Outlook.com | Hộp thư thử nghiệm thật, mật khẩu ứng dụng | Đủ thư, nhãn Gmail; chạy lại không trùng | **Chưa chạy**: cần tài khoản thử nghiệm của chủ sản phẩm (mã đã đối chứng với Dovecot; ánh xạ X-GM-LABELS kiểm đơn vị) | ⏳ |
+
+## Phase 11 — SMTP nộp thư và IMAP
+
+Chuẩn bị một lần: tạo người dùng `imaptest@bluemail.test` / `Imaptest-Dev-Password-1` (trang Quản trị → Người dùng) và tải kịch bản
+`imaptest` (mã nguồn công khai của Dovecot) vào thư mục đầu ra (không đưa vào git):
+`curl -L https://github.com/dovecot/imaptest/archive/refs/heads/main.tar.gz | tar xz -C tests/interop/out/imaptest`.
+Chạy: `sh scripts/dev-phase11-check.sh` (Python imaplib/smtplib + imaptest), `dotnet test --filter "SmtpAuth|ImapServerUnit"`,
+`dotnet test tests/BlueMail.IntegrationTests --filter MailProtocolTests`.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P11-01 | IMAP tuân thủ | `imaptest` 74 nhóm kịch bản | Không lỗi ở giao thức cơ bản | 0/460 lệnh cơ bản sai; 1/60 lệnh mở rộng (đăng ký thư mục không tồn tại, `\NonExistent`); 38 nhóm bỏ qua vì mở rộng không cam kết (SORT, THREAD, ESEARCH, BINARY, CATENATE, NOTIFY…) | ✅ |
+| P11-02 | IMAP đồng thời | `imaptest` stress 5 client × 40 giây | Không báo lỗi nhất quán | Không lỗi | ✅ |
+| P11-03 | TLS và đăng nhập | 143 trước STARTTLS; sai mật khẩu; mật khẩu ứng dụng; 2FA bật | LOGINDISABLED/PRIVACYREQUIRED; AUTHENTICATIONFAILED; được; chỉ mật khẩu ứng dụng | Như mong đợi | ✅ |
+| P11-04 | Dò mật khẩu | 10 lần sai | Khoá tạm, kể cả mật khẩu đúng | Như mong đợi | ✅ |
+| P11-05 | Thu hồi | Thu hồi mật khẩu ứng dụng khi IMAP đang mở | Kết nối bị đóng ngay | Như mong đợi (`MailProtocolTests`) | ✅ |
+| P11-06 | IDLE, QRESYNC | Kết nối khác thêm thư; xoá thư rồi SELECT QRESYNC | EXISTS tới ngay; VANISHED (EARLIER) | Như mong đợi | ✅ |
+| P11-07 | SMTP nộp thư | 587 STARTTLS + AUTH; 465; From không được phép; người nhận nội bộ không tồn tại | AUTH chỉ sau TLS; 250; 550 5.7.1; 550 5.1.1 ở RCPT | Như mong đợi | ✅ |
+| P11-08 | Đã gửi không trùng | Gửi qua SMTP rồi APPEND vào Sent (như Thunderbird) | Một bản | Như mong đợi | ✅ |
+| P11-09 | Ra ngoài | Thư nộp qua SMTP tới Postfix doitac.test | Tới nơi, `dkim=pass` ở bên nhận | Như mong đợi | ✅ |
+| P11-10 | Tự cấu hình | autoconfig, autodiscover | IMAP 993 / SMTP 465 SSL | Như mong đợi | ✅ |
+| P11-11 | Phần mềm thư thật | Thunderbird, Outlook, iPhone Mail đọc/gửi/xoá/gắn nhãn hai chiều với web | Đồng bộ hai chiều | **Chưa chạy** trên máy thật (cần máy có các phần mềm này); đã kiểm bằng imaplib/smtplib/imaptest | ⏳ |

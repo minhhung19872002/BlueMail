@@ -14,6 +14,9 @@ public sealed record SmtpServerOptions
 
     /// <summary>Submission (RFC 6409): MAIL is refused before authentication; AUTH offered only over TLS.</summary>
     public bool RequireAuthentication { get; init; }
+
+    /// <summary>Checks SASL credentials (RFC 4954). Null: AUTH is not offered (MX).</summary>
+    public Func<SaslCredentials, CancellationToken, ValueTask<SaslResult>>? Authenticate { get; init; }
 }
 
 /// <summary>Envelope of the transaction in progress.</summary>
@@ -95,6 +98,9 @@ public sealed class SmtpServerSession(SmtpServerOptions options, ISmtpHandler ha
     private bool _bdatFailed;
     private SmtpReply? _bdatError;
     private long _bdatBytes;
+    private string? _authMechanism;
+    private string? _authLoginUser;
+    private bool _authBearerFailed;
 
     public SmtpEnvelope Envelope => envelope;
     public SmtpServerOptions Options => options;
@@ -113,6 +119,11 @@ public sealed class SmtpServerSession(SmtpServerOptions options, ISmtpHandler ha
         if (tooLong)
         {
             return Error(SmtpReply.LineTooLong);
+        }
+
+        if (_authMechanism is not null)
+        {
+            return await AuthResponseAsync(line, ct); // a SASL response line, not a command (RFC 4954 4)
         }
 
         if (line.Contains('\0', StringComparison.Ordinal))
@@ -164,6 +175,8 @@ public sealed class SmtpServerSession(SmtpServerOptions options, ISmtpHandler ha
                 return SmtpStep.Reply(new SmtpReply(502, "5.5.1", "EXPN not available"));
             case SmtpVerb.Help:
                 return SmtpStep.Reply(new SmtpReply(214, "2.0.0", "See RFC 5321"));
+            case SmtpVerb.Auth:
+                return await AuthAsync(cmd.Argument, ct);
             case SmtpVerb.StartTls:
                 if (!options.StartTlsAvailable || envelope.Tls)
                 {
@@ -222,6 +235,11 @@ public sealed class SmtpServerSession(SmtpServerOptions options, ISmtpHandler ha
         if (options.StartTlsAvailable && !envelope.Tls)
         {
             lines.Add("STARTTLS");
+        }
+
+        if (options.Authenticate is not null && envelope.Tls)
+        {
+            lines.Add("AUTH " + string.Join(' ', Sasl.Mechanisms)); // RFC 4954 4: never offered over plaintext
         }
 
         return SmtpStep.Reply(new SmtpReply(250, null, [.. lines]));
@@ -439,6 +457,121 @@ public sealed class SmtpServerSession(SmtpServerOptions options, ISmtpHandler ha
 
     private static SmtpStep RefusalStep(SmtpReply refusal) =>
         refusal.Code == 421 ? new SmtpStep(SmtpAction.Close, [refusal]) : SmtpStep.Reply(refusal);
+
+    // ---- AUTH (RFC 4954) ----
+
+    private async ValueTask<SmtpStep> AuthAsync(string argument, CancellationToken ct)
+    {
+        if (options.Authenticate is null)
+        {
+            return Error(SmtpReply.NotImplemented);
+        }
+
+        if (_state == State.New)
+        {
+            return Error(new SmtpReply(503, "5.5.1", "Send EHLO first"));
+        }
+
+        if (envelope.AuthenticatedUser is not null || _state != State.Greeted)
+        {
+            return Error(SmtpReply.BadSequence);
+        }
+
+        if (!envelope.Tls)
+        {
+            return Error(new SmtpReply(538, "5.7.11", "Encryption required for requested authentication mechanism"));
+        }
+
+        var parts = argument.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var mechanism = parts.Length > 0 ? parts[0].ToUpperInvariant() : "";
+        if (!Sasl.Mechanisms.Contains(mechanism))
+        {
+            return Error(new SmtpReply(504, "5.5.4", "Unrecognized authentication type"));
+        }
+
+        _authMechanism = mechanism;
+        _authLoginUser = null;
+        _authBearerFailed = false;
+        if (parts.Length == 2)
+        {
+            return await AuthResponseAsync(parts[1], ct);
+        }
+
+        return SmtpStep.Reply(new SmtpReply(334, null, mechanism == "LOGIN" ? "VXNlcm5hbWU6" : ""));
+    }
+
+    private async ValueTask<SmtpStep> AuthResponseAsync(string line, CancellationToken ct)
+    {
+        var mechanism = _authMechanism!;
+        if (_authBearerFailed)
+        {
+            // RFC 7628 3.2.3: after the error challenge the client sends a dummy response; then the failure.
+            _authMechanism = null;
+            return Error(new SmtpReply(535, "5.7.8", "Authentication credentials invalid"));
+        }
+
+        if (line == "*")
+        {
+            _authMechanism = null;
+            return Error(new SmtpReply(501, "5.0.0", "Authentication cancelled"));
+        }
+
+        var bytes = Sasl.FromBase64(line);
+        if (bytes is null)
+        {
+            _authMechanism = null;
+            return Error(new SmtpReply(501, "5.5.2", "Cannot decode response"));
+        }
+
+        SaslCredentials? creds;
+        switch (mechanism)
+        {
+            case "LOGIN" when _authLoginUser is null:
+                _authLoginUser = System.Text.Encoding.UTF8.GetString(bytes);
+                return SmtpStep.Reply(new SmtpReply(334, null, "UGFzc3dvcmQ6"));
+            case "LOGIN":
+                creds = new SaslCredentials("LOGIN", _authLoginUser, System.Text.Encoding.UTF8.GetString(bytes), false);
+                break;
+            case "PLAIN":
+                creds = Sasl.Plain(bytes);
+                break;
+            case "XOAUTH2":
+                creds = Sasl.XOAuth2(bytes);
+                break;
+            default:
+                creds = Sasl.OAuthBearer(bytes);
+                break;
+        }
+
+        if (creds is null)
+        {
+            _authMechanism = null;
+            return Error(new SmtpReply(501, "5.5.2", "Malformed authentication data"));
+        }
+
+        var result = await options.Authenticate!(creds, ct);
+        if (result.Ok)
+        {
+            _authMechanism = null;
+            envelope.AuthenticatedUser = result.Account;
+            return SmtpStep.Reply(new SmtpReply(235, "2.7.0", "Authentication successful"));
+        }
+
+        if (result.TemporaryFailure)
+        {
+            _authMechanism = null;
+            return Error(new SmtpReply(454, "4.7.0", "Temporary authentication failure"));
+        }
+
+        if (creds.IsBearerToken)
+        {
+            _authBearerFailed = true;
+            return SmtpStep.Reply(new SmtpReply(334, null, Sasl.BearerError));
+        }
+
+        _authMechanism = null;
+        return Error(new SmtpReply(535, "5.7.8", "Authentication credentials invalid"));
+    }
 
     private SmtpStep Error(SmtpReply reply)
     {

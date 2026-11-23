@@ -112,6 +112,50 @@ services:
     networks: { bmnet: { ipv4_address: 10.77.0.25 } }
     restart: unless-stopped
 
+  # --- BlueMail.Submission on smtp.bluemail.test (Phase 11): 587 STARTTLS, 465 TLS; dev certificate deploy/dev/tls. ---
+  submission:
+    image: bluemail/server:dev
+    command: ["submission"]
+    <<: *dns
+    sysctls: { net.ipv4.ip_unprivileged_port_start: "25" }
+    env_file: [.env.dev]
+    environment:
+      BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_VALKEY: 10.77.0.12:6379
+      BM_S3_ENDPOINT: http://10.77.0.11:3900
+      BM_DNS_SERVERS: 10.77.0.53
+      BM_TLS_CERT: /tls/cert.pem
+      BM_TLS_KEY: /tls/key.pem
+      ASPNETCORE_ENVIRONMENT: Development
+    volumes:
+      - ./dev/tls:/tls:ro
+    ports: ["127.0.0.1:55587:587", "127.0.0.1:55465:465"]
+    depends_on: [postgres, valkey, s3, dns]
+    networks: { bmnet: { ipv4_address: 10.77.0.27 } }
+    restart: unless-stopped
+
+  # --- BlueMail.Imap on imap.bluemail.test (Phase 11): 143 STARTTLS, 993 TLS. ---
+  imap:
+    image: bluemail/server:dev
+    command: ["imap"]
+    <<: *dns
+    sysctls: { net.ipv4.ip_unprivileged_port_start: "25" }
+    env_file: [.env.dev]
+    environment:
+      BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_VALKEY: 10.77.0.12:6379
+      BM_S3_ENDPOINT: http://10.77.0.11:3900
+      BM_DNS_SERVERS: 10.77.0.53
+      BM_TLS_CERT: /tls/cert.pem
+      BM_TLS_KEY: /tls/key.pem
+      ASPNETCORE_ENVIRONMENT: Development
+    volumes:
+      - ./dev/tls:/tls:ro
+    ports: ["127.0.0.1:55143:143", "127.0.0.1:55994:993"]
+    depends_on: [postgres, valkey, s3, dns]
+    networks: { bmnet: { ipv4_address: 10.77.0.28 } }
+    restart: unless-stopped
+
   # --- BlueMail.Outbound on out1.bluemail.test (Phase 5): submits sends and delivers the outbound queue. ---
   outbound:
     image: bluemail/server:dev

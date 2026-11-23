@@ -184,7 +184,7 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
                 : await composer.BuildAsync(access, state with { From = o.FromAddress, Html = state.Html + "<hr><p>" + System.Net.WebUtility.HtmlEncode(footer).Replace("\n", "<br>", StringComparison.Ordinal) + "</p>" },
                     rfcId, date, includeBcc: false, makeLinks: true, ct);
             var signed = await SignAsync(sp, o.TenantId, o.FromAddress, forExternal, ct);
-            await QueueAsync(sp, o, signed, external, ct);
+            await QueueAsync(sp, o.TenantId, o.Id, o.UserId, o.FromAddress, o.RfcMessageId, signed, external, ct);
         }
 
         if (failed.Count > 0 && !await HasDsnAsync(db, o, ct))
@@ -222,7 +222,7 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
     private static async Task<string?> LocaleAsync(BlueMailDbContext db, Guid user, CancellationToken ct) =>
         await db.Users.IgnoreQueryFilters().Where(u => u.Id == user).Select(u => u.Locale ?? db.Tenants.IgnoreQueryFilters().Where(t => t.Id == u.TenantId).Select(t => t.DefaultLocale).First()).FirstOrDefaultAsync(ct);
 
-    private static async Task<byte[]> SignAsync(IServiceProvider sp, Guid tenant, string from, byte[] message, CancellationToken ct)
+    internal static async Task<byte[]> SignAsync(IServiceProvider sp, Guid tenant, string from, byte[] message, CancellationToken ct)
     {
         var domain = from[(from.LastIndexOf('@') + 1)..].ToLowerInvariant();
         var key = await sp.GetRequiredService<DkimKeyService>().GetOrCreateAsync(tenant, domain, ct);
@@ -238,25 +238,27 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
         }
     }
 
-    private static async Task QueueAsync(IServiceProvider sp, Outgoing o, byte[] signed, List<string> rcpts, CancellationToken ct)
+    /// <summary>Signed message into the outbound queue, one row per external recipient (outgoingId null: SMTP submission).</summary>
+    internal static async Task QueueAsync(IServiceProvider sp, Guid tenant, Guid? outgoingId, Guid userId, string from, string rfcMessageId, byte[] signed,
+        List<string> rcpts, CancellationToken ct)
     {
         var db = sp.GetRequiredService<BlueMailDbContext>();
         var blobs = sp.GetRequiredService<BlobStore>();
         var stream = new MemoryStream(signed, writable: false);
         var sha = await BlobStore.HashAsync(stream, ct);
-        if (!await blobs.ExistsAsync(o.TenantId, sha, ct))
+        if (!await blobs.ExistsAsync(tenant, sha, ct))
         {
-            await blobs.PutAsync(o.TenantId, sha, stream, ct);
+            await blobs.PutAsync(tenant, sha, stream, ct);
         }
 
         var msgId = Guid.NewGuid();
-        var smtpUtf8 = !System.Text.Ascii.IsValid(o.FromAddress) || rcpts.Any(r => !System.Text.Ascii.IsValid(r));
+        var smtpUtf8 = !System.Text.Ascii.IsValid(from) || rcpts.Any(r => !System.Text.Ascii.IsValid(r));
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         var inserted = await db.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO mta.outbound_messages (id, tenant_id, outgoing_id, sender_user_id, blob_sha256, size, envelope_from, dkim_domain, rfc_message_id,
                 smtp_utf8, eight_bit, priority, is_notification, sender_locale, created_at)
-            VALUES ({msgId}, {o.TenantId}, {o.Id}, {o.UserId}, {sha}, {signed.LongLength}, {o.FromAddress}, {o.FromAddress[(o.FromAddress.LastIndexOf('@') + 1)..]},
-                {o.RfcMessageId.Trim('<', '>')}, {smtpUtf8}, {true}, {0}, {false}, {await LocaleAsync(db, o.UserId, ct)}, now())
+            VALUES ({msgId}, {tenant}, {outgoingId}, {userId}, {sha}, {signed.LongLength}, {from}, {from[(from.LastIndexOf('@') + 1)..]},
+                {rfcMessageId.Trim('<', '>')}, {smtpUtf8}, {true}, {0}, {false}, {await LocaleAsync(db, userId, ct)}, now())
             ON CONFLICT (outgoing_id) WHERE outgoing_id IS NOT NULL DO NOTHING
             """, ct);
         if (inserted == 1)
@@ -264,13 +266,13 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
             foreach (var r in rcpts)
             {
                 var domain = r[(r.LastIndexOf('@') + 1)..].ToLowerInvariant();
-                var suppressed = await db.Suppressions.AnyAsync(s => (s.TenantId == null || s.TenantId == o.TenantId) && s.Address == r.ToLowerInvariant()
+                var suppressed = await db.Suppressions.AnyAsync(s => (s.TenantId == null || s.TenantId == tenant) && s.Address == r.ToLowerInvariant()
                                                                      && (s.ExpiresAt == null || s.ExpiresAt > DateTimeOffset.UtcNow), ct);
                 await db.Database.ExecuteSqlInterpolatedAsync($"""
                     INSERT INTO mta.outbound_recipients (tenant_id, outbound_message_id, rcpt, domain, status, attempts, next_attempt_at)
-                    VALUES ({o.TenantId}, {msgId}, {r}, {domain}, {(suppressed ? "SUPPRESSED" : "QUEUED")}, {0}, now())
+                    VALUES ({tenant}, {msgId}, {r}, {domain}, {(suppressed ? "SUPPRESSED" : "QUEUED")}, {0}, now())
                     """, ct);
-                await LogAsync(db, o, r, signed.Length, MailDirection.Outbound, suppressed ? MailLogStatus.Rejected : MailLogStatus.Queued,
+                await LogAsync(db, tenant, rfcMessageId, from, r, signed.Length, MailDirection.Outbound, suppressed ? MailLogStatus.Rejected : MailLogStatus.Queued,
                     suppressed ? "suppressed (earlier hard bounce or complaint)" : "queued", ct);
             }
         }
@@ -278,11 +280,15 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
         await tx.CommitAsync(ct);
     }
 
-    private static async Task LogAsync(BlueMailDbContext db, Outgoing o, string rcpt, long size, MailDirection dir, MailLogStatus status, string response, CancellationToken ct)
+    private static Task LogAsync(BlueMailDbContext db, Outgoing o, string rcpt, long size, MailDirection dir, MailLogStatus status, string response, CancellationToken ct) =>
+        LogAsync(db, o.TenantId, o.RfcMessageId, o.FromAddress, rcpt, size, dir, status, response, ct);
+
+    internal static async Task LogAsync(BlueMailDbContext db, Guid tenant, string rfcMessageId, string from, string rcpt, long size, MailDirection dir, MailLogStatus status,
+        string response, CancellationToken ct)
     {
         db.MailLog.Add(new MailLogEntry
         {
-            TenantId = o.TenantId, Direction = dir, RfcMessageId = o.RfcMessageId.Trim('<', '>'), EnvelopeFrom = o.FromAddress, Rcpt = rcpt, Size = size,
+            TenantId = tenant, Direction = dir, RfcMessageId = rfcMessageId.Trim('<', '>'), EnvelopeFrom = from, Rcpt = rcpt, Size = size,
             Status = status, SmtpResponse = response, OccurredAt = DateTimeOffset.UtcNow,
         });
         await db.SaveChangesAsync(ct);

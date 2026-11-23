@@ -3328,6 +3328,10 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("label_id");
 
+                    b.Property<bool>("ImapDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("imap_deleted");
+
                     b.Property<long>("ImapUid")
                         .HasColumnType("bigint")
                         .HasColumnName("imap_uid");

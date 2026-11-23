@@ -1,6 +1,5 @@
 # One image for every BlueMail .NET process (docs/00 D1). The process is chosen by the first argument:
-#   docker run bluemail/server identity|api|mx|outbound
-# More processes (submission, imap, worker) join this image as they are built.
+#   docker run bluemail/server identity|api|mx|outbound|submission|imap
 # mx binds port 25 as a non-root user: run it with sysctl net.ipv4.ip_unprivileged_port_start=25 (compose does).
 FROM mcr.microsoft.com/dotnet/sdk:10.0.404 AS build
 WORKDIR /src
@@ -9,7 +8,9 @@ COPY src/ src/
 RUN dotnet publish src/BlueMail.Identity -c Release -o /out/identity --nologo \
  && dotnet publish src/BlueMail.Api -c Release -o /out/api --nologo \
  && dotnet publish src/BlueMail.Mx -c Release -o /out/mx --nologo \
- && dotnet publish src/BlueMail.Outbound -c Release -o /out/outbound --nologo
+ && dotnet publish src/BlueMail.Outbound -c Release -o /out/outbound --nologo \
+ && dotnet publish src/BlueMail.Submission -c Release -o /out/submission --nologo \
+ && dotnet publish src/BlueMail.Imap -c Release -o /out/imap --nologo
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0.15 AS runtime
 # libgssapi-krb5-2: loaded by Npgsql at start (GSS/Kerberos probing); absent it logs an error.

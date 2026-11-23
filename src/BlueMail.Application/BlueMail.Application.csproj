@@ -14,6 +14,7 @@
     <PackageReference Include="HtmlSanitizer" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Update="Resources\*.resx" />

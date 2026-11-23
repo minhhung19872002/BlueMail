@@ -31,9 +31,14 @@ public sealed class SmtpTransport(Stream stream, SmtpServerSession session, Smtp
     {
         try
         {
-            if (options.ImplicitTls && !await UpgradeTlsAsync(ct))
+            if (options.ImplicitTls)
             {
-                return;
+                if (!await UpgradeTlsAsync(ct))
+                {
+                    return;
+                }
+
+                session.TlsEstablished(); // RFC 8314: the whole session is protected, AUTH may be offered
             }
 
             if (options.PreGreetDelay > TimeSpan.Zero && await ClientSpokeEarlyAsync(ct))

@@ -8,11 +8,13 @@
     <Project Path="src/BlueMail.Dns/BlueMail.Dns.csproj" />
     <Project Path="src/BlueMail.Domain/BlueMail.Domain.csproj" />
     <Project Path="src/BlueMail.Identity/BlueMail.Identity.csproj" />
+    <Project Path="src/BlueMail.Imap/BlueMail.Imap.csproj" />
     <Project Path="src/BlueMail.Infrastructure/BlueMail.Infrastructure.csproj" />
     <Project Path="src/BlueMail.MailStore/BlueMail.MailStore.csproj" />
     <Project Path="src/BlueMail.Mime/BlueMail.Mime.csproj" />
     <Project Path="src/BlueMail.Mx/BlueMail.Mx.csproj" />
     <Project Path="src/BlueMail.Outbound/BlueMail.Outbound.csproj" />
+    <Project Path="src/BlueMail.Submission/BlueMail.Submission.csproj" />
     <Project Path="src/BlueMail.Protocols.Imap/BlueMail.Protocols.Imap.csproj" />
     <Project Path="src/BlueMail.Protocols.Smtp/BlueMail.Protocols.Smtp.csproj" />
     <Project Path="src/BlueMail.Scanner/BlueMail.Scanner.csproj" />

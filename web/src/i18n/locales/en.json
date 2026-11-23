@@ -1251,5 +1251,21 @@
     "batchHint": "Columns: email (BlueMail user), host, port, tls (IMPLICIT or STARTTLS), username, password. Nothing starts while a row is wrong.",
     "batchCreated": "{count, plural, one {# import queued.} other {# imports queued.}}",
     "field": "Column"
+  },
+  "mailApps": {
+    "title": "Mail programs (IMAP and SMTP)",
+    "intro": "Thunderbird, Outlook or the phone's Mail app can sign in with your password or, safer, an app password you can revoke at any time.",
+    "introTwoFactor": "Two-step verification is on: mail programs need an app password.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Thunderbird at home",
+    "create": "Create app password",
+    "none": "No app passwords.",
+    "created": "Created",
+    "lastUsed": "Last used",
+    "revoke": "Revoke {name}",
+    "revokeConfirm": "Revoke \"{name}\"? Programs using it are disconnected now.",
+    "createdTitle": "Your app password",
+    "once": "It is shown only now. Type it in the mail program instead of your password.",
+    "user": "User name"
   }
 }

@@ -15,6 +15,7 @@ import { FiltersPage } from "./FiltersPage";
 import { ForwardingPage } from "./ForwardingPage";
 import { SignaturesPage } from "./SignaturesPage";
 import { ImportExportSettings } from "./importExport";
+import { MailAppsSettings } from "./AppPasswords";
 import { settingsApi, useSaveSettings, useSettings, type Category, type MailSettings, type Profile } from "./settingsApi";
 
 /** Settings in tabs, as Gmail (PROMPT 6.11). */
@@ -199,6 +200,7 @@ function Accounts() {
       <Typography.Title level={5}>{t("settings.storage")}</Typography.Title>
       {quota > 0 && <Progress percent={Math.min(100, Math.round((used / quota) * 100))} />}
       <Typography.Text>{t("storage.used", { used: bytes(used, me.locale), quota: bytes(quota, me.locale) })}</Typography.Text>
+      <MailAppsSettings />
     </Space>
   );
 }

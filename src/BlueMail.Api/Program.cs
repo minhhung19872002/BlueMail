@@ -104,6 +104,27 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c
 // MTA-STS policy (RFC 8461) of every verified customer domain, by Host header (mta-sts.<domain> is a CNAME to us).
 app.MapGet("/.well-known/mta-sts.txt", async (HttpContext http, BlueMail.Application.Features.Admin.Domains.MtaStsPolicy policy, CancellationToken ct) =>
     await policy.ForHostAsync(http.Request.Host.Host, ct) is { } text ? Results.Text(text, "text/plain") : Results.NotFound()).AllowAnonymous();
+
+// Mail program set-up (Thunderbird autoconfig, Outlook autodiscover): public settings, no account data.
+var clientConfig = new BlueMail.Application.Features.MailAccess.MailClientConfig(app.Services.GetRequiredService<BmSettings>());
+app.MapGet("/.well-known/autoconfig/mail/config-v1.1.xml", (string? emailaddress) => Results.Text(clientConfig.Thunderbird(emailaddress), "application/xml")).AllowAnonymous();
+app.MapGet("/mail/config-v1.1.xml", (string? emailaddress) => Results.Text(clientConfig.Thunderbird(emailaddress), "application/xml")).AllowAnonymous();
+async Task<IResult> Autodiscover(HttpContext http)
+{
+    // Request bodies are read asynchronously (sync IO is off) and small.
+    using var body = new MemoryStream();
+    var buffer = new byte[8192];
+    int n;
+    while ((n = await http.Request.Body.ReadAsync(buffer, http.RequestAborted)) > 0 && body.Length < 64 * 1024)
+    {
+        body.Write(buffer, 0, n);
+    }
+
+    body.Position = 0;
+    return Results.Text(clientConfig.Outlook(BlueMail.Application.Features.MailAccess.MailClientConfig.EmailFromOutlookRequest(body)), "application/xml");
+}
+
+app.MapPost("/autodiscover/autodiscover.xml", (Delegate)Autodiscover).AllowAnonymous(); // routes ignore case: also /Autodiscover/Autodiscover.xml
 app.MapControllers();
 app.MapHub<BlueMail.Api.Realtime.MailHub>("/hubs/mail");
 

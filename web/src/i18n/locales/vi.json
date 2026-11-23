@@ -1251,5 +1251,21 @@
     "batchHint": "Các cột: email (người dùng BlueMail), host, port, tls (IMPLICIT hoặc STARTTLS), username, password. Chưa dòng nào chạy khi còn dòng sai.",
     "batchCreated": "Đã xếp hàng {count} việc nhập.",
     "field": "Cột"
+  },
+  "mailApps": {
+    "title": "Phần mềm thư (IMAP và SMTP)",
+    "intro": "Thunderbird, Outlook hay ứng dụng Mail trên điện thoại đăng nhập được bằng mật khẩu của bạn, hoặc an toàn hơn là mật khẩu ứng dụng có thể thu hồi bất kỳ lúc nào.",
+    "introTwoFactor": "Bạn đã bật xác minh hai bước: phần mềm thư cần mật khẩu ứng dụng.",
+    "name": "Tên",
+    "namePlaceholder": "ví dụ Thunderbird ở nhà",
+    "create": "Tạo mật khẩu ứng dụng",
+    "none": "Chưa có mật khẩu ứng dụng.",
+    "created": "Ngày tạo",
+    "lastUsed": "Dùng lần cuối",
+    "revoke": "Thu hồi {name}",
+    "revokeConfirm": "Thu hồi \"{name}\"? Phần mềm đang dùng mật khẩu này bị ngắt ngay.",
+    "createdTitle": "Mật khẩu ứng dụng của bạn",
+    "once": "Mật khẩu chỉ hiện lúc này. Hãy nhập vào phần mềm thư thay cho mật khẩu của bạn.",
+    "user": "Tên đăng nhập"
   }
 }

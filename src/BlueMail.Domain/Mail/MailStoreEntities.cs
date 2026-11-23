@@ -130,6 +130,9 @@ public class MessageLabel : ITenantOwned
     public Guid LabelId { get; set; }
     public long ImapUid { get; set; }
     public long Modseq { get; set; }
+
+    /// <summary>IMAP \Deleted in this folder (RFC 3501): per label, like Gmail; EXPUNGE then removes the label.</summary>
+    public bool ImapDeleted { get; set; }
 }
 
 public class MailThread : TenantEntity

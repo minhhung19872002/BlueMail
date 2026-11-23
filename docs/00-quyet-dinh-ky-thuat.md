@@ -337,3 +337,22 @@ nguồn (tài khoản + thư mục + UIDVALIDITY + UID, hoặc băm tệp + vị
 khác chỉ thêm nhãn. Một việc nhập mỗi hộp thư (ràng buộc duy nhất). Thư nhập không chạy bộ lọc/trả lời tự động/chuyển tiếp
 nhưng vẫn qua bộ quét tệp. mbox theo mboxrd khi ghi; đọc chấp nhận cả mboxo (dòng ">From " gốc trong tệp mboxo mất một '>' —
 giới hạn vốn có của định dạng). Nghiệm thu với Gmail/Outlook.com thật cần hộp thư thử nghiệm của chủ sản phẩm (docs/06 P10-12).
+
+## D24. IMAP: nhãn là thư mục, cờ dùng chung, \Recent trong tiến trình, tìm kiếm chính xác có giới hạn
+
+Như Gmail IMAP: mỗi nhãn là một thư mục, một thư ở nhiều thư mục; `\Seen`, `\Flagged`, `\Answered`, `$Forwarded`, từ khoá
+thuộc về thư (mọi thư mục thấy giống nhau), còn `\Deleted` thuộc về cặp (thư, thư mục) (`mail.message_labels.imap_deleted`).
+EXPUNGE ở Thùng rác/Thư rác là xoá vĩnh viễn (qua câu xoá duy nhất, D22), ở thư mục khác là gỡ nhãn. COPY = thêm nhãn, MOVE =
+thêm nhãn + gỡ nhãn nguồn; Starred/Important là cờ. "Tất cả thư" chưa có thư mục IMAP (cần nhãn ảo có UID riêng — để sau).
+`\Recent` (RFC 3501) do tiến trình IMAP nhớ (thư mục → UID cao nhất đã có phiên thấy); khởi động lại thì không thư nào
+"recent" — RFC 9051 đã bỏ cờ này, phần mềm thư hiện nay không dựa vào nó. SEARCH: thư mục tới 5 000 thư thì đọc thư thật
+(chuỗi con trong tiêu đề đã giải mã và các phần văn bản, SENT* theo múi giờ ghi trong Date); lớn hơn dùng cột chỉ mục và chỉ
+mục từ (nhanh, theo từ). Kiểm chứng: `imaptest` của Dovecot 0/460 lệnh cơ bản sai.
+
+## D25. Đăng nhập phần mềm thư: mật khẩu, mật khẩu ứng dụng, thẻ BlueID
+
+IMAP và SMTP nộp thư chỉ nhận mật khẩu sau TLS. Mật khẩu tài khoản dùng được khi chưa bật 2FA; khi đã bật thì bắt buộc mật khẩu
+ứng dụng (16 chữ, lưu SHA-256 — đủ vì ngẫu nhiên 75 bit, không phải mật khẩu người đặt). XOAUTH2/OAUTHBEARER nhận access token của
+BlueID (kiểm chữ ký, issuer, audience, rồi `ISessionValidator` như web). Dò mật khẩu: 10 lần sai/tài khoản, 30 lần/IP trong 15 phút
+thì khoá tạm, không kiểm tiếp (không làm "máy hỏi mật khẩu"). Thu hồi mật khẩu ứng dụng, khoá tài khoản, đổi mật khẩu → kênh
+Valkey `bm:invalidate-user` → kết nối IMAP đang mở của người đó bị đóng ngay.

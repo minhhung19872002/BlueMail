@@ -45,7 +45,7 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | HtmlSanitizer | 11.0.26 | MIT | Lọc HTML thư đến phía máy chủ (PROMPT 1, 6.3); kéo theo AngleSharp 1.10.0 và AngleSharp.Css 1.4.0 (MIT) |
 | OpenIddict.AspNetCore | 7.9.0 | Apache-2.0 | Máy chủ OIDC (BlueID) |
 | OpenIddict.EntityFrameworkCore | 7.9.0 | Apache-2.0 | Lưu ứng dụng/thẻ OIDC |
-| Microsoft.AspNetCore.Authentication.JwtBearer | 10.0.15 | MIT | API kiểm thẻ truy cập |
+| Microsoft.AspNetCore.Authentication.JwtBearer | 10.0.15 | MIT | API kiểm thẻ truy cập; IMAP/SMTP kiểm thẻ XOAUTH2/OAUTHBEARER (JsonWebTokenHandler) |
 | MediatR | 12.5.0 | Apache-2.0 | CQRS (bản Apache cuối, không nâng lên 13+) |
 | FluentValidation | 12.2.0 | Apache-2.0 | Kiểm dữ liệu vào |
 | FluentValidation.DependencyInjectionExtensions | 12.2.0 | Apache-2.0 | Đăng ký validator |

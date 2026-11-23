@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\BlueMail.Application\BlueMail.Application.csproj" />
+    <ProjectReference Include="..\BlueMail.Protocols.Imap\BlueMail.Protocols.Imap.csproj" />
+    <ProjectReference Include="..\BlueMail.Protocols.Smtp\BlueMail.Protocols.Smtp.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="BlueMail.IntegrationTests" />
+    <InternalsVisibleTo Include="BlueMail.UnitTests" />
+  </ItemGroup>
+</Project>

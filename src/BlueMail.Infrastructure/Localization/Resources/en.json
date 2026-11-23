@@ -227,5 +227,7 @@
   "import.error.too_large": "Message larger than 150 MB",
   "import.error.unreadable": "Message could not be read",
   "import.error.malicious": "Dangerous content: not imported",
-  "import.error.import_failed": "Error while importing"
+  "import.error.import_failed": "Error while importing",
+  "error.app_password_limit": "You already have the maximum of 20 app passwords.",
+  "error.app_password_not_found": "The app password was not found."
 }

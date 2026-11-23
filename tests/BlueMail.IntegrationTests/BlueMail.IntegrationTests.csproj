@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\BlueMail.Api\BlueMail.Api.csproj" />
+    <ProjectReference Include="..\..\src\BlueMail.Imap\BlueMail.Imap.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Identity\BlueMail.Identity.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Outbound\BlueMail.Outbound.csproj" />
   </ItemGroup>

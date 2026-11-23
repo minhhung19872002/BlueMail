@@ -162,3 +162,15 @@ each refresh re-checks the session. CORS only for `BM_WEB_URL`. Pages: `/account
 | POST | `/api/v1/exports/{id}/link` | requester only | Signed download link, 2 h; audited |
 | GET | `/api/v1/exports/d/{token}` | signed token | The ZIP (requester still active, export not expired: 7 days) |
 | POST | `/api/v1/admin/tenants/{id}/export` | `mail.platform.tenants.edit` | Whole tenant: every user and shared mailbox, `users.csv`, `domains.txt` |
+
+### Mail programs (Phase 11)
+
+| Method | Path | Guard | Purpose |
+|---|---|---|---|
+| GET / POST | `/api/v1/me/app-passwords` | self | List; create `{ name }` → `{ id, password, imapHost, imapPort, smtpHost, smtpPort }` (password shown once; ≤ 20 per user) |
+| DELETE | `/api/v1/me/app-passwords/{id}` | self | Revoke; open IMAP connections using it are closed at once |
+| GET | `/.well-known/autoconfig/mail/config-v1.1.xml?emailaddress=`, `/mail/config-v1.1.xml` | anonymous | Thunderbird autoconfig (IMAP 993 SSL, SMTP 465 SSL) |
+| POST | `/autodiscover/autodiscover.xml` | anonymous | Outlook autodiscover (POX 2006a) |
+
+Protocols: IMAP `imap.<platform>` 993 (TLS) / 143 (STARTTLS required before LOGIN); SMTP submission `smtp.<platform>` 465 (TLS) /
+587 (STARTTLS, AUTH only after TLS). AUTH: PLAIN, LOGIN, XOAUTH2, OAUTHBEARER (BlueID access token).

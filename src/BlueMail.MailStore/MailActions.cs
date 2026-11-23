@@ -21,6 +21,14 @@ public sealed record MessageChange
 
     /// <summary>Delete forever: only for messages in Trash or Spam (the caller checks); removes them from every label.</summary>
     public bool Expunge { get; init; }
+
+    // IMAP flags (RFC 3501 2.3.2): \Answered, $Forwarded, \Draft, keywords; \Deleted is per folder (label).
+    public bool? Answered { get; init; }
+    public bool? Forwarded { get; init; }
+    public bool? Draft { get; init; }
+    public IReadOnlyList<string> AddKeywords { get; init; } = [];
+    public IReadOnlyList<string> RemoveKeywords { get; init; } = [];
+    public (Guid LabelId, bool Value)? DeletedIn { get; init; }
 }
 
 public sealed record ChangeResult(int Messages, long Modseq);
@@ -173,6 +181,74 @@ public sealed partial class PgMailStore
                 }
             }
 
+            if (!change.Expunge && (change.Answered is not null || change.Forwarded is not null || change.Draft is not null
+                                    || change.AddKeywords.Count > 0 || change.RemoveKeywords.Count > 0))
+            {
+                await using var cmd = new NpgsqlCommand("""
+                    WITH upd AS (
+                        UPDATE mail.messages m SET answered = coalesce(@ans, answered), forwarded = coalesce(@fwd, forwarded), draft = coalesce(@dr, draft),
+                            keywords = ARRAY(SELECT DISTINCT k FROM unnest(array_cat(m.keywords, @add)) k WHERE NOT k = ANY(@rem) ORDER BY k),
+                            modseq = @modseq, updated_at = now()
+                        WHERE tenant_id = @t AND id = ANY(@ids)
+                          AND (answered IS DISTINCT FROM coalesce(@ans, answered) OR forwarded IS DISTINCT FROM coalesce(@fwd, forwarded)
+                               OR draft IS DISTINCT FROM coalesce(@dr, draft)
+                               OR keywords IS DISTINCT FROM ARRAY(SELECT DISTINCT k FROM unnest(array_cat(m.keywords, @add)) k WHERE NOT k = ANY(@rem) ORDER BY k))
+                        RETURNING id)
+                    SELECT id FROM upd
+                    """, c, t);
+                cmd.Parameters.Add(new NpgsqlParameter("ans", NpgsqlTypes.NpgsqlDbType.Boolean) { Value = (object?)change.Answered ?? DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("fwd", NpgsqlTypes.NpgsqlDbType.Boolean) { Value = (object?)change.Forwarded ?? DBNull.Value });
+                cmd.Parameters.Add(new NpgsqlParameter("dr", NpgsqlTypes.NpgsqlDbType.Boolean) { Value = (object?)change.Draft ?? DBNull.Value });
+                cmd.Parameters.AddWithValue("add", change.AddKeywords.ToArray());
+                cmd.Parameters.AddWithValue("rem", change.RemoveKeywords.ToArray());
+                cmd.Parameters.AddWithValue("modseq", modseq);
+                cmd.Parameters.AddWithValue("t", access.TenantId);
+                cmd.Parameters.AddWithValue("ids", target);
+                var flagged = new List<Guid>();
+                await using (var rd = await cmd.ExecuteReaderAsync(ct))
+                {
+                    while (await rd.ReadAsync(ct))
+                    {
+                        flagged.Add(rd.GetGuid(0));
+                    }
+                }
+
+                if (flagged.Count > 0)
+                {
+                    await Exec(c, t, ct, """
+                        INSERT INTO mail.label_changes (tenant_id, label_id, imap_uid, modseq, change, occurred_at)
+                        SELECT tenant_id, label_id, imap_uid, @modseq, 'FLAGS', now() FROM mail.message_labels WHERE tenant_id = @t AND message_id = ANY(@ids)
+                        """, ("modseq", modseq), ("t", access.TenantId), ("ids", flagged.ToArray()));
+                    await Exec(c, t, ct, "UPDATE mail.message_labels SET modseq = @modseq WHERE tenant_id = @t AND message_id = ANY(@ids)",
+                        ("modseq", modseq), ("t", access.TenantId), ("ids", flagged.ToArray()));
+                    changedIds.UnionWith(flagged);
+                }
+            }
+
+            if (!change.Expunge && change.DeletedIn is { } del)
+            {
+                await using var cmd = new NpgsqlCommand("""
+                    WITH upd AS (
+                        UPDATE mail.message_labels SET imap_deleted = @v, modseq = @modseq
+                        WHERE tenant_id = @t AND label_id = @l AND message_id = ANY(@ids) AND imap_deleted <> @v
+                        RETURNING message_id, imap_uid)
+                    , logged AS (
+                        INSERT INTO mail.label_changes (tenant_id, label_id, imap_uid, modseq, change, occurred_at)
+                        SELECT @t, @l, imap_uid, @modseq, 'FLAGS', now() FROM upd)
+                    SELECT message_id FROM upd
+                    """, c, t);
+                cmd.Parameters.AddWithValue("v", del.Value);
+                cmd.Parameters.AddWithValue("modseq", modseq);
+                cmd.Parameters.AddWithValue("t", access.TenantId);
+                cmd.Parameters.AddWithValue("l", del.LabelId);
+                cmd.Parameters.AddWithValue("ids", target);
+                await using var rd = await cmd.ExecuteReaderAsync(ct);
+                while (await rd.ReadAsync(ct))
+                {
+                    changedIds.Add(rd.GetGuid(0));
+                }
+            }
+
             if (remove.Count > 0)
             {
                 await using var cmd = new NpgsqlCommand("""
@@ -199,13 +275,15 @@ public sealed partial class PgMailStore
             {
                 // Messages not yet in the label get consecutive new UIDs (RFC 3501: UIDs strictly ascending per folder).
                 var missing = new List<Guid>();
+                // New UIDs follow the caller's order (IMAP COPY keeps the source order, RFC 3501 6.4.7).
+                var inOrder = ids.Where(id => Array.IndexOf(target, id) >= 0).ToArray();
                 await using (var cmd = new NpgsqlCommand("""
-                    SELECT m FROM unnest(@ids) AS m
-                    WHERE NOT EXISTS (SELECT 1 FROM mail.message_labels ml WHERE ml.tenant_id = @t AND ml.message_id = m AND ml.label_id = @l)
-                    ORDER BY m
+                    SELECT u.m FROM unnest(@ids) WITH ORDINALITY AS u(m, ord)
+                    WHERE NOT EXISTS (SELECT 1 FROM mail.message_labels ml WHERE ml.tenant_id = @t AND ml.message_id = u.m AND ml.label_id = @l)
+                    ORDER BY u.ord
                     """, c, t))
                 {
-                    cmd.Parameters.AddWithValue("ids", target);
+                    cmd.Parameters.AddWithValue("ids", inOrder);
                     cmd.Parameters.AddWithValue("t", access.TenantId);
                     cmd.Parameters.AddWithValue("l", label);
                     await using var rd = await cmd.ExecuteReaderAsync(ct);
@@ -273,6 +351,14 @@ public sealed partial class PgMailStore
         }
     }
 
+    /// <summary>A new UIDVALIDITY for the mailbox: the clock, but always above every value used before (deleted labels too).</summary>
+    private async Task<long> NextUidValidityAsync(MailboxAccess access, CancellationToken ct)
+    {
+        var used = await db.Labels.IgnoreQueryFilters().Where(l => l.MailboxId == access.MailboxId && l.TenantId == access.TenantId)
+            .MaxAsync(l => (long?)l.UidValidity, ct) ?? 0;
+        return Math.Max(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), used + 1);
+    }
+
     /// <summary>Creates a user label (nested with "/" semantics through <paramref name="parentId"/>).</summary>
     public async Task<Guid> CreateLabelAsync(MailboxAccess access, string name, Guid? parentId, string? colorBg, string? colorText, CancellationToken ct = default)
     {
@@ -285,7 +371,7 @@ public sealed partial class PgMailStore
         var label = new Label
         {
             TenantId = access.TenantId, MailboxId = access.MailboxId, Name = name.Trim(), ParentId = parentId, ColorBg = colorBg, ColorText = colorText,
-            UidValidity = DateTimeOffset.UtcNow.ToUnixTimeSeconds(), UidNext = 1,
+            UidValidity = await NextUidValidityAsync(access, ct), UidNext = 1,
         };
         db.Labels.Add(label);
         try
