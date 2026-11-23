@@ -65,5 +65,7 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
   Every dispatcher step is idempotent by the fixed Message-ID; keep it that way.
 - Raw SQL via `SqlQuery<T>`: column aliases must be snake_case (naming convention applies, BUG-030).
 - Outbound runs in the dev compose (`outbound`, 10.77.0.26); rebuild with mx. Dev DKIM keys are imported by
-  `dev-run.sh identity` (BM_DEV_DKIM_DIR). OpenDKIM in the doitac container cannot verify (BUG-027): use dkimpy.
+  `dev-run.sh identity` (BM_DEV_DKIM_DIR). In the doitac container OpenDKIM signs and dkimpy-milter verifies (BUG-027).
+- Start `dev-run.sh identity` and `api` one after the other: two `dotnet run` builds at once lock shared obj/ files.
+- Docker's embedded DNS answers PTR of container IPs with container names; ask CoreDNS (@10.77.0.53) in checks.
 - Dev keys in git are intentional (docs/00 D12).

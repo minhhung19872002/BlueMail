@@ -15,7 +15,8 @@ main() {
   }
 
   check "dns: MX bluemail.test" "$tools dig +short MX bluemail.test | grep -q 'mx.bluemail.test'"
-  check "dns: PTR 10.77.0.26" "$tools dig +short -x 10.77.0.26 | grep -q 'out1.bluemail.test'"
+  # Ask CoreDNS itself: Docker's embedded DNS answers PTR of container addresses with container names.
+  check "dns: PTR 10.77.0.26" "$tools dig +short -x 10.77.0.26 @10.77.0.53 | grep -q 'out1.bluemail.test'"
   check "dns: DMARC doitac.test" "$tools dig +short TXT _dmarc.doitac.test | grep -q 'p=reject'"
   check "dns: null MX" "$tools dig +short MX nullmx.doitac.test | grep -q '^0 \.$'"
   check "dns: big TXT needs TCP" "$tools sh -c 'dig +notcp +ignore +bufsize=1232 TXT bigtxt.bluemail.test | grep -q \"flags:.* tc\"'"
@@ -26,7 +27,7 @@ main() {
   check "postfix: relay out to mx.bluemail.test" "$tools swaks --server 10.77.0.30 --from an@doitac.test --to lan@bluemail.test --header 'Subject: $marker' --tls"
   check "postfix: inbound to binh@doitac.test" "$tools swaks --server 10.77.0.30 --from probe@bluemail.test --to binh@doitac.test --header 'Subject: in-$marker'"
   sleep 2
-  check "postfix: maildir has message with Authentication-Results" "$tools sh -c 'grep -l \"in-$marker\" /doitacmail/doitac.test/binh/new/* | xargs grep -q ^Authentication-Results'"
+  check "postfix: verifies DKIM of inbound mail (dkim=pass)" "MSYS_NO_PATHCONV=1 $tools python /work/tests/interop/postfix_dkim_check.py dkim-$marker"
   check "postfix: 451 for tempfail@" "$tools sh -c 'swaks --server 10.77.0.30 --from x@example.test --to tempfail@doitac.test --quit-after RCPT 2>&1 | grep -q \"451 4.3.0\"'"
   check "postfix: 550 for reject@" "$tools sh -c 'swaks --server 10.77.0.30 --from x@example.test --to reject@doitac.test --quit-after RCPT 2>&1 | grep -q \"550 5.1.1\"'"
   check "corpus: present" "test \$(ls tests/BlueMail.Corpus/messages/*/*.eml | wc -l) -ge 40"

@@ -110,3 +110,5 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | Gói | Cảnh báo | Đánh giá | Việc tiếp |
 |---|---|---|---|
 | react-router-dom 6.30.6 | GHSA-wrjc-x8rr-h8h6 (chuyển hướng mở qua `\` trong `<Link>`/`useNavigate`), GHSA-337j-9hxr-rhxg (SSR hydration) | Không khai thác được: web chỉ điều hướng tới đường dẫn nội bộ dựng từ id; không dùng SSR. Bản sửa là react-router 7 (đổi API) | Nâng lên 7 ở Phase 13 (hoàn thiện), chạy lại toàn bộ kiểm thử web |
+
+| dkimpy-milter (gói Debian, chỉ container đối chứng doitac.test) | 1.2.3 | BSD-2-Clause / Zlib | Kiểm DKIM thư đến Postfix đối chứng (BUG-027); không có trong image chạy thật |

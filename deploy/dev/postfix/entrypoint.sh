@@ -21,6 +21,8 @@ main() {
   postmap /etc/postfix/recipient_access /etc/postfix/virtual_mailboxes
   cp /etc/resolv.conf /var/spool/postfix/etc/resolv.conf 2>/dev/null || true
   opendkim -x /etc/opendkim.conf
+  mkdir -p /run/dkimpy-milter && chown dkimpy-milter /run/dkimpy-milter
+  dkimpy-milter /etc/dkimpy-milter/dkimpy-milter.conf &
   exec postfix start-fg
 }
 main "$@"

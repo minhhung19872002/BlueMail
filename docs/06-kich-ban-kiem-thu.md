@@ -153,7 +153,7 @@ soạn trên web gửi tới `binh@doitac.test`.
 
 | Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
 |---|---|---|---|---|---|
-| P5-01 | Gửi ra ngoài qua Postfix | Web: lan@ soạn (chữ đậm, tiêu đề tiếng Việt) tới binh@doitac.test + minh@ | Postfix nhận qua TLS, chữ ký DKIM `d=bluemail.test s=bm2026` hợp lệ; minh nhận bản nội bộ; 1 bản trong Đã gửi; nháp biến mất | Như mong đợi; DKIM kiểm bằng dkimpy trên tệp Maildir (`True`) vì OpenDKIM của container đối chứng không phân giải DNS được (BUG-027) | ✅ |
+| P5-01 | Gửi ra ngoài qua Postfix | Web: lan@ soạn (chữ đậm, tiêu đề tiếng Việt) tới binh@doitac.test + minh@ | Postfix nhận qua TLS, chữ ký DKIM `d=bluemail.test s=bm2026` hợp lệ; minh nhận bản nội bộ; 1 bản trong Đã gửi; nháp biến mất | Như mong đợi: Postfix ghi `dkim=pass (Good 2048 bit rsa-sha256 signature) header.d=bluemail.test` (bộ kiểm dkimpy-milter, sau BUG-027) | ✅ |
 | P5-02 | Hoàn tác | Gửi (10 s) → Hoàn tác | Thư không đi; nháp mở lại y nguyên | Như mong đợi (API + giao diện) | ✅ |
 | P5-03 | Không gửi hai lần | Bấm gửi hai lần; hai bộ điều phối chạy song song; giả lập chết sau khi nộp | 409 `already_sending`; 1 bản Đã gửi, 1 bản mỗi hộp nội bộ, 1 dòng hàng đợi | Như mong đợi | ✅ |
 | P5-04 | Hẹn giờ | Hẹn 3 giờ sau; huỷ | Nằm ở "Đã lên lịch", chưa gửi; huỷ → về "Thư nháp" | Như mong đợi | ✅ |
