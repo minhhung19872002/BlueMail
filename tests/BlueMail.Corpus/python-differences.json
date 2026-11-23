@@ -1,0 +1,10 @@
+{
+  "malformed/charset-label-wrong-utf8.eml#parts": "Body labelled us-ascii but valid UTF-8: BlueMail decodes as UTF-8 (controlled guess, PROMPT 2.6.1); Python shows U+FFFD.",
+  "malformed/charset-unknown-cp1252-bytes.eml#parts": "Unknown charset x-unknown-9999: BlueMail falls back to windows-1252; Python raises LookupError (text null).",
+  "malformed/ew-split-multibyte.eml#subject": "Encoded-words split inside a multi-byte character: BlueMail joins adjacent words at byte level (RFC 2047 6.2 intent) and shows the character; Python shows U+FFFD.",
+  "malformed/raw-cp1258-header.eml#subject": "Undeclared 8-bit header bytes: BlueMail uses the declared charset or windows-1252 and keeps the text readable; Python shows U+FFFD.",
+  "malformed/missing-close-boundary.eml#parts": "Part ended by end of input (no closing boundary): BlueMail keeps the final line break exactly as received; Python strips it.",
+  "malformed/nested-120-levels-over-limit.eml#parts": "Nesting beyond MimeLimits.MaxDepth (50) is treated as an opaque leaf (defence against hostile nesting, PROMPT principle 7); Python parses all 120 levels.",
+  "wellformed/address-groups-comments.eml#date": "Date with zone -0000: RFC 5322 3.3 defines it as UTC with unknown local zone; Python returns a naive datetime (dumped as null).",
+  "wellformed/dsn-delivery-status.eml#parts": "message/delivery-status: Python models it as nested header blocks; BlueMail keeps it as one leaf and parses it with DeliveryStatus.Parse (RFC 3464)."
+}

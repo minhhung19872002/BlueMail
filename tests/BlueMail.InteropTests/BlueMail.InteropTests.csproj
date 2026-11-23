@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BlueMail.Mime\BlueMail.Mime.csproj" />
+    <ProjectReference Include="..\..\src\BlueMail.Dns\BlueMail.Dns.csproj" />
+    <ProjectReference Include="..\..\src\BlueMail.Dkim\BlueMail.Dkim.csproj" />
+    <ProjectReference Include="..\..\src\BlueMail.Scanner\BlueMail.Scanner.csproj" />
+  </ItemGroup>
+</Project>

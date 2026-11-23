@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="BlueMail.UnitTests" />
+    <InternalsVisibleTo Include="BlueMail.InteropTests" />
+    <InternalsVisibleTo Include="BlueMail.FuzzTests" />
+  </ItemGroup>
+</Project>
