@@ -256,7 +256,7 @@ public partial class RulesTests(StackFixture stack)
 
         // Administrators forbid forwarding outside the organisation: existing forwards stop, new external addresses are refused.
         using var admin = await Client("lan@bluemail.test");
-        (await admin.PutAsJsonAsync("/api/v1/admin/policy", new { allowExternalForwarding = false })).EnsureSuccessStatusCode();
+        (await admin.PutAsJsonAsync("/api/v1/admin/policies/allow_external_forwarding", new { value = false })).EnsureSuccessStatusCode();
         try
         {
             await Receive("thao@bluemail.test", $"From: an@acme.test\nTo: thao@bluemail.test\nSubject: blocked {tag}\nMessage-ID: <x{tag}@t>\n\nx\n", "an@acme.test");
@@ -265,7 +265,7 @@ public partial class RulesTests(StackFixture stack)
         }
         finally
         {
-            (await admin.PutAsJsonAsync("/api/v1/admin/policy", new { allowExternalForwarding = true })).EnsureSuccessStatusCode();
+            (await admin.PutAsJsonAsync("/api/v1/admin/policies/allow_external_forwarding", new { value = (bool?)null })).EnsureSuccessStatusCode();
             await api.PutAsJsonAsync("/api/v1/mail/forwarding/active", new { id = (Guid?)null, keepCopy = true });
         }
     }

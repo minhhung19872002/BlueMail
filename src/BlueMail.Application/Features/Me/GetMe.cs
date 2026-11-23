@@ -23,9 +23,11 @@ public sealed record MeDto(
     bool MustChangePassword,
     IReadOnlyCollection<string> Permissions,
     string Branding,
-    IReadOnlyList<string> Domains);
+    IReadOnlyList<string> Domains,
+    bool ExternalSenderBanner = true,
+    string? SupportActor = null);
 
-public sealed class GetMeHandler(BlueMailDbContext db, ICurrentUser me) : IRequestHandler<GetMeQuery, MeDto>
+public sealed class GetMeHandler(BlueMailDbContext db, ICurrentUser me, Admin.Policies.PolicyService policies) : IRequestHandler<GetMeQuery, MeDto>
 {
     public async Task<MeDto> Handle(GetMeQuery request, CancellationToken ct)
     {
@@ -46,6 +48,10 @@ public sealed class GetMeHandler(BlueMailDbContext db, ICurrentUser me) : IReque
         return new MeDto(row.Id, row.PrimaryEmail, row.DisplayName, row.TenantId, row.Tenant.Name,
             row.Locale ?? row.Tenant.DefaultLocale, row.TimeZone ?? row.Tenant.DefaultTimeZone, row.HourCycle, row.WeekStart,
             row.IsPlatformAdmin, row.IsTenantAdmin, row.TwoFactorEnabled, row.MustChangePassword,
-            me.Permissions.OrderBy(p => p, StringComparer.Ordinal).ToList(), row.Tenant.Branding, domains);
+            me.Permissions.OrderBy(p => p, StringComparer.Ordinal).ToList(), row.Tenant.Branding, domains,
+            await policies.BoolAsync(row.TenantId, await policies.OrgUnitOfAsync(row.Id, ct), Admin.Policies.PolicyKeys.ExternalSenderBanner, ct),
+            // A support sign-in (PROMPT 7.1) is always visible to whoever is looking at the screen.
+            await db.Sessions.IgnoreQueryFilters().Where(s => s.Id == me.SessionId && s.ActorUserId != null)
+                .Select(s => db.Users.IgnoreQueryFilters().Where(u => u.Id == s.ActorUserId).Select(u => u.PrimaryEmail).FirstOrDefault()).FirstOrDefaultAsync(ct));
     }
 }

@@ -91,6 +91,7 @@ def main():
     check("alias and group addresses are accepted at RCPT",
           lambda: (rcpt_code("sales@bluemail.test"), rcpt_code("kinhdoanh@bluemail.test")) == (250, 250) or "not 250")
     check("sub-address lan+news@ is accepted", lambda: rcpt_code("lan+news@bluemail.test") == 250 or "not 250")
+    check("internal-only group refuses an outside sender (550 5.7.1)", lambda: rcpt_code("kythuat@bluemail.test") == 550 or "not 550")
 
     def declared_size():
         with smtplib.SMTP(MX, 25, local_hostname="tools.example.test", timeout=30) as s:

@@ -15,7 +15,7 @@ public sealed record UploadInfo(Guid Id, string FileName, string ContentType, lo
 /// stored offset, so a resumed upload never duplicates or skips bytes. When the last byte arrives the file is
 /// scanned (BlueMail.Scanner, tenant policy for blocked extensions).
 /// </summary>
-public sealed class UploadService(BlueMailDbContext db, UploadStore store, IFileScanner scanner, ICurrentUser me)
+public sealed class UploadService(BlueMailDbContext db, UploadStore store, IFileScanner scanner, ICurrentUser me, Admin.Policies.PolicyService policies)
 {
     public const long MaxFileBytes = 2L * 1024 * 1024 * 1024;
     public const int MaxOpenUploads = 200;
@@ -35,6 +35,12 @@ public sealed class UploadService(BlueMailDbContext db, UploadStore store, IFile
         }
 
         var name = SignedContent.SafeFileName(string.IsNullOrWhiteSpace(fileName) ? "file" : fileName);
+        var blocked = await policies.ListAsync(me.TenantId, await policies.OrgUnitOfAsync(me.UserId, ct), Admin.Policies.PolicyKeys.BlockedExtensions, ct);
+        if (blocked.Any(b => name.EndsWith("." + b.TrimStart('.'), StringComparison.OrdinalIgnoreCase)))
+        {
+            throw AppException.BadRequest("attachment_type_blocked"); // policy blocked_extensions (PROMPT 7.4)
+        }
+
         var u = new Upload
         {
             TenantId = me.TenantId,

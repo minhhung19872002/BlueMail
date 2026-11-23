@@ -89,7 +89,7 @@ public class Upload : TenantEntity
     public string? ScanStatus { get; set; }
 }
 
-public enum RecipientDeliveryStatus { Queued, Deferred, Delivered, Bounced, Expired, Suppressed }
+public enum RecipientDeliveryStatus { Queued, Deferred, Delivered, Bounced, Expired, Suppressed, Cancelled }
 
 /// <summary>A message waiting in the outbound queue (PROMPT 2.4). The signed content is a blob on S3.</summary>
 public class OutboundMessage : ITenantOwned

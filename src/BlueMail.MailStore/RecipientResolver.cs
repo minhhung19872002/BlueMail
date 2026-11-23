@@ -10,7 +10,9 @@ namespace BlueMail.MailStore;
 public enum RecipientStatus { Ok, NotOurDomain, Unknown, TenantSuspended, OverQuota }
 
 /// <summary>Where mail for one RCPT TO goes: one or more mailboxes of one tenant.</summary>
-public sealed record ResolvedRecipient(RecipientStatus Status, Guid TenantId, string Address, IReadOnlyList<Guid> MailboxIds, string? Kind = null);
+/// <remarks>For a group: <see cref="GroupId"/> (posting rules) and the external members' addresses (sent on through the queue).</remarks>
+public sealed record ResolvedRecipient(RecipientStatus Status, Guid TenantId, string Address, IReadOnlyList<Guid> MailboxIds, string? Kind = null,
+    Guid? GroupId = null, IReadOnlyList<string>? ExternalMembers = null);
 
 /// <summary>
 /// RCPT validation (PROMPT 2.1 step 3): only verified domains of an active tenant, and only addresses that exist
@@ -32,7 +34,12 @@ public sealed class RecipientResolver(BlueMailDbContext db)
         var email = parsed.Value;
         var domain = await db.Domains.IgnoreQueryFilters().AsNoTracking()
             .Where(d => d.Domain == email.Domain && d.DeletedAt == null && d.VerifiedAt != null)
-            .Select(d => new { d.TenantId, d.CatchAllTarget, Status = db.Tenants.IgnoreQueryFilters().Where(t => t.Id == d.TenantId).Select(t => t.Status).First() })
+            .Select(d => new
+            {
+                d.TenantId, d.CatchAllTarget, Status = db.Tenants.IgnoreQueryFilters().Where(t => t.Id == d.TenantId).Select(t => t.Status).First(),
+                Temporary = db.Tenants.IgnoreQueryFilters().Where(t => t.Id == d.TenantId).Select(t => t.SuspendTemporary).First(),
+                AliasOf = db.Domains.IgnoreQueryFilters().Where(t => t.Id == d.AliasOfDomainId && t.DeletedAt == null).Select(t => t.Domain).FirstOrDefault(),
+            })
             .FirstOrDefaultAsync(ct);
         if (domain is null)
         {
@@ -41,18 +48,20 @@ public sealed class RecipientResolver(BlueMailDbContext db)
 
         if (domain.Status == TenantStatus.Suspended)
         {
-            return new ResolvedRecipient(RecipientStatus.TenantSuspended, domain.TenantId, email.Value, []);
+            return new ResolvedRecipient(RecipientStatus.TenantSuspended, domain.TenantId, email.Value, [], domain.Temporary ? "temporary" : "permanent");
         }
 
         var local = email.LocalPart;
         var plus = local.IndexOf('+', StringComparison.Ordinal);
-        var candidates = plus > 0 ? new[] { email.Value, local[..plus] + "@" + email.Domain } : [email.Value];
+        // Domain alias (PROMPT 7.2): local@alias-domain is local@target-domain.
+        var home = domain.AliasOf ?? email.Domain;
+        var candidates = plus > 0 ? new[] { local + "@" + home, local[..plus] + "@" + home } : [local + "@" + home];
         foreach (var candidate in candidates)
         {
             var r = await ResolveExactAsync(domain.TenantId, candidate, 0, ct);
             if (r is not null)
             {
-                return await WithQuotaAsync(r, declaredSize, ct);
+                return await WithQuotaAsync(domain.AliasOf is null ? r : r with { Address = email.Value }, declaredSize, ct);
             }
         }
 
@@ -102,7 +111,9 @@ public sealed class RecipientResolver(BlueMailDbContext db)
             var mailboxes = await db.Mailboxes.IgnoreQueryFilters().AsNoTracking()
                 .Where(m => m.TenantId == tenant && memberUsers.Contains(m.OwnerId) && m.DeletedAt == null)
                 .Select(m => m.Id).ToListAsync(ct);
-            return new ResolvedRecipient(RecipientStatus.Ok, tenant, email, mailboxes, "group");
+            var external = await db.GroupMembers.IgnoreQueryFilters().AsNoTracking()
+                .Where(m => m.TenantId == tenant && m.GroupId == gid && m.DeletedAt == null && m.ExternalEmail != null).Select(m => m.ExternalEmail!).ToListAsync(ct);
+            return new ResolvedRecipient(RecipientStatus.Ok, tenant, email, mailboxes, "group", gid, external);
         }
 
         return null;

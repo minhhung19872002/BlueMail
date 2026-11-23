@@ -47,6 +47,12 @@ public sealed class MxHandler(
 
     /// <summary>Bounces to our SRS addresses (rcpt -> original sender, tenant), relayed back (PROMPT 6.8).</summary>
     private readonly Dictionary<string, (string Original, Guid Tenant)> _srsBounces = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Per-recipient size limit from the tenant policy (checked again on the real size after DATA).</summary>
+    private readonly Dictionary<string, long> _maxBytes = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Group recipients whose message waits for a moderator (held in quarantine).</summary>
+    private readonly HashSet<string> _moderated = new(StringComparer.OrdinalIgnoreCase);
     private string? _ptr;
     private SpfOutcome? _spf;
 
@@ -77,6 +83,8 @@ public sealed class MxHandler(
     {
         _recipients.Clear();
         _srsBounces.Clear();
+        _maxBytes.Clear();
+        _moderated.Clear();
         var spf = new SpfEvaluator(new DnsClientSpfDns(dns));
         _spf = await spf.CheckAsync(session.RemoteAddress, from.Address, session.Helo, ct);
         if (_spf.Result == SpfResult.Fail)
@@ -113,10 +121,45 @@ public sealed class MxHandler(
             RecipientStatus.Ok => null,
             RecipientStatus.NotOurDomain => new SmtpReply(550, "5.7.1", "Relaying denied"),
             RecipientStatus.Unknown => new SmtpReply(550, "5.1.1", "No such user here"),
-            RecipientStatus.TenantSuspended => new SmtpReply(550, "5.2.1", "Mailbox disabled"),
+            RecipientStatus.TenantSuspended => r.Kind == "temporary" ? new SmtpReply(450, "4.2.1", "Mailbox temporarily disabled") : new SmtpReply(550, "5.2.1", "Mailbox disabled"),
             RecipientStatus.OverQuota => new SmtpReply(452, "4.2.2", "Mailbox full"),
             _ => SmtpReply.TemporaryFailure,
         };
+        if (reply is null && r.Status == RecipientStatus.Ok)
+        {
+            // Organisation policies (PROMPT 7.4): message size limit and blocked senders, refused at RCPT.
+            var policies = scope.ServiceProvider.GetRequiredService<BlueMail.Application.Features.Admin.Policies.PolicyService>();
+            var maxMb = await policies.IntAsync(r.TenantId, null, BlueMail.Application.Features.Admin.Policies.PolicyKeys.MaxMessageSizeMb, ct);
+            if (maxMb > 0 && session.DeclaredSize is { } declared && declared > maxMb * 1024L * 1024)
+            {
+                reply = new SmtpReply(552, "5.3.4", "Message too big for this recipient");
+            }
+            else if (session.From is { IsNull: false } sender
+                     && BlueMail.Application.Features.Admin.Policies.PolicyService.ListMatches(await policies.ListAsync(r.TenantId, null, BlueMail.Application.Features.Admin.Policies.PolicyKeys.OrgBlockList, ct), sender.Address))
+            {
+                reply = new SmtpReply(550, "5.7.1", "Sender blocked by the recipient's organisation");
+            }
+            else
+            {
+                _maxBytes[recipient.Address] = maxMb * 1024L * 1024;
+            }
+        }
+
+        if (reply is null && r is { Status: RecipientStatus.Ok, GroupId: { } groupId })
+        {
+            // Who may post to the group, and moderation (PROMPT 7.3).
+            var posting = await scope.ServiceProvider.GetRequiredService<Application.Features.Admin.Directory.GroupPosting>()
+                .CheckAsync(r.TenantId, groupId, session.From is { IsNull: false } gf ? gf.Address : null, ct);
+            if (posting == Application.Features.Admin.Directory.PostingDecision.Refuse)
+            {
+                reply = new SmtpReply(550, "5.7.1", "You are not allowed to post to this group");
+            }
+            else if (posting == Application.Features.Admin.Directory.PostingDecision.Moderate)
+            {
+                _moderated.Add(recipient.Address);
+            }
+        }
+
         if (reply is null && r.Status == RecipientStatus.Ok)
         {
             // Greylisting (optional per tenant, off by default): an unknown (network, sender, recipient) retries later.
@@ -195,6 +238,37 @@ public sealed class MxHandler(
             var reject = new SmtpReply(550, "5.7.1", "Rejected by DMARC policy of " + dmarc.PolicyDomain);
             await LogAllAsync(scope, session, msgId, message.Length, MailLogStatus.Rejected, reject, null, auth, ct);
             return reject;
+        }
+
+        // Organisation policies on content (PROMPT 7.4): size, blocked file types, blocked senders in From.
+        {
+            var policies = scope.ServiceProvider.GetRequiredService<BlueMail.Application.Features.Admin.Policies.PolicyService>();
+            var tenants = _recipients.Values.Select(r => r.TenantId).Distinct().ToList();
+            if (_maxBytes.Values.Any(m => m > 0 && message.Length > m))
+            {
+                var big = new SmtpReply(552, "5.3.4", "Message too big for this recipient");
+                await LogAllAsync(scope, session, msgId, message.Length, MailLogStatus.Rejected, big, null, auth, ct);
+                return big;
+            }
+
+            foreach (var t in tenants)
+            {
+                var blocked = await policies.ListAsync(t, null, BlueMail.Application.Features.Admin.Policies.PolicyKeys.BlockedExtensions, ct);
+                var names = parsed.Root.Walk().Where(p => p.FileName is not null).Select(p => p.FileName!).ToList();
+                if (blocked.Count > 0 && names.Any(n => blocked.Any(b => n.EndsWith("." + b.TrimStart('.'), StringComparison.OrdinalIgnoreCase))))
+                {
+                    var refused = new SmtpReply(554, "5.7.1", "Attachment type not accepted by the recipient's organisation");
+                    await LogAllAsync(scope, session, msgId, message.Length, MailLogStatus.Rejected, refused, null, auth, ct);
+                    return refused;
+                }
+
+                if (BlueMail.Application.Features.Admin.Policies.PolicyService.ListMatches(await policies.ListAsync(t, null, BlueMail.Application.Features.Admin.Policies.PolicyKeys.OrgBlockList, ct), parsed.From[0].Address))
+                {
+                    var refused = new SmtpReply(550, "5.7.1", "Sender blocked by the recipient's organisation");
+                    await LogAllAsync(scope, session, msgId, message.Length, MailLogStatus.Rejected, refused, null, auth, ct);
+                    return refused;
+                }
+            }
         }
 
         // Scanner: every leaf part that is a file (attachment, named part, or non-text body).
@@ -283,7 +357,62 @@ public sealed class MxHandler(
         foreach (var tenant in accepted.GroupBy(r => r.TenantId))
         {
             var verdicts = await filter.ScoreAsync(tenant.Key, tenant.SelectMany(r => r.MailboxIds).Distinct().ToList(), spamInput, [.. findings.Cast<object>()], ct);
+            // Organisation allow list (PROMPT 7.4): authenticated mail from these senders is never spam (suspicious files still count).
+            var allow = await scope.ServiceProvider.GetRequiredService<BlueMail.Application.Features.Admin.Policies.PolicyService>().ListAsync(tenant.Key, null, BlueMail.Application.Features.Admin.Policies.PolicyKeys.OrgAllowList, ct);
+            if (dmarc.Result == DmarcResult.Pass && BlueMail.Application.Features.Admin.Policies.PolicyService.ListMatches(allow, parsed.From[0].Address))
+            {
+                verdicts = verdicts.Select(v => v.Final || v.Decision == SpamDecision.Reject ? v : v with { Decision = SpamDecision.Inbox }).ToList();
+            }
+
             plan.AddRange(verdicts.Select(v => (tenant.Key, v)));
+        }
+
+        // Moderated groups: the copies for their members wait in quarantine for a moderator (PROMPT 7.3).
+        var heldMailboxes = accepted.Where(a => _moderated.Contains(a.Address)).SelectMany(a => a.MailboxIds).ToHashSet();
+        plan = plan.Select(p => heldMailboxes.Contains(p.Verdict.MailboxId) && p.Verdict.Decision != SpamDecision.Reject
+            ? (p.Tenant, p.Verdict with { Decision = SpamDecision.Quarantine }) : p).ToList();
+
+        // Administrator routing rules (PROMPT 7.4), per tenant: reject, quarantine, redirect, archive copy (BCC).
+        var routing = scope.ServiceProvider.GetRequiredService<BlueMail.Application.Features.Admin.Policies.RoutingEngine>();
+        var routingResolver = scope.ServiceProvider.GetRequiredService<RecipientResolver>();
+        var externalBcc = new List<(Guid Tenant, string Address)>();
+        foreach (var tenant in plan.Select(p => p.Tenant).Distinct().ToList())
+        {
+            var routed = new BlueMail.Application.Features.Admin.Policies.RoutedMessage(parsed.From[0].Address, accepted.Where(a => a.TenantId == tenant).Select(a => a.Address).ToList(), parsed.Subject,
+                facts.HasAttachments);
+            foreach (var action in await routing.EvaluateAsync(tenant, BlueMail.Domain.Tenants.RoutingDirection.Inbound, routed, ct))
+            {
+                var mine = plan.Where(p => p.Tenant == tenant).ToList();
+                switch (action.Type)
+                {
+                    case "REJECT":
+                        plan = plan.Select(p => p.Tenant == tenant ? (p.Tenant, p.Verdict with { Decision = SpamDecision.Reject }) : p).ToList();
+                        break;
+                    case "QUARANTINE":
+                        plan = plan.Select(p => p.Tenant == tenant && p.Verdict.Decision != SpamDecision.Reject
+                            ? (p.Tenant, p.Verdict with { Decision = SpamDecision.Quarantine }) : p).ToList();
+                        break;
+                    case "REDIRECT" or "BCC" when action.Address is { } target:
+                        var r = await routingResolver.ResolveAsync(target, message.Length, ct);
+                        if (r.Status == RecipientStatus.Ok && r.TenantId == tenant)
+                        {
+                            var template = mine.FirstOrDefault().Verdict ?? new MailboxVerdict(Guid.Empty, SpamDecision.Inbox, 0, "{}");
+                            if (action.Type == "REDIRECT")
+                            {
+                                plan.RemoveAll(p => p.Tenant == tenant);
+                            }
+
+                            plan.AddRange(r.MailboxIds.Where(mb => !plan.Any(p => p.Verdict.MailboxId == mb))
+                                .Select(mb => (tenant, template with { MailboxId = mb, Decision = template.Decision == SpamDecision.Reject ? SpamDecision.Inbox : template.Decision })));
+                        }
+                        else if (action.Type == "BCC" && r.Status == RecipientStatus.NotOurDomain)
+                        {
+                            externalBcc.Add((tenant, target));
+                        }
+
+                        break;
+                }
+            }
         }
 
         // Spam above the reject threshold for every recipient is refused in session (PROMPT 2.3): the sender learns
@@ -349,6 +478,23 @@ public sealed class MxHandler(
             var temp = new SmtpReply(451, "4.3.0", "Temporary storage failure, try again later");
             await LogAllAsync(scope, session, msgId, message.Length, MailLogStatus.Deferred, temp, null, auth, ct);
             return temp;
+        }
+
+        // External members of groups get the message through the outbound queue, with an SRS return path (PROMPT 7.3).
+        foreach (var g in accepted.Where(a => a.ExternalMembers is { Count: > 0 } && !_moderated.Contains(a.Address)))
+        {
+            foreach (var member in g.ExternalMembers!.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                externalBcc.Add((g.TenantId, member));
+            }
+        }
+
+        foreach (var (bccTenant, bccTarget) in externalBcc.Distinct())
+        {
+            // Archive copy to an outside address: unchanged message, SRS return path.
+            var ourDomain = scope.ServiceProvider.GetRequiredService<BlueMail.Infrastructure.Configuration.BmSettings>().MailHostname;
+            var srs = scope.ServiceProvider.GetRequiredService<Srs>().Forward(session.From is { IsNull: false } bf ? bf.Address : "", ourDomain[(ourDomain.IndexOf('.') + 1)..]);
+            await scope.ServiceProvider.GetRequiredService<SystemMail>().SendAsync(bccTenant, null, srs, bccTarget, raw.Value, string.IsNullOrEmpty(srs), null, msgId, ct);
         }
 
         foreach (var (t, mb, mailboxPlan, incoming, thread) in after)

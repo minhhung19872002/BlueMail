@@ -48,7 +48,10 @@ def dkim_record(domain: str) -> str:
 def bluemail_tenant_zone(domain: str) -> str:
     z = soa(domain)
     z += f"@ IN MX 10 mx.bluemail.test.\n"
-    z += f"@ IN TXT {txt('v=spf1 ip4:' + IP['outbound'] + ' ip4:' + IP['mx'] + ' -all')}\n"
+    # Customer domains include the platform's SPF record, as the domain wizard tells them to (docs/06 P9).
+    z += f"@ IN TXT {txt('v=spf1 include:_spf.bluemail.test -all')}\n"
+    if domain == "bluemail.test":
+        z += f"_spf IN TXT {txt('v=spf1 ip4:' + IP['outbound'] + ' ip4:' + IP['mx'] + ' -all')}\n"
     z += f"_dmarc IN TXT {txt('v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@bluemail.test; adkim=r; aspf=r')}\n"
     z += dkim_record(domain)
     z += f"mta-sts IN A {IP['web']}\n"

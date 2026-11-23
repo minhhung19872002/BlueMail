@@ -46,7 +46,7 @@ public sealed class DkimKeyService(BlueMailDbContext db, TenantKeyProvider tenan
     }
 
     /// <summary>Stores a key as the active one (used by provisioning and by the dev seed for keys already in DNS).</summary>
-    public async Task<DkimKey> StoreAsync(Guid tenantId, Guid domainId, string selector, RSA rsa, CancellationToken ct)
+    public async Task<DkimKey> StoreAsync(Guid tenantId, Guid domainId, string selector, RSA rsa, CancellationToken ct, DkimKeyStatus status = DkimKeyStatus.Active)
     {
         var tk = await tenantKeys.GetAsync(tenantId, ct);
         var pkcs8 = rsa.ExportPkcs8PrivateKey();
@@ -58,8 +58,8 @@ public sealed class DkimKeyService(BlueMailDbContext db, TenantKeyProvider tenan
             Algorithm = DkimAlgorithm.Rsa2048,
             PrivateKeyEncrypted = KeyService.Encrypt(tk, pkcs8, KeyService.Aad("dkim", domainId)),
             PublicKey = Convert.ToBase64String(rsa.ExportSubjectPublicKeyInfo()),
-            Status = DkimKeyStatus.Active,
-            ActivatedAt = DateTimeOffset.UtcNow,
+            Status = status,
+            ActivatedAt = status == DkimKeyStatus.Active ? DateTimeOffset.UtcNow : null,
         };
         CryptographicOperations.ZeroMemory(pkcs8);
         db.DkimKeys.Add(key);

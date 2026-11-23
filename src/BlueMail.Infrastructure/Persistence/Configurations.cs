@@ -40,6 +40,7 @@ internal sealed class TenantDomainConfig : IEntityTypeConfiguration<TenantDomain
         b.ToTable("domains", "tenant");
         b.Property(x => x.Domain).HasMaxLength(253);
         b.Property(x => x.VerificationToken).HasMaxLength(64);
+        b.Property(x => x.LastCheck).HasColumnType("jsonb");
         // One domain belongs to one tenant, system-wide (PROMPT 14.1).
         b.HasIndex(x => x.Domain).IsUnique().HasFilter(Sql.NotDeleted);
         b.HasIndex(x => new { x.TenantId, x.IsPrimary }).IsUnique().HasFilter("is_primary AND deleted_at IS NULL")
@@ -664,15 +665,6 @@ internal sealed class ForwardingAddressConfig : IEntityTypeConfiguration<Forward
     }
 }
 
-internal sealed class TenantMailPolicyConfig : IEntityTypeConfiguration<TenantMailPolicy>
-{
-    public void Configure(EntityTypeBuilder<TenantMailPolicy> b)
-    {
-        b.ToTable("mail_policy", "tenant");
-        b.HasKey(x => x.TenantId);
-    }
-}
-
 internal sealed class SnoozeConfig : IEntityTypeConfiguration<Snooze>
 {
     public void Configure(EntityTypeBuilder<Snooze> b)
@@ -758,5 +750,38 @@ internal sealed class DirectoryOverrideConfig : IEntityTypeConfiguration<BlueMai
     {
         b.ToTable("directory_overrides", "contact");
         b.HasKey(x => new { x.TenantId, x.UserId });
+    }
+}
+
+internal sealed class PolicyConfig : IEntityTypeConfiguration<BlueMail.Domain.Tenants.Policy>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Tenants.Policy> b)
+    {
+        b.ToTable("policies", "admin");
+        b.Property(x => x.Key).HasMaxLength(64);
+        b.Property(x => x.Value).HasColumnType("jsonb");
+        b.HasIndex(x => new { x.TenantId, x.OrgUnitId, x.Key }).IsUnique().AreNullsDistinct(false).HasFilter("deleted_at IS NULL");
+    }
+}
+
+internal sealed class RoutingRuleConfig : IEntityTypeConfiguration<BlueMail.Domain.Tenants.RoutingRule>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Tenants.RoutingRule> b)
+    {
+        b.ToTable("routing_rules", "admin");
+        b.Property(x => x.Name).HasMaxLength(200);
+        b.Property(x => x.Condition).HasColumnType("jsonb");
+        b.Property(x => x.Action).HasColumnType("jsonb");
+        b.HasIndex(x => new { x.TenantId, x.Direction, x.SortOrder });
+    }
+}
+
+internal sealed class SupportTicketConfig : IEntityTypeConfiguration<BlueMail.Domain.Identity.SupportTicket>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Identity.SupportTicket> b)
+    {
+        b.ToTable("support_tickets", "identity");
+        b.Property(x => x.Reason).HasMaxLength(500);
+        b.HasIndex(x => x.TokenHash).IsUnique();
     }
 }

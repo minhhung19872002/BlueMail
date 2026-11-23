@@ -75,8 +75,10 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<Vacation> Vacations => Set<Vacation>();
     public DbSet<VacationReply> VacationReplies => Set<VacationReply>();
     public DbSet<ForwardingAddress> ForwardingAddresses => Set<ForwardingAddress>();
-    public DbSet<TenantMailPolicy> MailPolicies => Set<TenantMailPolicy>();
     public DbSet<Snooze> Snoozes => Set<Snooze>();
+    public DbSet<BlueMail.Domain.Identity.SupportTicket> SupportTickets => Set<BlueMail.Domain.Identity.SupportTicket>();
+    public DbSet<BlueMail.Domain.Tenants.Policy> Policies => Set<BlueMail.Domain.Tenants.Policy>();
+    public DbSet<BlueMail.Domain.Tenants.RoutingRule> RoutingRules => Set<BlueMail.Domain.Tenants.RoutingRule>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<CategoryRule> CategoryRules => Set<CategoryRule>();
     public DbSet<BlueMail.Domain.Contacts.Contact> Contacts => Set<BlueMail.Domain.Contacts.Contact>();

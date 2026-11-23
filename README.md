@@ -18,6 +18,7 @@ for the full specification.
 | 8 | Inbox tabs and importance by explainable rules, snooze, mute, unsubscribe (RFC 8058), contacts with groups, vCard/CSV import/export, merge, organisation directory; account settings on the server; Gmail-style keyboard shortcuts; Trash/Spam emptied after 30 days | done |
 | 7 | Gmail-style search operators (own parser, parameterised SQL) and advanced search; server-side filters sharing the search tree (in-memory matcher with PostgreSQL folding), background apply, Gmail XML import/export; blocked senders; RFC 3834 vacation reply; verified forwarding with SRS, ARC sealing and loop protection | done |
 | 6 | Spam filtering: own rules + Bayes (global/tenant/user, multilingual tokens) + reputation + optional DNSBL (off by default), per-tenant thresholds, in-session reject, quarantine, greylisting, learning from report buttons, phishing reports, "Why is this in Spam?"; Scanner layers 7 (MalwareBazaar hashes) and 8 (byte-pattern rules). Measured: 99.6 % spam caught, 0 % false positives | done |
+| 9 | Administration console: domain wizard (records with live DNS check, verification, aliases, catch-all, DKIM rotation, MTA-STS policy), users (details, CSV import, aliases, address change, delete with transfer), groups with posting rules and external members, shared mailboxes, typed policies per org unit, routing rules, message trace, queue, suppressions, sending health, reports (XLSX, print to PDF), platform tenant management with audited support sign-in | done |
 
 ## Quick start (development)
 

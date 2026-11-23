@@ -51,7 +51,7 @@ public static partial class OidcLogin
         post.StatusCode.Should().Be(HttpStatusCode.Redirect, "sign-in with correct credentials redirects back to the authorize endpoint");
 
         var r2 = await browser.GetAsync(post.Headers.Location!.ToString());
-        r2.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        r2.StatusCode.Should().Be(HttpStatusCode.Redirect, "after {0}: {1}", post.Headers.Location, r2.StatusCode == HttpStatusCode.Redirect ? "" : await r2.Content.ReadAsStringAsync());
         var callback = r2.Headers.Location!;
         callback.ToString().Should().StartWith(Redirect);
         var code = QueryHelpers.ParseQuery(callback.Query)["code"].ToString();

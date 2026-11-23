@@ -6,6 +6,7 @@ import { api, ApiError } from "../../api/client";
 import { Permission, type AdminUser, type Paged } from "../../api/types";
 import { dateTime } from "../../format";
 import { useCan, useMe, useUserFormat } from "../../session";
+import { UserDrawer, UserImport } from "./UserAdminParts";
 
 interface NewUserForm {
   email: string;
@@ -25,6 +26,8 @@ export function UsersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [openUser, setOpenUser] = useState<string | null>(null);
   const [form] = Form.useForm<NewUserForm>();
 
   const users = useQuery({
@@ -73,6 +76,7 @@ export function UsersPage() {
               setSearch(v);
             }}
           />
+          {canEdit && <Button onClick={() => setImporting(true)}>{t("admin.import.title")}</Button>}
           {canEdit && <Button type="primary" onClick={() => setCreating(true)}>{t("adminUsers.add")}</Button>}
         </Space>
       </Space>
@@ -81,6 +85,7 @@ export function UsersPage() {
         loading={users.isPending}
         dataSource={users.data?.items ?? []}
         scroll={{ x: true }}
+        onRow={(u) => ({ onClick: () => setOpenUser(u.id), style: { cursor: "pointer" } })}
         pagination={{
           current: page,
           pageSize,
@@ -109,13 +114,15 @@ export function UsersPage() {
             title: <span className="bm-visually-hidden">{t("common.actions")}</span>,
             render: (_, u) =>
               canEdit && u.id !== me.id ? (
-                <Button size="small" danger={u.status === "ACTIVE"} onClick={() => setStatus.mutate(u)}>
+                <Button size="small" danger={u.status === "ACTIVE"} onClick={(e) => { e.stopPropagation(); setStatus.mutate(u); }}>
                   {u.status === "ACTIVE" ? t("adminUsers.suspend") : t("adminUsers.reactivate")}
                 </Button>
               ) : null,
           },
         ]}
       />
+      {openUser && <UserDrawer id={openUser} onClose={() => setOpenUser(null)} />}
+      <UserImport open={importing} onClose={() => setImporting(false)} />
       <Modal
         open={creating}
         title={t("adminUsers.add")}

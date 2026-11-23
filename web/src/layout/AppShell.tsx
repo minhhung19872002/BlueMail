@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Alert, App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
-  BulbOutlined, ClusterOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
+  BulbOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
   MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import { Permission, type Labels } from "../api/types";
+import type { Labels } from "../api/types";
 import { signOut } from "../auth/auth";
 import { bytes } from "../format";
 import { countFor, labelPalette, systemViews, userLabels } from "../modules/mail/labels";
@@ -21,7 +21,8 @@ import { rulesApi, rulesKeys, vacationActive } from "../modules/settings/rulesAp
 import { useSaveSettings, useSettings, type MailSettings } from "../modules/settings/settingsApi";
 import { ComposeDock } from "../modules/compose/ComposeDock";
 import { useCompose } from "../modules/compose/composeStore";
-import { useCan, useMe } from "../session";
+import { useMe } from "../session";
+import { useAdminSections } from "../modules/admin/AdminConsole";
 import { useUi, type Density, type ReadingPane, type ThemePreference } from "../store/ui";
 
 const { Header, Sider, Content } = Layout;
@@ -49,8 +50,8 @@ export function AppShell() {
   const setReadingPane = useUi((s) => s.setReadingPane);
   const setUndoSeconds = useUi((s) => s.setUndoSeconds);
   const openCompose = useCompose((s) => s.open);
-  const canUsers = useCan(Permission.AdminUsersView);
-  const canTenants = useCan(Permission.PlatformTenantsView);
+  const adminSections = useAdminSections();
+  const canAdmin = adminSections.length > 0;
   const labels = useQuery({ queryKey: mailKeys.labels, queryFn: () => api.get<Labels>("/api/v1/mail/labels") });
   const vacation = useQuery({ queryKey: rulesKeys.vacation, queryFn: rulesApi.vacation });
   const settings = useSettings();
@@ -138,13 +139,12 @@ export function AppShell() {
         </span>
       ),
     })));
-    if (canUsers || canTenants) {
+    if (canAdmin) {
       items.push({ type: "divider" });
-      if (canUsers) items.push({ key: "/admin/users", icon: <TeamOutlined />, label: t("nav.adminUsers") });
-      if (canTenants) items.push({ key: "/admin/tenants", icon: <ClusterOutlined />, label: t("nav.adminTenants") });
+      items.push({ key: `/admin/${adminSections[0]?.key ?? ""}`, icon: <TeamOutlined />, label: t("nav.admin") });
     }
     return items;
-  }, [labels.data, canUsers, canTenants, t, qc, message, modal, location.pathname, navigate]);
+  }, [labels.data, canAdmin, adminSections, t, qc, message, modal, location.pathname, navigate]);
 
   const saveLabel = async () => {
     const name = newLabel?.trim();
@@ -241,7 +241,7 @@ export function AppShell() {
           <nav aria-label={t("nav.labels")}>
             <Menu
               mode="inline"
-              selectedKeys={[location.pathname]}
+              selectedKeys={[location.pathname.startsWith("/admin/") && adminSections[0] ? `/admin/${adminSections[0].key}` : location.pathname]}
               items={navItems}
               onClick={({ key }) => {
                 if (key === "labels-head") return;
@@ -271,6 +271,10 @@ export function AppShell() {
           </div>
         </Modal>
         <Content className="bm-content">
+          {me.supportActor && (
+            // A support sign-in is never silent (PROMPT 7.6): the whole session shows who is acting.
+            <Alert className="bm-banner" type="warning" showIcon message={t("support.banner", { actor: me.supportActor })} />
+          )}
           {vacationActive(vacation.data) && (
             // "While it is on there is a reminder at the top of the page" (PROMPT 6.8)
             <Alert className="bm-banner bm-vacation-banner" type="info" showIcon message={t("vacation.banner")} action={

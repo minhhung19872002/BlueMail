@@ -22,8 +22,7 @@ import { VacationPage } from "./modules/settings/VacationPage";
 import { ForwardingPage } from "./modules/settings/ForwardingPage";
 import { ContactsPage } from "./modules/contacts/ContactsPage";
 import { SettingsPage } from "./modules/settings/SettingsPage";
-import { UsersPage } from "./modules/admin/UsersPage";
-import { TenantsPage } from "./modules/admin/TenantsPage";
+import { AdminConsole } from "./modules/admin/AdminConsole";
 
 // Vite may hand over the CommonJS build of antd/locale wrapped in { default } (seen: dialogs in English for vi).
 const unwrap = (m: Locale): Locale => (m as Locale & { default?: Locale }).default ?? m;
@@ -76,8 +75,8 @@ function Authenticated() {
           <Route path="/settings/forwarding" element={<ForwardingPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
-          <Route path="/admin/users" element={<UsersPage />} />
-          <Route path="/admin/tenants" element={<TenantsPage />} />
+          <Route path="/admin" element={<AdminConsole />} />
+          <Route path="/admin/:section" element={<AdminConsole />} />
           <Route path="*" element={<Navigate to="/mail/inbox" replace />} />
         </Route>
       </Routes>

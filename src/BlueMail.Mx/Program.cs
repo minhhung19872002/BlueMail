@@ -66,23 +66,3 @@ var app = builder.Build();
 app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 app.Run();
-
-/// <summary>Resolvers from /etc/resolv.conf (Linux containers); loopback-only results fall back to nothing.</summary>
-internal static class SystemResolvers
-{
-    public static List<IPEndPoint> Read()
-    {
-        const string path = "/etc/resolv.conf";
-        if (!File.Exists(path))
-        {
-            throw new InvalidOperationException("BM_DNS_SERVERS is required on this platform.");
-        }
-
-        return File.ReadLines(path)
-            .Select(l => l.Trim())
-            .Where(l => l.StartsWith("nameserver", StringComparison.Ordinal))
-            .Select(l => l["nameserver".Length..].Trim())
-            .Select(s => IPAddress.TryParse(s, out var a) ? new IPEndPoint(a, 53) : null)
-            .Where(e => e is not null).Select(e => e!).ToList();
-    }
-}

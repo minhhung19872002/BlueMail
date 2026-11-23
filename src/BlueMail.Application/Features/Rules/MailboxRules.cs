@@ -269,7 +269,8 @@ public sealed class MailboxRules(BlueMailDbContext db, PgMailStore store, System
         var ok = await db.ForwardingAddresses.IgnoreQueryFilters().AsNoTracking()
             .Where(x => x.TenantId == tenant && x.UserId == userId && x.VerifiedAt != null && x.DeletedAt == null && lower.Contains(x.TargetEmail))
             .Select(x => x.TargetEmail).ToListAsync(ct);
-        var allowExternal = await db.MailPolicies.AsNoTracking().Where(p => p.TenantId == tenant).Select(p => (bool?)p.AllowExternalForwarding).FirstOrDefaultAsync(ct) ?? true;
+        var allowExternal = await new BlueMail.Application.Features.Admin.Policies.PolicyService(db).BoolAsync(tenant, await new BlueMail.Application.Features.Admin.Policies.PolicyService(db).OrgUnitOfAsync(userId, ct),
+            BlueMail.Application.Features.Admin.Policies.PolicyKeys.AllowExternalForwarding, ct);
         if (allowExternal)
         {
             return ok;

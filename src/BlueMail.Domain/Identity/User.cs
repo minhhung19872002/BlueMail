@@ -134,6 +134,11 @@ public class Session : TenantEntity
     public string? UserAgent { get; set; }
     public DateTimeOffset LastSeenAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
+
+    /// <summary>Support sign-in (PROMPT 7.1): the platform administrator acting as this user; such sessions end at <see cref="ExpiresAt"/>.</summary>
+    public Guid? ActorUserId { get; set; }
+
+    public DateTimeOffset? ExpiresAt { get; set; }
 }
 
 public enum LoginProtocol { Web, Imap, Smtp }

@@ -28,6 +28,10 @@ export function dateTime(iso: string, f: UserFormat): string {
   }).format(new Date(iso));
 }
 
+export function date(iso: string, f: UserFormat): string {
+  return new Intl.DateTimeFormat(f.locale, { timeZone: f.timeZone, dateStyle: "medium" }).format(new Date(iso));
+}
+
 const units = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"] as const;
 
 /** 3.2 GB / 3,2 GB depending on locale. */

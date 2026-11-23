@@ -90,14 +90,3 @@ public class ForwardingAddress : TenantEntity
     /// <summary>Keep BlueMail's copy in the Inbox; otherwise it goes to Trash after forwarding.</summary>
     public bool KeepCopy { get; set; } = true;
 }
-
-/// <summary>Tenant-wide mail rules set by administrators.</summary>
-public class TenantMailPolicy
-{
-    public Guid TenantId { get; set; }
-
-    /// <summary>When false, automatic forwarding and filter forwarding only reach addresses of the tenant.</summary>
-    public bool AllowExternalForwarding { get; set; } = true;
-
-    public DateTimeOffset UpdatedAt { get; set; }
-}

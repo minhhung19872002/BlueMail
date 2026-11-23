@@ -81,6 +81,11 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
             throw new ComposeException("mailbox_gone");
         }
 
+        if (await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == o.TenantId && t.Status == BlueMail.Domain.Tenants.TenantStatus.Suspended, ct))
+        {
+            throw new ComposeException("tenant_suspended"); // a suspended tenant stops sending (PROMPT 7.1)
+        }
+
         var draft = await db.Drafts.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(d => d.Id == o.DraftId, ct) ?? throw new ComposeException("draft_not_found");
         var state = JsonSerializer.Deserialize<DraftState>(draft.State, DraftState.Json)!;
         if (!await senders.MayUseAsync(access, o.FromAddress, ct))
@@ -114,11 +119,21 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
             }
         }
 
+        // Outbound routing rules (PROMPT 7.4): REJECT stops the send, BCC adds an archive copy.
+        var routingActions = await sp.GetRequiredService<BlueMail.Application.Features.Admin.Policies.RoutingEngine>().EvaluateAsync(o.TenantId, BlueMail.Domain.Tenants.RoutingDirection.Outbound,
+            new BlueMail.Application.Features.Admin.Policies.RoutedMessage(o.FromAddress, state.AllRecipients.Select(r => r.Address).ToList(), state.Subject, state.Attachments.Count > 0), ct);
+        if (routingActions.Any(a => a.Type == "REJECT"))
+        {
+            throw new ComposeException("blocked_by_policy");
+        }
+
+        var archive = routingActions.Where(a => a.Type == "BCC" && a.Address is not null).Select(a => a.Address!).ToList();
+
         // 2. Recipients: ours are delivered directly (PROMPT 2.2 step 3), the rest go to the outbound queue.
         var resolver = sp.GetRequiredService<RecipientResolver>();
         var external = new List<string>();
         var failed = new List<DsnRecipient>();
-        foreach (var rcpt in state.AllRecipients.Select(r => r.Address.Trim()).Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (var rcpt in state.AllRecipients.Select(r => r.Address.Trim()).Concat(archive).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var r = await resolver.ResolveAsync(rcpt, forRecipients.Length, ct);
             switch (r.Status)
@@ -161,7 +176,14 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
         // 3. Outbound queue: DKIM-signed with the From domain's key, one row per external recipient, once per send.
         if (external.Count > 0 && !await db.OutboundMessages.IgnoreQueryFilters().AnyAsync(m => m.OutgoingId == o.Id, ct))
         {
-            var signed = await SignAsync(sp, o.TenantId, o.FromAddress, forRecipients, ct);
+            // Mandatory footer for mail leaving the organisation (policy outbound_footer, PROMPT 7.4); internal copies stay as written.
+            var policies = sp.GetRequiredService<BlueMail.Application.Features.Admin.Policies.PolicyService>();
+            var footer = await policies.TextAsync(o.TenantId, await policies.OrgUnitOfAsync(o.UserId, ct), BlueMail.Application.Features.Admin.Policies.PolicyKeys.OutboundFooter, ct);
+            var forExternal = string.IsNullOrWhiteSpace(footer)
+                ? forRecipients
+                : await composer.BuildAsync(access, state with { From = o.FromAddress, Html = state.Html + "<hr><p>" + System.Net.WebUtility.HtmlEncode(footer).Replace("\n", "<br>", StringComparison.Ordinal) + "</p>" },
+                    rfcId, date, includeBcc: false, makeLinks: true, ct);
+            var signed = await SignAsync(sp, o.TenantId, o.FromAddress, forExternal, ct);
             await QueueAsync(sp, o, signed, external, ct);
         }
 

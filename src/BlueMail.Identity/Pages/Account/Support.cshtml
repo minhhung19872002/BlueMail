@@ -1,0 +1,10 @@
+@page "/account/support"
+@model BlueMail.Identity.Pages.Account.SupportModel
+@{
+    ViewData["Title"] = L["id.support.title"];
+}
+<h1 id="page-title">@L["id.support.title"]</h1>
+@if (Model.ErrorKey is not null)
+{
+    <div class="error" role="alert">@L[Model.ErrorKey]</div>
+}

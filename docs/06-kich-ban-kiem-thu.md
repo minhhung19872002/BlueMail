@@ -245,3 +245,28 @@ web `npx vitest run`; kiểm trên trình duyệt (desktop và 375 px).
 
 Chưa làm trong Phase 8 (đúng phase sau): giao diện quản trị cho quy tắc phân loại và ẩn khỏi danh bạ tổ chức (Phase 9, API đã có);
 mật khẩu ứng dụng và hướng dẫn IMAP trong tab "Chuyển tiếp và IMAP" (Phase 11).
+
+## Phase 9 — bảng điều khiển quản trị
+
+Chạy: `dotnet test tests/BlueMail.UnitTests --filter Admin`, `dotnet test tests/BlueMail.IntegrationTests --filter AdminConsoleTests`
+(DNS giả `FakeDomainDns` trong StackFixture), web `npx vitest run`; trình duyệt (desktop và 375 px) với dev stack và CoreDNS thật.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P9-01 | Thêm tên miền | Thêm `khach-x.test`; thêm lại chữ hoa | Hiện bản ghi cần tạo kèm nút sao chép; 409 | Như mong đợi | ✅ |
+| P9-02 | Xác minh | Chưa có TXT: gửi thư tới tên miền; tạo TXT, MX, SPF, DKIM; Kiểm tra DNS | Không nhận; đã xác minh, MX/SPF/DKIM "Đúng", DMARC "Chưa có" | Như mong đợi | ✅ |
+| P9-03 | Đổi khoá DKIM | Đổi; đổi lần hai; tạo bản ghi khoá mới; kiểm | PENDING; 409; khoá mới ACTIVE, khoá cũ RETIRING 7 ngày | Như mong đợi (sau BUG-047/048) | ✅ |
+| P9-04 | MTA-STS | GET `/.well-known/mta-sts.txt` với Host `mta-sts.<tên miền>` | Chính sách STSv1 với `mx:` của nền tảng | Như mong đợi | ✅ |
+| P9-05 | Tên miền bí danh, nhận thư lạc | Bí danh của tên miền khách; catch-all ra ngoài; catch-all nội bộ; xoá tên miền đang dùng | Thư tới bí danh vào đúng hộp; 400; thư lạc vào hộp đã chọn; 409 | Như mong đợi | ✅ |
+| P9-06 | Kiểm DNS thật | Trình duyệt, bluemail.test với CoreDNS dev | Mọi bản ghi bắt buộc "Đúng" | Như mong đợi sau BUG-049 | ✅ |
+| P9-07 | Nhập CSV | Tệp có địa chỉ sai, trùng, tên miền lạ; sửa rồi gửi lại | Không tạo gì, lỗi theo dòng; tạo, hiện mật khẩu tạm một lần | Như mong đợi | ✅ |
+| P9-08 | Thao tác người dùng | Đặt lại mật khẩu, thêm bí danh (trùng → 409), đổi địa chỉ, xoá kèm chuyển thư | Mật khẩu 16 ký tự; địa chỉ cũ vẫn nhận thư; thư chuyển sang người nhận | Như mong đợi | ✅ |
+| P9-09 | Nhóm | Chỉ thành viên gửi; thành viên ngoài; ANYONE + kiểm duyệt; nhóm nội bộ nhận thư người ngoài qua MX | Từ chối người lạ, cho thành viên ngoài; người lạ vào kiểm duyệt, quản lý bỏ qua; 550 5.7.1 | Như mong đợi (`mx_checks.py`) | ✅ |
+| P9-10 | Hộp thư dùng chung | Tạo, cấp Đọc + Gửi với tư cách | Địa chỉ xuất hiện trong "Từ" của người được cấp | Như mong đợi | ✅ |
+| P9-11 | Chính sách | Giá trị sai kiểu; khoá lạ; chặn `.exe`; tắt cảnh báo người gửi ngoài | 400; 404; tải lên bị từ chối; `/me` báo tắt, dải cảnh báo không hiện | Như mong đợi | ✅ |
+| P9-12 | Định tuyến | Quy tắc thư đi REDIRECT; thư đến BCC theo người nhận | 400; hành động BCC khi khớp | Như mong đợi | ✅ |
+| P9-13 | Truy vết, hàng đợi, danh sách ngừng gửi | Tìm theo người gửi; chi tiết; gỡ địa chỉ ngừng gửi; thử lại/huỷ | Một dòng có điểm rác; bản ghi biến mất; trạng thái đổi, có nhật ký | Như mong đợi | ✅ |
+| P9-14 | Báo cáo | Tỉ lệ rác; loại lạ; XLSX người chưa bật 2 bước; In / PDF | Có cột `spam_percent`; 400; tệp mở được, có dòng bộ lọc và "Đầy đủ"; bản in không có điều hướng | Như mong đợi | ✅ |
+| P9-15 | Tổ chức (nền tảng) | Quản trị tổ chức xem tổ chức; nền tảng xem mức dùng; đổi chế độ tạm ngưng | 403; số người dùng; `suspendTemporary` lưu | Như mong đợi | ✅ |
+| P9-16 | Đăng nhập hộ | Lý do rỗng; có lý do | 400; liên kết một lần, nhật ký kiểm toán, thư báo quản trị tổ chức, dải cảnh báo trong phiên | Như mong đợi | ✅ |
+| P9-17 | Giao diện | Mọi thẻ, 375 px, bảng điều khiển console | Không lỗi console, bảng cuộn ngang, ngăn chi tiết vừa màn hình | Như mong đợi | ✅ |

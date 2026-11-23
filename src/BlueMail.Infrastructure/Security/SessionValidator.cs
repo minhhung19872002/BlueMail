@@ -13,7 +13,7 @@ namespace BlueMail.Infrastructure.Security;
 public enum SessionRejection { None, UnknownSession, SessionRevoked, UserNotActive, TenantSuspended, StampChanged }
 
 public sealed record SessionState(Guid UserId, Guid TenantId, string PrimaryEmail, bool IsTenantAdmin, bool IsPlatformAdmin,
-    string? Locale, string? TimeZone, string? TenantLocale, SessionRejection Rejection)
+    string? Locale, string? TimeZone, string? TenantLocale, SessionRejection Rejection, Guid? ActorUserId = null)
 {
     public bool IsValid => Rejection == SessionRejection.None;
 }
@@ -91,7 +91,7 @@ public sealed class SessionValidator : ISessionValidator, IDisposable
                 TenantStatus = db.Tenants.IgnoreQueryFilters().Where(t => t.Id == u.TenantId).Select(t => (TenantStatus?)t.Status).FirstOrDefault(),
                 TenantLocale = db.Tenants.IgnoreQueryFilters().Where(t => t.Id == u.TenantId).Select(t => t.DefaultLocale).FirstOrDefault(),
                 Session = db.Sessions.IgnoreQueryFilters().Where(s => s.Id == sessionId && s.UserId == u.Id)
-                    .Select(s => new { s.RevokedAt }).FirstOrDefault(),
+                    .Select(s => new { s.RevokedAt, s.ExpiresAt, s.ActorUserId }).FirstOrDefault(),
             })
             .FirstOrDefaultAsync(ct);
 
@@ -104,12 +104,12 @@ public sealed class SessionValidator : ISessionValidator, IDisposable
             row.Status != UserStatus.Active || row.DeletedAt is not null ? SessionRejection.UserNotActive :
             row.TenantStatus is null or TenantStatus.Suspended ? SessionRejection.TenantSuspended :
             row.Session is null ? SessionRejection.UnknownSession :
-            row.Session.RevokedAt is not null ? SessionRejection.SessionRevoked :
+            row.Session.RevokedAt is not null || row.Session.ExpiresAt < DateTimeOffset.UtcNow ? SessionRejection.SessionRevoked :
             !string.Equals(row.SecurityStamp, stamp, StringComparison.Ordinal) ? SessionRejection.StampChanged :
             SessionRejection.None;
 
         return new SessionState(userId, row.TenantId, row.PrimaryEmail, row.IsTenantAdmin, row.IsPlatformAdmin,
-            row.Locale, row.TimeZone, row.TenantLocale, rejection);
+            row.Locale, row.TimeZone, row.TenantLocale, rejection, row.Session?.ActorUserId);
     }
 
     public async Task InvalidateUserAsync(Guid userId)

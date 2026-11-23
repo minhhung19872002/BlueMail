@@ -83,6 +83,7 @@ public sealed class StackFixture : IAsyncLifetime
             ["BM_PLATFORM_DOMAIN"] = "platform.test",
             ["BM_SEED_SAMPLE_DATA"] = "true",
             ["BM_SEED_USER_PASSWORD"] = UserPassword,
+            ["BM_DNS_SERVERS"] = "127.0.0.1:9", // nothing answers: the domain wizard uses FakeDomainDns below
         };
         foreach (var (k, v) in env)
         {
@@ -90,7 +91,8 @@ public sealed class StackFixture : IAsyncLifetime
         }
 
         Identity = new WebApplicationFactory<SignInService>().WithWebHostBuilder(b => b.UseEnvironment("Testing"));
-        Api = new WebApplicationFactory<BlueMail.Api.ApiAssemblyMarker>().WithWebHostBuilder(b => b.UseEnvironment("Testing"));
+        Api = new WebApplicationFactory<BlueMail.Api.ApiAssemblyMarker>().WithWebHostBuilder(b => b.UseEnvironment("Testing")
+            .ConfigureServices(s => s.AddSingleton<BlueMail.Application.Features.Admin.Domains.IDomainDns>(Dns)));
         _ = Identity.Server; // start: migrate + seed
         _ = Api.Server;
     }
@@ -150,6 +152,9 @@ public sealed class StackFixture : IAsyncLifetime
     }
 
     public AsyncServiceScope ApiScope() => Api.Services.CreateAsyncScope();
+
+    /// <summary>DNS as the domain wizard sees it in tests; tests add the records an administrator would publish.</summary>
+    public FakeDomainDns Dns { get; } = new();
 }
 
 [CollectionDefinition(Name)]

@@ -66,7 +66,6 @@ answer `404` (indistinguishable from "does not exist").
 | GET / POST / DELETE | `/api/v1/mail/blocked[/{id}]` | self | Blocked addresses or domains (`@shop.vn` or `shop.vn`) |
 | GET / PUT | `/api/v1/mail/vacation` | self | Auto reply `{ enabled, startAt, endAt, subject, html, onlyContacts, onlyOrganization }` |
 | GET / POST / DELETE | `/api/v1/mail/forwarding[/{id}]`, `POST …/{id}/verify { code }`, `PUT /api/v1/mail/forwarding/active { id?, keepCopy }` | self | Forwarding addresses: a 6-digit code is mailed to the address (24 h, 5 tries); one active automatic forward |
-| GET / PUT | `/api/v1/admin/policy` | `mail.admin.policy.edit` | `{ allowExternalForwarding }` |
 | POST | `/api/v1/mail/actions` `action: snooze \| unsnooze` (`snoozeUntil`), `mute` | self | Snooze (one active per conversation, DB rule; new mail wakes it); mute also archives |
 | GET | `/api/v1/mail/snoozed` | self | Active snoozes with their time |
 | POST | `/api/v1/mail/messages/{id}/unsubscribe` | self | `{ outcome: DONE \| OPEN_URL, url }`: RFC 8058 one-click POST (only with DKIM pass), else mailto:, else the page |
@@ -92,6 +91,44 @@ answer `404` (indistinguishable from "does not exist").
 | PUT | `/api/v1/admin/spam/lists/{id}` | `mail.admin.spam.edit` | `{ enabled }` — turn a DNS block list on/off for the tenant (all off by default, docs/00 Z4) |
 | GET | `/api/v1/admin/quarantine?status=HELD\|RELEASED\|DELETED&page=&pageSize=` | `mail.admin.quarantine.view` | Held messages with reason, score and rule report |
 | POST / DELETE | `/api/v1/admin/quarantine/{id}/release`, `/api/v1/admin/quarantine/{id}` | `mail.admin.quarantine.edit` | Release to the recipients' Inbox (exactly once; 409 `quarantine_already_decided`) or discard; audited |
+
+### Administration console (Phase 9)
+
+| Method | Path | Guard | Purpose |
+|---|---|---|---|
+| GET / POST | `/api/v1/admin/domains` | `mail.admin.domains.view` / `.edit` | List; add `{ domain, aliasOfDomainId? }` (IDN accepted, stored lower-case; 409 `domain_exists`) |
+| GET | `/api/v1/admin/domains/{id}/records?check=` | `mail.admin.domains.view` | Records to publish (verification TXT, MX, SPF, DKIM per key, DMARC, MTA-STS + host, TLS-RPT, autoconfig/autodiscover, SRV) with state `OK \| MISSING \| WRONG \| UNKNOWN` and what DNS holds; `check=true` asks DNS now and verifies the domain the first time its TXT is seen |
+| DELETE | `/api/v1/admin/domains/{id}` | `mail.admin.domains.edit` | Only when no address, group or alias domain uses it (409 `domain_in_use`); never the primary domain |
+| PUT | `/api/v1/admin/domains/{id}/catch-all` | `mail.admin.domains.edit` | `{ target }` — a mailbox of the tenant, or null to reject unknown addresses |
+| POST | `/api/v1/admin/domains/{id}/dkim/rotate` | `mail.admin.domains.edit` | New PENDING key; becomes ACTIVE when its record is in DNS, the old one RETIRING for 7 days (409 while a rotation is pending) |
+| GET | `/.well-known/mta-sts.txt` (Host `mta-sts.<domain>`) | anonymous | RFC 8461 policy for verified domains only: `mode: enforce` once MX and MTA-STS records check out, `testing` before; `mx:` the platform MX |
+| GET / PUT | `/api/v1/admin/users/{id}` | `mail.admin.users.view` / `.edit` | Details (aliases, quota use, last 20 sign-ins); update name, admin flag, quota, org unit, IMAP access |
+| POST | `/api/v1/admin/users/{id}/reset-password` | `mail.admin.users.edit` | Returns a 16-character temporary password; the user must change it; sessions revoked |
+| POST / DELETE | `/api/v1/admin/users/{id}/aliases[/{email}]` | `mail.admin.users.edit` | Alias on a verified tenant domain (409 `email_taken`) |
+| PUT | `/api/v1/admin/users/{id}/address` | `mail.admin.users.edit` | `{ email }` — new primary address; the old one stays as alias |
+| DELETE | `/api/v1/admin/users/{id}?transferTo=` | `mail.admin.users.edit` | Delete; with `transferTo` the mail is copied into that user's mailbox first (returns the number of messages) |
+| POST | `/api/v1/admin/users/import/parse` | `mail.admin.users.edit` | multipart CSV (request ≤ 5 MB, en/vi headers, UTF-8 with or without BOM) → rows |
+| POST | `/api/v1/admin/users/import` | `mail.admin.users.edit` | `{ rows, commit }` — ≤ 5000 rows; validates every row (`errors: [{ row, field, code }]`); creates nothing while any row is wrong; returns generated passwords once |
+| GET | `/api/v1/admin/org-units` | `mail.admin.users.view` | Org units with user counts |
+| GET / POST / PUT / DELETE | `/api/v1/admin/groups[/{id}]` | `mail.admin.groups.edit` | `{ email, name, description, whoCanPost: ANYONE \| DOMAIN \| MEMBERS \| MANAGERS, allowExternal, moderated }` |
+| POST / DELETE | `/api/v1/admin/groups/{id}/members[/{memberId}]` | `mail.admin.groups.edit` | `{ email, role: MEMBER \| MANAGER \| OWNER }`; outside addresses only when `allowExternal` |
+| GET / POST | `/api/v1/admin/shared-mailboxes` | `mail.admin.groups.edit` | Shared mailboxes with members; create `{ email, name }` |
+| PUT | `/api/v1/admin/shared-mailboxes/{id}/members` | `mail.admin.groups.edit` | `{ userId, canRead, canSendAs, canSendOnBehalf }` (all false removes) |
+| GET | `/api/v1/admin/policies?orgUnitId=` | `mail.admin.policy.edit` | Every policy key with type, default, tenant value and org-unit value (docs/00 D20) |
+| PUT | `/api/v1/admin/policies/{key}` | `mail.admin.policy.edit` | `{ orgUnitId?, value }` — typed (`int`, `bool`, `list`, `text`); `null` removes the override; 404 unknown key |
+| GET / POST / PUT / DELETE | `/api/v1/admin/routing-rules[/{id}]` | `mail.admin.policy.edit` | `{ name, direction: INBOUND \| OUTBOUND, condition { senderContains, recipientContains, subjectContains, hasAttachment }, action { type: BCC \| REDIRECT \| REJECT \| QUARANTINE, address }, isEnabled }`; outbound only BCC/REJECT |
+| GET | `/api/v1/admin/trace?sender=&recipient=&messageId=&from=&to=&page=` | `mail.admin.trace.view` | Mail log rows |
+| GET | `/api/v1/admin/trace/{id}` | `mail.admin.trace.view` | Row + where it was stored (labels, SPF/DKIM/DMARC, spam report) + outbound queue rows |
+| GET | `/api/v1/admin/queue?status=PENDING\|QUEUED\|DEFERRED\|BOUNCED\|ALL&domain=&page=` | `mail.admin.trace.view` | Outbound recipients |
+| POST | `/api/v1/admin/queue/retry`, `/api/v1/admin/queue/cancel` | `mail.admin.queue.edit` | `{ ids }` — retry now / cancel (status CANCELLED); audited |
+| GET / DELETE | `/api/v1/admin/suppressions[/{id}]?search=` | `mail.admin.trace.view` / `mail.admin.queue.edit` | Suppressed recipients; remove to send again |
+| GET | `/api/v1/admin/health?days=` | `mail.admin.trace.view` | Delivered/bounced/complaints, per-domain delivery rate, sending IPs (`BM_OUTBOUND_IPS`) on enabled block lists |
+| GET | `/api/v1/admin/reports/{kind}?from=&to=` | `mail.admin.reports.view` | `MAIL_BY_DAY`, `SPAM_RATE`, `STORAGE_BY_USER`, `USERS_WITHOUT_2FA`: columns + rows (≤ 50 000, `truncated`) |
+| GET | `/api/v1/admin/reports/{kind}/xlsx` | `mail.admin.reports.view` | Same report as XLSX (own writer); first lines state the filter and whether the export is complete |
+| GET / PUT | `/api/v1/admin/tenants/{id}` | `mail.platform.tenants.view` / `.edit` | Details with usage (users, storage, mail in/out 30 days, domains); update plan, limits, locale, time zone, `suspendTemporary` (450 instead of 550 while suspended) |
+| GET | `/api/v1/admin/tenants/{id}/users?search=` | `mail.platform.tenants.edit` | Users of a customer, for support sign-in |
+| POST | `/api/v1/admin/tenants/{id}/support-signin` | `mail.platform.tenants.edit` | `{ userId, reason }` → one-time link (10 min) to `BlueID /account/support`; session lasts 1 h, carries the actor, audited, tenant admins mailed |
+
 
 ## BlueID (OIDC)
 

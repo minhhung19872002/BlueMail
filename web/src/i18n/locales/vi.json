@@ -28,8 +28,6 @@
     "unreadCount": "{count, plural, other {# chưa đọc}}"
   },
   "nav": {
-    "adminUsers": "Người dùng",
-    "adminTenants": "Tổ chức",
     "sessions": "Bảo mật và thiết bị",
     "signOut": "Đăng xuất",
     "toggleMenu": "Menu chính",
@@ -41,7 +39,8 @@
     "vacation": "Trả lời tự động",
     "forwarding": "Chuyển tiếp",
     "settings": "Cài đặt",
-    "contacts": "Danh bạ"
+    "contacts": "Danh bạ",
+    "admin": "Quản trị"
   },
   "theme": {
     "title": "Chủ đề",
@@ -176,7 +175,8 @@
     "actions": "Thao tác",
     "rangeOfTotal": "{from}–{to} trên {total}",
     "create": "Tạo",
-    "cancel": "Huỷ"
+    "cancel": "Huỷ",
+    "close": "Đóng"
   },
   "adminUsers": {
     "title": "Người dùng",
@@ -712,5 +712,413 @@
       "selectNone": "Bỏ chọn tất cả",
       "close": "Đóng"
     }
+  },
+  "admin": {
+    "title": "Quản trị",
+    "add": "Thêm",
+    "save": "Lưu",
+    "delete": "Xoá",
+    "copy": "Sao chép",
+    "copied": "Đã sao chép.",
+    "section": {
+      "users": "Người dùng",
+      "domains": "Tên miền",
+      "groups": "Nhóm",
+      "policies": "Chính sách",
+      "security": "Thư rác và cách ly",
+      "operations": "Luồng thư",
+      "reports": "Báo cáo",
+      "tenants": "Tổ chức"
+    },
+    "domains": {
+      "add": "Tên miền mới, ví dụ congty.vn",
+      "aliasOf": "Bí danh của (không bắt buộc)",
+      "aliasTag": "bí danh của {of}",
+      "domain": "Tên miền",
+      "primary": "Chính",
+      "verified": "Đã xác minh",
+      "yes": "Có",
+      "no": "Không",
+      "deleteConfirm": "Xoá tên miền {domain}?",
+      "unverified": "Chưa xác minh: tạo bản ghi XÁC MINH bên dưới rồi bấm Kiểm tra DNS. Trước đó hệ thống chưa nhận thư cho tên miền này.",
+      "check": "Kiểm tra DNS",
+      "lastChecked": "Kiểm tra lần cuối {at}",
+      "record": "Bản ghi",
+      "type": "Loại",
+      "name": "Tên / host",
+      "value": "Giá trị",
+      "state": "Trạng thái",
+      "recommended": "khuyến nghị",
+      "found": "Đang có: {value}",
+      "retireAt": " – gỡ sau {at}",
+      "rotate": "Đổi khoá DKIM",
+      "catchAll": "Địa chỉ nhận thư lạc",
+      "catchAllHint": "Thư gửi tới địa chỉ không tồn tại sẽ chuyển về… (để trống = từ chối)",
+      "kind": {
+        "VERIFICATION": "Xác minh quyền sở hữu",
+        "MX": "Nhận thư (MX)",
+        "SPF": "SPF",
+        "DKIM": "Chữ ký DKIM",
+        "DMARC": "Chính sách DMARC",
+        "MTA_STS": "MTA-STS",
+        "MTA_STS_HOST": "Máy chủ chính sách MTA-STS",
+        "TLS_RPT": "Báo cáo TLS",
+        "AUTOCONFIG": "Tự cấu hình Thunderbird",
+        "AUTODISCOVER": "Tự cấu hình Outlook",
+        "SRV_SUBMISSION": "Máy chủ gửi (SRV)",
+        "SRV_IMAPS": "Máy chủ IMAP (SRV)"
+      },
+      "st": {
+        "OK": "Đúng",
+        "MISSING": "Chưa có",
+        "WRONG": "Sai",
+        "UNKNOWN": "Chưa kiểm tra"
+      },
+      "dkim": {
+        "PENDING": "chờ DNS",
+        "ACTIVE": "đang ký",
+        "RETIRING": "sắp gỡ",
+        "RETIRED": "đã gỡ"
+      },
+      "verifiedDone": "đã xong – có thể xoá"
+    },
+    "users": {
+      "storage": "Dung lượng",
+      "quotaGb": "Hạn mức (GB)",
+      "orgUnit": "Phòng ban",
+      "imap": "Cho phép ứng dụng thư (IMAP/SMTP)",
+      "aliases": "Địa chỉ phụ",
+      "newAlias": "Địa chỉ phụ mới",
+      "removeAlias": "Gỡ {email}",
+      "changeAddress": "Đổi địa chỉ",
+      "changeAddressHint": "Địa chỉ cũ được giữ làm địa chỉ phụ nên thư gửi tới vẫn nhận được.",
+      "newAddress": "Địa chỉ mới",
+      "change": "Đổi",
+      "resetPassword": "Đặt lại mật khẩu",
+      "resetConfirm": "Đặt lại mật khẩu của {email}? Người dùng phải đổi mật khẩu ở lần đăng nhập sau.",
+      "tempPassword": "Mật khẩu tạm",
+      "tempPasswordHint": "Hãy chuyển cho người dùng qua kênh an toàn; mật khẩu không hiển thị lại.",
+      "delete": "Xoá người dùng",
+      "deleteTitle": "Xoá {email}?",
+      "deleteHint": "Chọn người nhận lại thư của người dùng này, hoặc để trống để xoá thư cùng tài khoản.",
+      "transferTo": "Chuyển thư cho…",
+      "deleted": "{count, plural, =0 {Đã xoá người dùng.} other {Đã xoá người dùng; đã chuyển # thư.}}",
+      "signIns": "Lần đăng nhập gần đây",
+      "protocol": "Qua",
+      "result": "Kết quả"
+    },
+    "import": {
+      "title": "Nhập từ CSV",
+      "hint": "Các cột: Email, Họ tên, Quản trị, Dung lượng (GB), Phòng ban. Tiêu đề cột viết tiếng Việt hoặc tiếng Anh đều được.",
+      "choose": "Chọn tệp CSV",
+      "check": "Kiểm tra",
+      "create": "Tạo {count} người dùng",
+      "created": "Đã tạo {count} người dùng.",
+      "passwordsHint": "Mật khẩu tạm chỉ hiển thị một lần; hãy chuyển cho người dùng qua kênh an toàn.",
+      "hasErrors": "{count} lỗi: sửa các dòng được tô đỏ, chưa tài khoản nào được tạo.",
+      "ok": "Tất cả các dòng đều hợp lệ.",
+      "problems": "Lỗi",
+      "removeRow": "Bỏ dòng {row}",
+      "err": {
+        "invalid_email": "Địa chỉ không hợp lệ",
+        "duplicate_in_file": "Trùng trong tệp",
+        "domain_not_in_tenant": "Tên miền không thuộc tổ chức",
+        "email_taken": "Địa chỉ đã được dùng",
+        "required": "Thiếu họ tên",
+        "org_unit_not_found": "Không có phòng ban này",
+        "password_too_weak": "Mật khẩu quá yếu",
+        "invalid_format": "Dung lượng không phải số"
+      }
+    },
+    "groups": {
+      "title": "Nhóm thư",
+      "new": "Nhóm mới",
+      "email": "Địa chỉ",
+      "name": "Tên",
+      "description": "Mô tả",
+      "whoCanPost": "Ai được gửi thư vào nhóm",
+      "members": "Thành viên",
+      "flags": "Tuỳ chọn",
+      "external": "bên ngoài",
+      "moderated": "kiểm duyệt",
+      "allowExternal": "Cho phép thành viên bên ngoài tổ chức",
+      "moderatedHint": "Giữ thư của người không phải quản lý nhóm để duyệt",
+      "deleteConfirm": "Xoá nhóm {name}?",
+      "memberEmail": "Địa chỉ thành viên",
+      "role": "Vai trò",
+      "removeMember": "Gỡ {email}",
+      "externalMember": "bên ngoài",
+      "post": {
+        "ANYONE": "Bất kỳ ai, kể cả bên ngoài",
+        "DOMAIN": "Người trong tổ chức",
+        "MEMBERS": "Chỉ thành viên",
+        "MANAGERS": "Chỉ quản lý nhóm"
+      },
+      "roles": {
+        "MEMBER": "Thành viên",
+        "MANAGER": "Quản lý",
+        "OWNER": "Chủ nhóm"
+      }
+    },
+    "shared": {
+      "title": "Hộp thư dùng chung",
+      "addUser": "Cấp quyền cho…",
+      "canRead": "Đọc",
+      "canSendAs": "Gửi với tư cách",
+      "canSendOnBehalf": "Gửi thay mặt"
+    },
+    "policies": {
+      "scope": "Áp dụng cho",
+      "wholeOrg": "Toàn tổ chức",
+      "policy": "Chính sách",
+      "value": "Giá trị",
+      "source": "Thiết lập bởi",
+      "fromDefault": "mặc định",
+      "fromOrg": "tổ chức",
+      "fromUnit": "phòng ban",
+      "reset": "Trở về giá trị kế thừa",
+      "k": {
+        "max_message_size_mb": "Kích thước thư tối đa (MB)",
+        "blocked_extensions": "Loại tệp bị chặn",
+        "allow_external_forwarding": "Tự động chuyển tiếp ra ngoài",
+        "require_2fa": "Bắt buộc xác minh hai bước",
+        "password_min_length": "Độ dài mật khẩu tối thiểu",
+        "lockout_attempts": "Số lần sai mật khẩu trước khi khoá",
+        "external_sender_banner": "Cảnh báo người gửi bên ngoài",
+        "org_allow_list": "Luôn nhận thư từ",
+        "org_block_list": "Luôn chặn thư từ",
+        "outbound_footer": "Chân thư gửi ra ngoài"
+      },
+      "h": {
+        "max_message_size_mb": "Thư lớn hơn sẽ bị từ chối khi gửi hoặc nhận.",
+        "blocked_extensions": "ví dụ exe, js – không được đính kèm.",
+        "allow_external_forwarding": "Tắt: người dùng chỉ chuyển tiếp được tới địa chỉ trong tổ chức.",
+        "require_2fa": "Ai chưa bật sẽ phải thiết lập ở lần đăng nhập sau.",
+        "password_min_length": "Áp dụng cho mật khẩu mới.",
+        "lockout_attempts": "Tài khoản bị khoá tạm sau số lần sai này.",
+        "external_sender_banner": "Hiện thông báo phía trên thư đến từ bên ngoài tổ chức.",
+        "org_allow_list": "Địa chỉ hoặc tên miền được vào Hộp thư đến khi qua DMARC.",
+        "org_block_list": "Địa chỉ hoặc tên miền (@x.vn, *.x.vn) bị từ chối ngay.",
+        "outbound_footer": "Được thêm vào thư gửi ra ngoài tổ chức."
+      }
+    },
+    "routing": {
+      "title": "Quy tắc định tuyến",
+      "new": "Quy tắc mới",
+      "name": "Tên",
+      "direction": "Chiều thư",
+      "when": "Khi",
+      "then": "Thì",
+      "enabled": "Bật",
+      "sender": "Người gửi chứa",
+      "recipient": "Người nhận chứa",
+      "subject": "Tiêu đề chứa",
+      "attachment": "Tệp đính kèm",
+      "address": "Địa chỉ",
+      "dir": {
+        "INBOUND": "Thư đến",
+        "OUTBOUND": "Thư đi"
+      },
+      "c": {
+        "sender": "người gửi chứa “{v}”",
+        "recipient": "người nhận chứa “{v}”",
+        "subject": "tiêu đề chứa “{v}”",
+        "withAttachment": "có tệp đính kèm",
+        "noAttachment": "không có tệp đính kèm"
+      },
+      "a": {
+        "BCC": "Gửi thêm bản sao tới {address}",
+        "REDIRECT": "Chuyển hẳn tới {address}",
+        "REJECT": "Từ chối thư",
+        "QUARANTINE": "Giữ lại cách ly"
+      }
+    },
+    "categories": {
+      "title": "Quy tắc phân loại hộp thư",
+      "fromDomain": "Tên miền người gửi",
+      "listId": "Mã danh sách thư (List-Id)",
+      "category": "Danh mục",
+      "match": "Khớp",
+      "source": "Nguồn",
+      "system": "có sẵn",
+      "custom": "tự thêm"
+    },
+    "spam": {
+      "title": "Thiết lập thư rác",
+      "spamThreshold": "Điểm coi là thư rác",
+      "spamThresholdHint": "Từ điểm này thư vào thư mục Thư rác.",
+      "rejectThreshold": "Điểm từ chối",
+      "rejectThresholdHint": "Từ điểm này thư bị từ chối ngay khi nhận.",
+      "greylisting": "Greylisting (yêu cầu máy chủ lạ gửi lại)",
+      "suspicious": "Thư có tệp đính kèm đáng ngờ",
+      "sus": {
+        "QUARANTINE": "Giữ lại cách ly",
+        "SPAM": "Cho vào Thư rác",
+        "REJECT": "Từ chối"
+      },
+      "phishingAddress": "Gửi bản sao báo cáo lừa đảo tới",
+      "lists": "Danh sách chặn DNS",
+      "list": "Danh sách",
+      "score": "Điểm",
+      "license": "Điều kiện sử dụng"
+    },
+    "quarantine": {
+      "title": "Khu cách ly",
+      "status": "Hiển thị",
+      "at": "Thời điểm",
+      "from": "Người gửi",
+      "subject": "Tiêu đề",
+      "reason": "Lý do",
+      "release": "Trả thư",
+      "st": {
+        "HELD": "Đang giữ",
+        "RELEASED": "Đã trả",
+        "DELETED": "Đã xoá"
+      }
+    },
+    "ops": {
+      "trace": "Truy vết thư",
+      "queue": "Hàng đợi gửi",
+      "suppressions": "Địa chỉ ngừng gửi",
+      "health": "Tình trạng gửi"
+    },
+    "trace": {
+      "sender": "Người gửi",
+      "recipient": "Người nhận",
+      "messageId": "Message-ID",
+      "period": "Khoảng thời gian",
+      "search": "Tìm",
+      "at": "Thời điểm",
+      "direction": "Chiều",
+      "status": "Trạng thái",
+      "remote": "Máy chủ bên kia",
+      "smtp": "Phản hồi SMTP",
+      "size": "Kích thước (byte)",
+      "storedIn": "Đã lưu vào {mailbox}",
+      "labels": "Nhãn",
+      "auth": "Xác thực",
+      "dir": {
+        "INBOUND": "Thư đến",
+        "OUTBOUND": "Thư đi",
+        "INTERNAL": "Nội bộ"
+      },
+      "st": {
+        "DELIVERED": "Đã giao",
+        "REJECTED": "Bị từ chối",
+        "DEFERRED": "Đang thử lại",
+        "BOUNCED": "Bị trả về",
+        "QUARANTINED": "Bị cách ly",
+        "QUEUED": "Đang chờ"
+      },
+      "nullSender": "<> – thư hệ thống (báo lỗi hoặc trả lời tự động) không có địa chỉ trả về"
+    },
+    "queue": {
+      "domain": "Tên miền",
+      "attempts": "Số lần thử",
+      "next": "Lần thử tới",
+      "last": "Phản hồi gần nhất",
+      "retry": "Thử lại ngay",
+      "cancel": "Huỷ gửi",
+      "retried": "Sẽ thử lại {count} thư.",
+      "cancelled": "Đã huỷ {count} thư.",
+      "filter": {
+        "PENDING": "Đang chờ",
+        "QUEUED": "Mới vào hàng",
+        "DEFERRED": "Đang thử lại",
+        "BOUNCED": "Thất bại",
+        "ALL": "Tất cả"
+      },
+      "st": {
+        "QUEUED": "Đang chờ",
+        "DEFERRED": "Đang thử lại",
+        "DELIVERED": "Đã giao",
+        "BOUNCED": "Bị trả về",
+        "EXPIRED": "Hết hạn thử",
+        "SUPPRESSED": "Ngừng gửi",
+        "CANCELLED": "Đã huỷ"
+      }
+    },
+    "suppressions": {
+      "search": "Tìm địa chỉ",
+      "address": "Địa chỉ",
+      "reason": "Lý do",
+      "detail": "Chi tiết",
+      "remove": "Cho gửi lại",
+      "r": {
+        "HARDBOUNCE": "Địa chỉ không tồn tại",
+        "COMPLAINT": "Bị báo thư rác",
+        "MANUAL": "Quản trị viên thêm"
+      }
+    },
+    "health": {
+      "days": "{count} ngày qua",
+      "delivered": "Đã giao",
+      "bounced": "Bị trả về",
+      "deferred": "Đang thử lại",
+      "bounceRate": "Tỉ lệ trả về",
+      "complaints": "Khiếu nại",
+      "rate": "Tỉ lệ giao",
+      "ipLists": "Địa chỉ gửi của hệ thống trên danh sách chặn",
+      "noIps": "Chưa cấu hình địa chỉ gửi (BM_OUTBOUND_IPS).",
+      "unknown": "Không có phản hồi",
+      "listed": "Bị liệt kê",
+      "clean": "Không bị liệt kê"
+    },
+    "reports": {
+      "kind": "Báo cáo",
+      "xlsx": "Tải Excel",
+      "print": "In / PDF",
+      "period": "{from} – {to}",
+      "truncated": "chỉ hiện {limit} dòng: thu hẹp khoảng thời gian để xem đầy đủ",
+      "complete": "đầy đủ, {count} dòng",
+      "chartLabel": "Biểu đồ cột {column}; số liệu có trong bảng bên dưới.",
+      "k": {
+        "MAIL_BY_DAY": "Thư theo ngày",
+        "SPAM_RATE": "Tỉ lệ thư rác",
+        "STORAGE_BY_USER": "Dung lượng theo người dùng",
+        "USERS_WITHOUT_2FA": "Người dùng chưa bật xác minh hai bước"
+      },
+      "col": {
+        "day": "Ngày",
+        "received": "Nhận",
+        "sent": "Gửi",
+        "internal": "Nội bộ",
+        "rejected": "Từ chối",
+        "bounced": "Trả về",
+        "inbound": "Thư đến",
+        "spam": "Thư rác",
+        "spam_percent": "% thư rác",
+        "user": "Người dùng",
+        "used_mb": "Đã dùng (MB)",
+        "quota_mb": "Hạn mức (MB)",
+        "used_percent": "% đã dùng",
+        "name": "Họ tên",
+        "admin": "Quản trị",
+        "last_login": "Đăng nhập gần nhất"
+      }
+    },
+    "tenants": {
+      "mail30d": "Thư 30 ngày qua",
+      "mail30dValue": "nhận {received} · gửi {sent}",
+      "plan": "Gói",
+      "userLimit": "Giới hạn người dùng",
+      "storageGb": "Giới hạn dung lượng (GB)",
+      "dailyLimit": "Số thư gửi mỗi ngày",
+      "zeroUnlimited": "0 = không giới hạn",
+      "locale": "Ngôn ngữ mặc định",
+      "timeZone": "Múi giờ mặc định",
+      "suspendMode": "Khi tạm ngưng, yêu cầu bên gửi thử lại (450) thay vì từ chối (550)",
+      "suspendModeHint": "Dùng cho tạm ngưng ngắn để không mất thư.",
+      "support": "Đăng nhập hộ để hỗ trợ",
+      "supportHint": "Có hiệu lực một giờ, được ghi nhật ký; quản trị viên của tổ chức được báo qua thư.",
+      "supportStart": "Bắt đầu đăng nhập hộ",
+      "supportUser": "Người dùng",
+      "supportReason": "Lý do (số phiếu hỗ trợ, việc cần kiểm tra)",
+      "supportLink": "Liên kết dưới dùng được một lần, trong 10 phút. Hãy mở trong cửa sổ ẩn danh.",
+      "supportOpen": "Mở phiên hỗ trợ"
+    }
+  },
+  "support": {
+    "banner": "Phiên hỗ trợ: {actor} đang đăng nhập hộ bạn để hỗ trợ. Mọi thao tác đều được ghi nhật ký."
   }
 }

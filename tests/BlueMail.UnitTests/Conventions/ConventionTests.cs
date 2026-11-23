@@ -200,3 +200,17 @@ public class EndpointGuardTests
             .Where(s => s is not null).Should().OnlyContain(s => s!.Reason.Length >= 20, "a self-guard must explain itself");
     }
 }
+
+public class PolicyReaderTests
+{
+    [Fact]
+    public void Every_policy_key_has_a_reader()
+    {
+        // PROMPT 7.4: "every policy key has a place in the code that reads it".
+        var sources = Repo.SourceFiles("*.cs").Where(f => !f.EndsWith("PolicyService.cs", StringComparison.Ordinal)).Select(File.ReadAllText).ToList();
+        var keys = typeof(BlueMail.Application.Features.Admin.Policies.PolicyKeys).GetFields()
+            .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => f.Name).ToList();
+        keys.Should().NotBeEmpty();
+        keys.Where(k => !sources.Any(s => s.Contains("PolicyKeys." + k, StringComparison.Ordinal))).Should().BeEmpty("a policy nobody reads does nothing");
+    }
+}

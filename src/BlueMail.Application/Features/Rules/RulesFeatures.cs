@@ -419,13 +419,13 @@ public sealed record ForwardingListDto(IReadOnlyList<ForwardingDto> Addresses, b
 
 public sealed record ListForwardingQuery : IRequest<ForwardingListDto>;
 
-public sealed class ListForwardingHandler(BlueMailDbContext db, ICurrentUser me) : IRequestHandler<ListForwardingQuery, ForwardingListDto>
+public sealed class ListForwardingHandler(BlueMailDbContext db, ICurrentUser me, Admin.Policies.PolicyService policies) : IRequestHandler<ListForwardingQuery, ForwardingListDto>
 {
     public async Task<ForwardingListDto> Handle(ListForwardingQuery q, CancellationToken ct)
     {
         var list = await db.ForwardingAddresses.AsNoTracking().Where(f => f.UserId == me.UserId).OrderBy(f => f.TargetEmail)
             .Select(f => new ForwardingDto(f.Id, f.TargetEmail, f.VerifiedAt != null, f.IsActive, f.KeepCopy)).ToListAsync(ct);
-        var allowed = await db.MailPolicies.AsNoTracking().Where(p => p.TenantId == me.TenantId).Select(p => (bool?)p.AllowExternalForwarding).FirstOrDefaultAsync(ct) ?? true;
+        var allowed = await policies.BoolAsync(me.TenantId, await policies.OrgUnitOfAsync(me.UserId, ct), Admin.Policies.PolicyKeys.AllowExternalForwarding, ct);
         return new ForwardingListDto(list, allowed);
     }
 }
@@ -439,7 +439,8 @@ public sealed class AddForwardingValidator : AbstractValidator<AddForwardingComm
 }
 
 /// <summary>Adds an address and mails it a verification code (valid 24 hours, 5 attempts). Nothing is forwarded before.</summary>
-public sealed class AddForwardingHandler(BlueMailDbContext db, ICurrentUser me, SystemMail mail, BmSettings settings, AuditWriter audit) : IRequestHandler<AddForwardingCommand, Guid>
+public sealed class AddForwardingHandler(BlueMailDbContext db, ICurrentUser me, SystemMail mail, BmSettings settings, AuditWriter audit,
+    Admin.Policies.PolicyService policies) : IRequestHandler<AddForwardingCommand, Guid>
 {
     public const int MaxAddresses = 20;
 
@@ -454,7 +455,7 @@ public sealed class AddForwardingHandler(BlueMailDbContext db, ICurrentUser me, 
 
         var domain = target[(target.LastIndexOf('@') + 1)..];
         var internalDomain = await db.Domains.AnyAsync(d => d.Domain == domain, ct);
-        var allowed = await db.MailPolicies.AsNoTracking().Where(p => p.TenantId == me.TenantId).Select(p => (bool?)p.AllowExternalForwarding).FirstOrDefaultAsync(ct) ?? true;
+        var allowed = await policies.BoolAsync(me.TenantId, await policies.OrgUnitOfAsync(me.UserId, ct), Admin.Policies.PolicyKeys.AllowExternalForwarding, ct);
         if (!internalDomain && !allowed)
         {
             throw AppException.Forbidden("external_forwarding_disabled");
@@ -578,39 +579,5 @@ public sealed class DeleteForwardingHandler(BlueMailDbContext db, ICurrentUser m
         var n = await db.ForwardingAddresses.Where(f => f.Id == c.Id && f.UserId == me.UserId)
             .ExecuteUpdateAsync(f => f.SetProperty(x => x.DeletedAt, DateTimeOffset.UtcNow).SetProperty(x => x.IsActive, false), ct);
         return n == 0 ? throw AppException.NotFound("not_found") : Unit.Value;
-    }
-}
-
-// ---------- tenant policy (administrators) ----------
-
-public sealed record MailPolicyDto(bool AllowExternalForwarding);
-
-public sealed record GetMailPolicyQuery : IRequest<MailPolicyDto>;
-
-public sealed class GetMailPolicyHandler(BlueMailDbContext db, ICurrentUser me) : IRequestHandler<GetMailPolicyQuery, MailPolicyDto>
-{
-    public async Task<MailPolicyDto> Handle(GetMailPolicyQuery q, CancellationToken ct) =>
-        new(await db.MailPolicies.AsNoTracking().Where(p => p.TenantId == me.TenantId).Select(p => (bool?)p.AllowExternalForwarding).FirstOrDefaultAsync(ct) ?? true);
-}
-
-public sealed record SaveMailPolicyCommand(bool AllowExternalForwarding) : IRequest<Unit>;
-
-public sealed class SaveMailPolicyHandler(BlueMailDbContext db, ICurrentUser me, AuditWriter audit) : IRequestHandler<SaveMailPolicyCommand, Unit>
-{
-    public async Task<Unit> Handle(SaveMailPolicyCommand c, CancellationToken ct)
-    {
-        var p = await db.MailPolicies.FirstOrDefaultAsync(x => x.TenantId == me.TenantId, ct);
-        if (p is null)
-        {
-            p = new TenantMailPolicy { TenantId = me.TenantId };
-            db.MailPolicies.Add(p);
-        }
-
-        p.AllowExternalForwarding = c.AllowExternalForwarding;
-        p.UpdatedAt = DateTimeOffset.UtcNow;
-        await db.SaveChangesAsync(ct);
-        await audit.WriteAsync(new AuditEntry("policy.update", AuditResult.Success, me.TenantId, me.UserId, me.Email, me.Ip, me.UserAgent, "mail_policy",
-            me.TenantId.ToString(), NewValueJson: JsonSerializer.Serialize(c)), ct);
-        return Unit.Value;
     }
 }

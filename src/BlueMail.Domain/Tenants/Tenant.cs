@@ -27,6 +27,9 @@ public class Tenant : Entity
     public string SpamSettings { get; set; } = "{}";
     public string DefaultLocale { get; set; } = "en";
     public string DefaultTimeZone { get; set; } = "UTC";
+
+    /// <summary>While suspended, incoming mail gets 450 (sender retries) or 550 (refused) (PROMPT 7.1).</summary>
+    public bool SuspendTemporary { get; set; } = true;
     public string DataRegion { get; set; } = "default";
 
     /// <summary>Tenant data key (AES-256), wrapped with the master key from BM_MASTER_KEY.</summary>
@@ -51,6 +54,12 @@ public class TenantDomain : TenantEntity
     public bool MtaStsOk { get; set; }
     public DateTimeOffset? LastCheckedAt { get; set; }
     public string? CatchAllTarget { get; set; }
+
+    /// <summary>Domain alias (PROMPT 7.2): mail to local@this-domain is delivered as local@target-domain.</summary>
+    public Guid? AliasOfDomainId { get; set; }
+
+    /// <summary>Last DNS check result per record (JSON), shown in the wizard and compared to notice breakage.</summary>
+    public string? LastCheck { get; set; }
 }
 
 public enum DkimAlgorithm { Rsa2048, Ed25519 }

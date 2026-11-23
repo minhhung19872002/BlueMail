@@ -90,3 +90,10 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - User settings: `mail.user_settings` JSON normalised by `MailSettings.Normalize`; web reads them via `useSettings()` (settingsApi.ts).
 - Keyboard shortcuts: `shortcuts.ts` (keys) + `ShortcutHost`/`useShortcuts` (components register the commands they own).
 
+## Administration (Phase 9)
+- Admin API in `Application/Features/Admin/{Domains,Users,Directory,Policies,Operations,Tenants}`; web console `/admin/:section`
+  (`modules/admin/AdminConsole.tsx`, one tab per permission; `adminApi.ts`).
+- Policies: add a key to `PolicyKeys` and read it where it acts (`PolicyService`); `Every_policy_key_has_a_reader` enforces it.
+- Domain records come from `DomainRecordPlanner` (customer domains include `_spf.<platform>`); keep `scripts/dev-gen-zones.py`
+  matching it, then `docker restart bluemail-dev-dns-1`. Integration tests use `stack.Dns` (`FakeDomainDns`) for DNS answers.
+- Seed platform admin must change password at first sign-in; tests clear `MustChangePassword`/`TwoFactorEnabled` before using it.

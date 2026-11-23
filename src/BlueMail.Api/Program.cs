@@ -23,6 +23,9 @@ var keys = OidcKeys.Load(builder.Configuration);
 builder.AddBlueMailLogging(settings, "api");
 builder.Services.AddBlueMailInfrastructure(settings);
 builder.Services.AddBlueMailApiFeatures();
+BlueMail.Application.Features.Admin.Domains.DomainServiceRegistration.AddBlueMailDomainAdmin(builder.Services, builder.Configuration);
+builder.Services.AddScoped<BlueMail.Application.Features.Admin.Domains.MtaStsPolicy>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Admin.Domains.DomainWatchWorker>());
 builder.Services.AddBlueMailIdentityCore();
 builder.Services.AddApiAuthentication(settings, keys);
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
@@ -95,6 +98,9 @@ app.UseAuthorization();
 
 app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();
+// MTA-STS policy (RFC 8461) of every verified customer domain, by Host header (mta-sts.<domain> is a CNAME to us).
+app.MapGet("/.well-known/mta-sts.txt", async (HttpContext http, BlueMail.Application.Features.Admin.Domains.MtaStsPolicy policy, CancellationToken ct) =>
+    await policy.ForHostAsync(http.Request.Host.Host, ct) is { } text ? Results.Text(text, "text/plain") : Results.NotFound()).AllowAnonymous();
 app.MapControllers();
 app.MapHub<BlueMail.Api.Realtime.MailHub>("/hubs/mail");
 

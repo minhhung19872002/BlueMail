@@ -55,7 +55,7 @@ public static class ApplicationServices
                 o.Password.RequireUppercase = false;
                 o.Password.RequireNonAlphanumeric = false;
                 o.Password.RequiredUniqueChars = 4;
-                o.Lockout.MaxFailedAccessAttempts = 5;
+                o.Lockout.MaxFailedAccessAttempts = 1000; // the real limit is the tenant policy lockout_attempts (SignInService)
                 o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 o.Lockout.AllowedForNewUsers = true;
             })
@@ -83,6 +83,9 @@ public static class ApplicationServices
         services.AddScoped<Features.Rules.MailboxRules>();
         services.AddScoped<Features.Rules.InboxOrganizer>();
         services.AddScoped<Features.Mail.SnoozeService>();
+        services.AddScoped<Features.Admin.Policies.PolicyService>();
+        services.AddScoped<Features.Admin.Policies.RoutingEngine>();
+        services.AddScoped<Features.Admin.Directory.GroupPosting>();
         services.AddScoped<Features.Contacts.ContactRecorder>();
         services.AddScoped<Features.Rules.FilterRules>();
         services.AddScoped<Features.Antispam.BayesStore>();

@@ -23,7 +23,7 @@ public sealed record NewUser(
     string? TimeZone = null);
 
 /// <summary>Creates a user with its mailbox. Shared by the admin API, tenant creation and the seeder.</summary>
-public sealed class UserProvisioning(BlueMailDbContext db, UserManager<User> users, IMailStore store)
+public sealed class UserProvisioning(BlueMailDbContext db, UserManager<User> users, IMailStore store, Policies.PolicyService policies)
 {
     public const int MinPasswordLength = 10;
     public const long DefaultQuotaBytes = 30L * 1024 * 1024 * 1024;
@@ -38,6 +38,10 @@ public sealed class UserProvisioning(BlueMailDbContext db, UserManager<User> use
         var email = address.Value;
         var tenant = await db.Tenants.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == n.TenantId && t.DeletedAt == null, ct)
                      ?? throw AppException.NotFound("tenant_not_found");
+        if (n.Password.Length < await policies.IntAsync(n.TenantId, null, Policies.PolicyKeys.PasswordMinLength, ct))
+        {
+            throw new ValidationFailedException([new FieldError("password", ValidationCodes.PasswordTooWeak)]); // policy password_min_length
+        }
 
         var domainOwned = await db.Domains.IgnoreQueryFilters()
             .AnyAsync(d => d.TenantId == n.TenantId && d.Domain == email.Domain && d.DeletedAt == null, ct);

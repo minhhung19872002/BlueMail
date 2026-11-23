@@ -17,6 +17,10 @@ export interface Me {
   permissions: string[];
   branding: string;
   domains: string[];
+  /** Policy external_sender_banner (PROMPT 7.4). */
+  externalSenderBanner: boolean;
+  /** Set when a platform administrator is signed in as this user for support (PROMPT 7.6). */
+  supportActor: string | null;
 }
 
 export type LabelVisibility = "SHOW" | "HIDE" | "IF_UNREAD";

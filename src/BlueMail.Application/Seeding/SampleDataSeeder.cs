@@ -152,7 +152,13 @@ public sealed class SampleDataSeeder(
                 var group = await db.Groups.IgnoreQueryFilters().FirstOrDefaultAsync(g => g.Email == email && g.DeletedAt == null, ct);
                 if (group is null)
                 {
-                    group = new Group { TenantId = tenant.Id, Email = email, Name = name };
+                    // Sales teams take mail from customers; other sample groups are internal only (PROMPT 7.3 defaults).
+                    var outward = local is "kinhdoanh" or "sales";
+                    group = new Group
+                    {
+                        TenantId = tenant.Id, Email = email, Name = name, AllowExternal = outward,
+                        WhoCanPost = outward ? GroupPostPermission.Anyone : GroupPostPermission.Domain,
+                    };
                     db.Groups.Add(group);
                     await db.SaveChangesAsync(ct);
                 }

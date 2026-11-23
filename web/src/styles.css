@@ -218,3 +218,18 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 .bm-kbd-focus { box-shadow: inset 4px 0 0 var(--ant-color-primary, #1a56db); }
 /* Pages with .bm-settings-list show their own, specific empty message. */
 .bm-settings-list .ant-list-empty-text { display: none; }
+
+/* Administration console (Phase 9). */
+.bm-row-between { justify-content: space-between; }
+.bm-policy-list { min-inline-size: min(320px, 70vw); }
+.bm-report-select { min-inline-size: 260px; }
+.bm-pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; margin: 0; }
+.bm-row-error > td { background: color-mix(in srgb, var(--bm-danger) 10%, transparent) !important; }
+.bm-chart { margin: 0; max-inline-size: 760px; }
+.bm-chart svg { inline-size: 100%; block-size: auto; }
+.bm-chart-bar { fill: var(--bm-primary); }
+.bm-chart-grid { stroke: var(--bm-border); stroke-width: 1; }
+.bm-chart-tick { fill: var(--bm-textMuted); font-size: 11px; }
+@media print {
+  .bm-no-print, .bm-admin .ant-tabs-nav, .ant-pagination { display: none !important; }
+}

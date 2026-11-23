@@ -134,20 +134,3 @@ public sealed class RulesController(ISender mediator) : ControllerBase
         return ApiResponses.Ok(true);
     }
 }
-
-[ApiController]
-[Route("api/v1/admin/policy")]
-public sealed class AdminPolicyController(ISender mediator) : ControllerBase
-{
-    [HttpGet]
-    [RequirePermission(Permissions.AdminPolicyEdit)]
-    public async Task<ApiResponse<MailPolicyDto>> Get(CancellationToken ct) => ApiResponses.Ok(await mediator.Send(new GetMailPolicyQuery(), ct));
-
-    [HttpPut]
-    [RequirePermission(Permissions.AdminPolicyEdit)]
-    public async Task<ApiResponse<bool>> Save([FromBody] SaveMailPolicyCommand body, CancellationToken ct)
-    {
-        await mediator.Send(body, ct);
-        return ApiResponses.Ok(true);
-    }
-}

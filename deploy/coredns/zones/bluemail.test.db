@@ -4,7 +4,8 @@ $TTL 300
 @ IN NS ns1.bluemail.test.
 ns1 IN A 10.77.0.53
 @ IN MX 10 mx.bluemail.test.
-@ IN TXT "v=spf1 ip4:10.77.0.26 ip4:10.77.0.25 -all"
+@ IN TXT "v=spf1 include:_spf.bluemail.test -all"
+_spf IN TXT "v=spf1 ip4:10.77.0.26 ip4:10.77.0.25 -all"
 _dmarc IN TXT "v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@bluemail.test; adkim=r; aspf=r"
 bm2026._domainkey IN TXT "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA49dtikWf/zc1ROCuKU9wNFGQaWdlR54Pf9aoXrDXERXy1DxmcETV2me63aT4fzxuTH11ZoS0pGQcWoSGww5lMnDlMw7hJ86Sf9sNF3CO8rICLFQidNobLW7aEo7exQZt5YSIuIdfFhJBFxgEwNRkCM17pDacJYlY5W8Vl48DoIrTG+LXBTmeyY9Db/sG" "p+CGrxTLs56zKLFIfw5/j2oY1aIr4PhcopQN59Tq1mp0AyVpyW7Ffb3x66idUPa58YvADeuY3C1QvVMdpuJ0godoB4cUfcs8slNa2tXu/nOEsSHYH6jHneZ+b6ngEtiA9X2eRlVRq+/O5+BUmZOJ+LG4cwIDAQAB"
 mta-sts IN A 10.77.0.20

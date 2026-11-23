@@ -12,7 +12,7 @@ namespace BlueMail.Identity.Pages.Account;
 
 [Authorize]
 public sealed class ChangePasswordModel(UserManager<User> users, SignInManager<User> signIn, ISessionValidator sessions,
-    ITenantContext tenant, AuditWriter audit) : PageModel
+    ITenantContext tenant, AuditWriter audit, BlueMail.Application.Features.Admin.Policies.PolicyService policies) : PageModel
 {
     [BindProperty] public string Current { get; set; } = "";
     [BindProperty] public string New { get; set; } = "";
@@ -52,6 +52,12 @@ public sealed class ChangePasswordModel(UserManager<User> users, SignInManager<U
         if (New == Current)
         {
             ErrorKeys.Add("id.error.password_same");
+            return Page();
+        }
+
+        if (New.Length < await policies.IntAsync(user.TenantId, user.OrgUnitId, BlueMail.Application.Features.Admin.Policies.PolicyKeys.PasswordMinLength, ct))
+        {
+            ErrorKeys.Add("id.error.password_weak"); // policy password_min_length (PROMPT 7.4)
             return Page();
         }
 

@@ -191,7 +191,7 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
   const warnings = authWarnings(msg.authResults);
   const fromDomain = msg.from ? domainOf(msg.from.address) : "";
   const imitated = fromDomain ? looksLike(fromDomain, me.domains) : null;
-  const external = msg.from ? isExternal(msg.from.address, me.domains) : false;
+  const external = me.externalSenderBanner && msg.from ? isExternal(msg.from.address, me.domains) : false;
   const files = m.attachments.filter((a) => !a.inline);
   const dangerous = m.attachments.some((a) => a.virusStatus === "INFECTED" || a.virusStatus === "SUSPICIOUS");
 

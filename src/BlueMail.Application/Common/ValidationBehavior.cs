@@ -15,7 +15,7 @@ public sealed class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidat
         {
             var result = await validator.ValidateAsync(request, cancellationToken);
             errors.AddRange(result.Errors.Select(e => new FieldError(
-                char.ToLowerInvariant(e.PropertyName[0]) + e.PropertyName[1..],
+                e.PropertyName.Length == 0 ? "" : char.ToLowerInvariant(e.PropertyName[0]) + e.PropertyName[1..], // whole-object rules have no property
                 e.ErrorCode,
                 e.FormattedMessagePlaceholderValues?
                     .Where(kv => kv.Key is not ("PropertyName" or "PropertyValue" or "PropertyPath"))

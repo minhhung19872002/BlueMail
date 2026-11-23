@@ -15,7 +15,7 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 namespace BlueMail.Identity.Controllers;
 
 /// <summary>OIDC endpoints of BlueID (OpenIddict pass-through mode).</summary>
-public sealed class OidcController(UserManager<User> users, ISessionValidator sessions, SignInService signIn) : Controller
+public sealed class OidcController(UserManager<User> users, ISessionValidator sessions, SignInService signIn, BlueMail.Application.Features.Admin.Policies.PolicyService policies) : Controller
 {
     [AllowAnonymous]
     [HttpGet("~/connect/authorize")]
@@ -60,6 +60,12 @@ public sealed class OidcController(UserManager<User> users, ISessionValidator se
         if (user.MustChangePassword)
         {
             return Redirect("/account/change-password?returnUrl=" + Uri.EscapeDataString(Request.PathBase + Request.Path + Request.QueryString));
+        }
+
+        // Policy require_2fa (PROMPT 7.4): no token until the user has set up a second factor.
+        if (!user.TwoFactorEnabled && await policies.BoolAsync(user.TenantId, user.OrgUnitId, BlueMail.Application.Features.Admin.Policies.PolicyKeys.RequireTwoFactor, HttpContext.RequestAborted))
+        {
+            return Redirect("/account/2fa?required=1");
         }
 
         var principal = BuildPrincipal(user, state.Value.SessionId, request.GetScopes());

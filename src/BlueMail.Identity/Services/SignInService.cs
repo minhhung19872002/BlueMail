@@ -25,7 +25,8 @@ public sealed class SignInService(
     SignInManager<User> signIn,
     ITenantContext tenant,
     AuditWriter audit,
-    IHttpContextAccessor http)
+    IHttpContextAccessor http,
+    BlueMail.Application.Features.Admin.Policies.PolicyService policies)
 {
     public async Task<PasswordCheckResult> CheckPasswordAsync(string email, string password, CancellationToken ct)
     {
@@ -55,6 +56,17 @@ public sealed class SignInService(
 
         if (!result.Succeeded)
         {
+            // Lockout after the tenant's number of failures (policy lockout_attempts, PROMPT 7.4): 15 minutes.
+            var unit = await policies.OrgUnitOfAsync(user.Id, ct);
+            var limit = await policies.IntAsync(user.TenantId, unit, BlueMail.Application.Features.Admin.Policies.PolicyKeys.LockoutAttempts, ct);
+            if (limit > 0 && await users.GetAccessFailedCountAsync(user) >= limit)
+            {
+                await users.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(15));
+                await users.ResetAccessFailedCountAsync(user);
+                await RecordAsync(user.Id, user.TenantId, LoginResult.Failure, "locked_out", ct);
+                return new PasswordCheckResult(PasswordCheck.LockedOut, user);
+            }
+
             await RecordAsync(user.Id, user.TenantId, LoginResult.Failure, "bad_password", ct);
             return new PasswordCheckResult(PasswordCheck.Invalid, user);
         }
@@ -84,6 +96,31 @@ public sealed class SignInService(
         await audit.WriteAsync(new AuditEntry("auth.login", AuditResult.Success, user.TenantId, user.Id, user.PrimaryEmail,
             session.Ip, session.UserAgent, "session", session.Id.ToString()), ct);
         await signIn.SignInWithClaimsAsync(user, new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = persistent },
+            [new Claim(OidcKeys.SessionClaim, session.Id.ToString())]);
+    }
+
+    /// <summary>Support sign-in (PROMPT 7.1): a session of the user that records who acts and ends after one hour.</summary>
+    public async Task CompleteSupportAsync(User user, Guid actorUserId, CancellationToken ct)
+    {
+        tenant.Set(user.TenantId, user.Id);
+        var ctx = http.HttpContext!;
+        var session = new Session
+        {
+            TenantId = user.TenantId,
+            UserId = user.Id,
+            Ip = ctx.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Truncate(ctx.Request.Headers.UserAgent.ToString(), 512),
+            Device = "support",
+            LastSeenAt = DateTimeOffset.UtcNow,
+            ActorUserId = actorUserId,
+            ExpiresAt = DateTimeOffset.UtcNow.AddHours(1),
+        };
+        db.Sessions.Add(session);
+        await db.SaveChangesAsync(ct);
+        await RecordAsync(user.Id, user.TenantId, LoginResult.Success, "support", ct);
+        await audit.WriteAsync(new AuditEntry("support.signin.use", AuditResult.Success, user.TenantId, actorUserId, null, session.Ip, session.UserAgent,
+            "session", session.Id.ToString(), NewValueJson: System.Text.Json.JsonSerializer.Serialize(new { target = user.PrimaryEmail })), ct);
+        await signIn.SignInWithClaimsAsync(user, new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = false, ExpiresUtc = session.ExpiresAt },
             [new Claim(OidcKeys.SessionClaim, session.Id.ToString())]);
     }
 

@@ -28,8 +28,6 @@
     "unreadCount": "{count, plural, one {# unread} other {# unread}}"
   },
   "nav": {
-    "adminUsers": "Users",
-    "adminTenants": "Organisations",
     "sessions": "Security and devices",
     "signOut": "Sign out",
     "toggleMenu": "Main menu",
@@ -41,7 +39,8 @@
     "vacation": "Auto-reply",
     "forwarding": "Forwarding",
     "settings": "Settings",
-    "contacts": "Contacts"
+    "contacts": "Contacts",
+    "admin": "Administration"
   },
   "theme": {
     "title": "Theme",
@@ -176,7 +175,8 @@
     "actions": "Actions",
     "rangeOfTotal": "{from}–{to} of {total}",
     "create": "Create",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "adminUsers": {
     "title": "Users",
@@ -712,5 +712,413 @@
       "selectNone": "Select none",
       "close": "Close"
     }
+  },
+  "admin": {
+    "title": "Administration",
+    "add": "Add",
+    "save": "Save",
+    "delete": "Delete",
+    "copy": "Copy",
+    "copied": "Copied.",
+    "section": {
+      "users": "Users",
+      "domains": "Domains",
+      "groups": "Groups",
+      "policies": "Policies",
+      "security": "Spam and quarantine",
+      "operations": "Mail flow",
+      "reports": "Reports",
+      "tenants": "Organisations"
+    },
+    "domains": {
+      "add": "New domain, e.g. company.vn",
+      "aliasOf": "Alias of (optional)",
+      "aliasTag": "alias of {of}",
+      "domain": "Domain",
+      "primary": "Primary",
+      "verified": "Verified",
+      "yes": "Yes",
+      "no": "No",
+      "deleteConfirm": "Delete the domain {domain}?",
+      "unverified": "Not verified yet: publish the VERIFICATION record below, then press Check DNS. No mail is accepted for this domain until then.",
+      "check": "Check DNS",
+      "lastChecked": "Last checked {at}",
+      "record": "Record",
+      "type": "Type",
+      "name": "Name / host",
+      "value": "Value",
+      "state": "State",
+      "recommended": "recommended",
+      "found": "Found: {value}",
+      "retireAt": " – removed after {at}",
+      "rotate": "Rotate DKIM key",
+      "catchAll": "Catch-all address",
+      "catchAllHint": "Mail to unknown addresses goes to… (empty = reject)",
+      "kind": {
+        "VERIFICATION": "Ownership check",
+        "MX": "Incoming mail (MX)",
+        "SPF": "SPF",
+        "DKIM": "DKIM signature",
+        "DMARC": "DMARC policy",
+        "MTA_STS": "MTA-STS",
+        "MTA_STS_HOST": "MTA-STS policy host",
+        "TLS_RPT": "TLS reports",
+        "AUTOCONFIG": "Thunderbird set-up",
+        "AUTODISCOVER": "Outlook set-up",
+        "SRV_SUBMISSION": "Sending server (SRV)",
+        "SRV_IMAPS": "IMAP server (SRV)"
+      },
+      "st": {
+        "OK": "OK",
+        "MISSING": "Missing",
+        "WRONG": "Wrong",
+        "UNKNOWN": "Not checked"
+      },
+      "dkim": {
+        "PENDING": "waiting for DNS",
+        "ACTIVE": "signing",
+        "RETIRING": "retiring",
+        "RETIRED": "retired"
+      },
+      "verifiedDone": "done – may be removed"
+    },
+    "users": {
+      "storage": "Storage",
+      "quotaGb": "Quota (GB)",
+      "orgUnit": "Department",
+      "imap": "IMAP/SMTP access for mail apps",
+      "aliases": "Aliases",
+      "newAlias": "New alias",
+      "removeAlias": "Remove {email}",
+      "changeAddress": "Change address",
+      "changeAddressHint": "The old address stays as an alias, so mail sent to it still arrives.",
+      "newAddress": "New address",
+      "change": "Change",
+      "resetPassword": "Reset password",
+      "resetConfirm": "Reset the password of {email}? They will have to choose a new one at next sign-in.",
+      "tempPassword": "Temporary password",
+      "tempPasswordHint": "Give it to the user over a safe channel; it is not shown again.",
+      "delete": "Delete user",
+      "deleteTitle": "Delete {email}?",
+      "deleteHint": "Choose someone to receive this user's mail first, or leave empty to delete it with the account.",
+      "transferTo": "Move mail to…",
+      "deleted": "{count, plural, =0 {User deleted.} other {User deleted; # messages moved.}}",
+      "signIns": "Recent sign-ins",
+      "protocol": "Via",
+      "result": "Result"
+    },
+    "import": {
+      "title": "Import from CSV",
+      "hint": "Columns: Email, Name, Admin, Quota (GB), Department. Headers can be in English or Vietnamese.",
+      "choose": "Choose CSV file",
+      "check": "Check",
+      "create": "{count, plural, one {Create # user} other {Create # users}}",
+      "created": "{count, plural, one {# user created.} other {# users created.}}",
+      "passwordsHint": "Temporary passwords are shown once; give them to the users over a safe channel.",
+      "hasErrors": "{count, plural, one {# problem: fix the highlighted rows, nothing has been created.} other {# problems: fix the highlighted rows, nothing has been created.}}",
+      "ok": "Every row is valid.",
+      "problems": "Problems",
+      "removeRow": "Remove row {row}",
+      "err": {
+        "invalid_email": "Invalid address",
+        "duplicate_in_file": "Twice in the file",
+        "domain_not_in_tenant": "Domain not in this organisation",
+        "email_taken": "Address already used",
+        "required": "Name missing",
+        "org_unit_not_found": "Unknown department",
+        "password_too_weak": "Password too weak",
+        "invalid_format": "Quota is not a number"
+      }
+    },
+    "groups": {
+      "title": "Groups",
+      "new": "New group",
+      "email": "Address",
+      "name": "Name",
+      "description": "Description",
+      "whoCanPost": "Who can send to the group",
+      "members": "Members",
+      "flags": "Options",
+      "external": "external",
+      "moderated": "moderated",
+      "allowExternal": "Members may be outside the organisation",
+      "moderatedHint": "Hold mail from non-managers for approval",
+      "deleteConfirm": "Delete the group {name}?",
+      "memberEmail": "Member address",
+      "role": "Role",
+      "removeMember": "Remove {email}",
+      "externalMember": "external",
+      "post": {
+        "ANYONE": "Anyone, also outside",
+        "DOMAIN": "People in the organisation",
+        "MEMBERS": "Members only",
+        "MANAGERS": "Managers only"
+      },
+      "roles": {
+        "MEMBER": "Member",
+        "MANAGER": "Manager",
+        "OWNER": "Owner"
+      }
+    },
+    "shared": {
+      "title": "Shared mailboxes",
+      "addUser": "Give access to…",
+      "canRead": "Read",
+      "canSendAs": "Send as",
+      "canSendOnBehalf": "Send on behalf"
+    },
+    "policies": {
+      "scope": "Applies to",
+      "wholeOrg": "The whole organisation",
+      "policy": "Policy",
+      "value": "Value",
+      "source": "Set by",
+      "fromDefault": "default",
+      "fromOrg": "organisation",
+      "fromUnit": "department",
+      "reset": "Back to the inherited value",
+      "k": {
+        "max_message_size_mb": "Largest message (MB)",
+        "blocked_extensions": "Blocked file types",
+        "allow_external_forwarding": "Automatic forwarding outside",
+        "require_2fa": "Two-step verification required",
+        "password_min_length": "Shortest password",
+        "lockout_attempts": "Wrong passwords before lock",
+        "external_sender_banner": "Warn about outside senders",
+        "org_allow_list": "Always accept from",
+        "org_block_list": "Always refuse from",
+        "outbound_footer": "Footer on outgoing mail"
+      },
+      "h": {
+        "max_message_size_mb": "Larger mail is refused when sent or received.",
+        "blocked_extensions": "e.g. exe, js – refused as attachments.",
+        "allow_external_forwarding": "Off: users can only forward to addresses in the organisation.",
+        "require_2fa": "Users without it must set it up at next sign-in.",
+        "password_min_length": "Applies to new passwords.",
+        "lockout_attempts": "The account is locked for a while after this many failures.",
+        "external_sender_banner": "Shows a notice above mail from outside the organisation.",
+        "org_allow_list": "Addresses or domains whose mail skips the spam folder when it passes DMARC.",
+        "org_block_list": "Addresses or domains (@x.vn, *.x.vn) refused at once.",
+        "outbound_footer": "Added to mail that leaves the organisation."
+      }
+    },
+    "routing": {
+      "title": "Routing rules",
+      "new": "New rule",
+      "name": "Name",
+      "direction": "Mail",
+      "when": "When",
+      "then": "Then",
+      "enabled": "On",
+      "sender": "Sender contains",
+      "recipient": "Recipient contains",
+      "subject": "Subject contains",
+      "attachment": "Attachments",
+      "address": "Address",
+      "dir": {
+        "INBOUND": "Incoming",
+        "OUTBOUND": "Outgoing"
+      },
+      "c": {
+        "sender": "sender contains “{v}”",
+        "recipient": "recipient contains “{v}”",
+        "subject": "subject contains “{v}”",
+        "withAttachment": "has attachments",
+        "noAttachment": "no attachments"
+      },
+      "a": {
+        "BCC": "Also send a copy to {address}",
+        "REDIRECT": "Deliver to {address} instead",
+        "REJECT": "Refuse the message",
+        "QUARANTINE": "Hold in quarantine"
+      }
+    },
+    "categories": {
+      "title": "Inbox category rules",
+      "fromDomain": "Sender domain",
+      "listId": "Mailing list ID",
+      "category": "Category",
+      "match": "Matches",
+      "source": "Source",
+      "system": "built in",
+      "custom": "added here"
+    },
+    "spam": {
+      "title": "Spam settings",
+      "spamThreshold": "Spam score",
+      "spamThresholdHint": "At this score mail goes to Spam.",
+      "rejectThreshold": "Reject score",
+      "rejectThresholdHint": "At this score mail is refused during delivery.",
+      "greylisting": "Greylisting (ask unknown servers to retry)",
+      "suspicious": "Mail with suspicious attachments",
+      "sus": {
+        "QUARANTINE": "Hold in quarantine",
+        "SPAM": "Put in Spam",
+        "REJECT": "Refuse"
+      },
+      "phishingAddress": "Copy phishing reports to",
+      "lists": "DNS block lists",
+      "list": "List",
+      "score": "Score",
+      "license": "Terms of use"
+    },
+    "quarantine": {
+      "title": "Quarantine",
+      "status": "Show",
+      "at": "When",
+      "from": "From",
+      "subject": "Subject",
+      "reason": "Reason",
+      "release": "Release",
+      "st": {
+        "HELD": "Held",
+        "RELEASED": "Released",
+        "DELETED": "Deleted"
+      }
+    },
+    "ops": {
+      "trace": "Message trace",
+      "queue": "Outgoing queue",
+      "suppressions": "Suppressed addresses",
+      "health": "Sending health"
+    },
+    "trace": {
+      "sender": "Sender",
+      "recipient": "Recipient",
+      "messageId": "Message-ID",
+      "period": "Period",
+      "search": "Search",
+      "at": "When",
+      "direction": "Direction",
+      "status": "Status",
+      "remote": "Remote server",
+      "smtp": "SMTP reply",
+      "size": "Size (bytes)",
+      "storedIn": "Stored in {mailbox}",
+      "labels": "Labels",
+      "auth": "Authentication",
+      "dir": {
+        "INBOUND": "Incoming",
+        "OUTBOUND": "Outgoing",
+        "INTERNAL": "Internal"
+      },
+      "st": {
+        "DELIVERED": "Delivered",
+        "REJECTED": "Rejected",
+        "DEFERRED": "Retrying",
+        "BOUNCED": "Bounced",
+        "QUARANTINED": "Quarantined",
+        "QUEUED": "Queued"
+      },
+      "nullSender": "<> – system mail (bounce or auto-reply) has no return address"
+    },
+    "queue": {
+      "domain": "Domain",
+      "attempts": "Attempts",
+      "next": "Next attempt",
+      "last": "Last reply",
+      "retry": "Retry now",
+      "cancel": "Cancel",
+      "retried": "{count, plural, one {# message will be retried.} other {# messages will be retried.}}",
+      "cancelled": "{count, plural, one {# message cancelled.} other {# messages cancelled.}}",
+      "filter": {
+        "PENDING": "Waiting",
+        "QUEUED": "Queued",
+        "DEFERRED": "Retrying",
+        "BOUNCED": "Failed",
+        "ALL": "All"
+      },
+      "st": {
+        "QUEUED": "Queued",
+        "DEFERRED": "Retrying",
+        "DELIVERED": "Delivered",
+        "BOUNCED": "Bounced",
+        "EXPIRED": "Gave up",
+        "SUPPRESSED": "Suppressed",
+        "CANCELLED": "Cancelled"
+      }
+    },
+    "suppressions": {
+      "search": "Search an address",
+      "address": "Address",
+      "reason": "Reason",
+      "detail": "Detail",
+      "remove": "Allow again",
+      "r": {
+        "HARDBOUNCE": "Address does not exist",
+        "COMPLAINT": "Spam complaint",
+        "MANUAL": "Added by an admin"
+      }
+    },
+    "health": {
+      "days": "{count, plural, one {Last day} other {Last # days}}",
+      "delivered": "Delivered",
+      "bounced": "Bounced",
+      "deferred": "Retrying",
+      "bounceRate": "Bounce rate",
+      "complaints": "Complaints",
+      "rate": "Delivery rate",
+      "ipLists": "Our sending addresses on block lists",
+      "noIps": "No sending addresses configured (BM_OUTBOUND_IPS).",
+      "unknown": "No answer",
+      "listed": "Listed",
+      "clean": "Not listed"
+    },
+    "reports": {
+      "kind": "Report",
+      "xlsx": "Download Excel",
+      "print": "Print / PDF",
+      "period": "{from} – {to}",
+      "truncated": "cut at {limit} rows: narrow the period to see everything",
+      "complete": "{count, plural, one {# row, complete} other {# rows, complete}}",
+      "chartLabel": "Bar chart of {column}; the same values are in the table below.",
+      "k": {
+        "MAIL_BY_DAY": "Mail by day",
+        "SPAM_RATE": "Spam rate",
+        "STORAGE_BY_USER": "Storage by user",
+        "USERS_WITHOUT_2FA": "Users without two-step verification"
+      },
+      "col": {
+        "day": "Day",
+        "received": "Received",
+        "sent": "Sent",
+        "internal": "Internal",
+        "rejected": "Rejected",
+        "bounced": "Bounced",
+        "inbound": "Incoming",
+        "spam": "Spam",
+        "spam_percent": "Spam %",
+        "user": "User",
+        "used_mb": "Used (MB)",
+        "quota_mb": "Quota (MB)",
+        "used_percent": "Used %",
+        "name": "Name",
+        "admin": "Admin",
+        "last_login": "Last sign-in"
+      }
+    },
+    "tenants": {
+      "mail30d": "Mail, last 30 days",
+      "mail30dValue": "{received} received · {sent} sent",
+      "plan": "Plan",
+      "userLimit": "User limit",
+      "storageGb": "Storage limit (GB)",
+      "dailyLimit": "Outgoing mail per day",
+      "zeroUnlimited": "0 = no limit",
+      "locale": "Default language",
+      "timeZone": "Default time zone",
+      "suspendMode": "While suspended, ask senders to retry (450) instead of refusing (550)",
+      "suspendModeHint": "Use for short suspensions so no mail is lost.",
+      "support": "Sign in as a user for support",
+      "supportHint": "For one hour, recorded in the audit log; the organisation's admins are told by mail.",
+      "supportStart": "Start support sign-in",
+      "supportUser": "User",
+      "supportReason": "Reason (ticket number, what you will check)",
+      "supportLink": "The link below works once, for 10 minutes. Open it in a private window.",
+      "supportOpen": "Open the support session"
+    }
+  },
+  "support": {
+    "banner": "Support session: {actor} is signed in as you to help. Everything done here is recorded."
   }
 }

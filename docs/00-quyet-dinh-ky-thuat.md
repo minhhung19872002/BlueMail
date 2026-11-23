@@ -297,3 +297,24 @@ thẳng (To) cho mình; thư hàng loạt không bao giờ tự thành quan tr�
 `mail.user_settings.settings` (jsonb) theo PROMPT mục 4; máy chủ chuẩn hoá mọi giá trị (giá trị lạ về mặc định) nên một máy khách
 cũ không thể lưu thứ máy chủ không đọc được. Giao diện (chủ đề, mật độ, khung đọc, hoàn tác) đọc từ đây và theo người dùng trên
 mọi thiết bị; store cục bộ chỉ là bản sao.
+
+## D19. Báo cáo: XLSX tự viết, PDF qua hộp thoại in của trình duyệt
+
+PROMPT 7.5 đòi xuất Excel và PDF. XLSX là gói ZIP + vài tệp XML (SpreadsheetML), tự viết được bằng `System.IO.Compression`
+(`Xlsx.cs`, có kiểm đơn vị); không cần thư viện. PDF: một bộ dựng PDF đúng chuẩn có phông tiếng Việt nhúng là việc lớn và
+không đem lại gì hơn hộp thoại in của trình duyệt — trang báo cáo có kiểu in riêng (`@media print`: ẩn thanh điều hướng,
+bộ lọc, phân trang) nên "In / PDF" → "Lưu dưới dạng PDF" cho đúng bảng và biểu đồ đang xem. Mọi tệp xuất ghi rõ khoảng thời
+gian và "đầy đủ / bị cắt ở N dòng" (PROMPT 14).
+
+## D20. Chính sách: khoá có kiểu, kế thừa đơn vị → tổ chức → mặc định
+
+`admin.policies (tenant_id, org_unit_id NULL, key, value jsonb)`, duy nhất theo (tenant, đơn vị, khoá). Danh sách khoá, kiểu và
+mặc định nằm ở một chỗ (`PolicyKeys`); API từ chối khoá lạ (404) và giá trị sai kiểu (400). Mỗi khoá phải có nơi đọc — phép thử
+quy ước `Every_policy_key_has_a_reader` đỏ khi có khoá không ai dùng, để không có "cài đặt chỉ để trưng". Bảng
+`tenant.mail_policy` của Phase 7 được chuyển dữ liệu vào đây rồi bỏ.
+
+## D21. Đăng nhập hộ để hỗ trợ: phiếu một lần, phiên có người thực hiện
+
+Quản trị nền tảng nhập lý do → phiếu ngẫu nhiên 256 bit (lưu băm SHA-256, dùng một lần, 10 phút) → BlueID tạo phiên 1 giờ cho
+người dùng với `actor_user_id` của quản trị viên. Nhật ký kiểm toán ghi cả lúc tạo phiếu và lúc dùng; quản trị viên của tổ chức
+nhận thư báo; giao diện người dùng hiện dải cảnh báo suốt phiên. Không có cách đăng nhập hộ im lặng.
