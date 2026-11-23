@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="BlueMail.UnitTests" />
+    <InternalsVisibleTo Include="BlueMail.FuzzTests" />
+  </ItemGroup>
+</Project>

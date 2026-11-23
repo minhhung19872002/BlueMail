@@ -62,6 +62,13 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<OutboundRecipient> OutboundRecipients => Set<OutboundRecipient>();
     public DbSet<Suppression> Suppressions => Set<Suppression>();
     public DbSet<DestinationLimit> DestinationLimits => Set<DestinationLimit>();
+    public DbSet<SpamSettings> SpamSettings => Set<SpamSettings>();
+    public DbSet<DnsblSource> DnsblSources => Set<DnsblSource>();
+    public DbSet<BayesToken> BayesTokens => Set<BayesToken>();
+    public DbSet<BayesTotal> BayesTotals => Set<BayesTotal>();
+    public DbSet<SpamTraining> SpamTrainings => Set<SpamTraining>();
+    public DbSet<GreylistEntry> Greylist => Set<GreylistEntry>();
+    public DbSet<QuarantinedMessage> Quarantine => Set<QuarantinedMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -169,3 +169,28 @@ soạn trên web gửi tới `binh@doitac.test`.
 
 Chưa làm trong Phase 5 (đúng phase sau): dải IP và làm ấm, bounce/ARF không đồng bộ, VERP, TLS-RPT, DANE (Phase 12);
 SMTP nộp thư 587/465 (Phase 11); chế độ bảo mật (Phase 12).
+
+## Phase 6 — lọc rác và quét tệp đầy đủ
+
+Chạy: `dotnet test --filter "Antispam|Scanner"` (đơn vị), `dotnet test tests/BlueMail.IntegrationTests --filter AntispamTests`,
+web `npx vitest run`. Kiểm thật: `docker compose … up -d --build mx`, `sh scripts/dev-phase6-check.sh`
+(gửi bằng `tests/interop/spam_checks.py` từ container tools) và `sh scripts/dev-phase3-check.sh` (không bắt nhầm thư thật).
+Bộ thư đo chất lượng: `tests/BlueMail.SpamCorpus/generate.py` → `corpus.jsonl` (1 400 thư tự dựng, đa ngôn ngữ),
+kết quả mới nhất ghi ở `tests/BlueMail.SpamCorpus/last-report.txt` mỗi lần chạy `SpamQualityTests`.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P6-01 | Chất lượng lọc rác | `SpamQualityTests`: kiểm chéo 2 phần (Bayes học nửa này, chấm nửa kia), ngưỡng 5 | Bắt nhầm < 0,1 %, bắt đúng ≥ 95 % | Bắt đúng **697/700 (99,6 %)**, bắt nhầm **0/700 (0 %)**; điểm cao nhất của thư thật −0,5 | ✅ |
+| P6-02 | Chất lượng quét tệp | `ScannerSampleTests` (lớp 1–8, gồm danh sách băm và luật mẫu byte) | Chặn đủ mẫu nguy hiểm, không chặn mẫu sạch | **31/31** mẫu nguy hiểm bị chặn đúng lý do; **0/14** mẫu sạch bị chặn | ✅ |
+| P6-03 | Thư thật từ người lạ | `spam_checks.py`: thư tiếng Việt bình thường, không SPF/DKIM | Vào Hộp thư đến | Như mong đợi | ✅ |
+| P6-04 | Lừa đảo giả tên miền | Tên miền `bluemaiI-support.test`, tên hiển thị "bluemail.test IT", Reply-To gmail, liên kết che | Vào Thư rác; lưu điểm và bảng luật (`FROM_LOOKALIKE_DOMAIN`…) | Như mong đợi sau BUG-033 (điểm 13,6) | ✅ |
+| P6-05 | Từ chối trong phiên | Thư vượt ngưỡng từ chối (15) | `550 5.7.1 Message rejected as spam`; không lưu; mail_log ghi điểm | Như mong đợi (điểm 20,6) | ✅ |
+| P6-06 | Học từ nút báo cáo | 22 thư "Báo cáo thư rác" (bấm 2 lần) + 22 "Không phải thư rác"; rồi đổi ý 2 thư | Mô hình người dùng 22/22 (không đếm trùng); sau đổi ý 20/24; Bayes > 0,9 cho nội dung tương tự | Như mong đợi | ✅ |
+| P6-07 | Báo cáo lừa đảo | Người dùng bấm "Báo cáo lừa đảo"; quản trị đặt hộp thư bảo mật | Thư vào Thư rác, bản sao (đính kèm nguyên văn) tới hộp thư bảo mật; địa chỉ ngoài tổ chức bị từ chối; người thường không đọc được cài đặt (403) | Như mong đợi | ✅ |
+| P6-08 | Cách ly | Hai quản trị viên cùng "Thả" một thư cách ly | Thư tới người nhận đúng 1 lần, lần thứ hai 409; ghi nhật ký kiểm toán | Như mong đợi | ✅ |
+| P6-09 | Greylisting | Bộ ba mới; thử lại sớm; thử lại sau 5 phút; cùng /24 | Hoãn, hoãn, qua, qua | Như mong đợi | ✅ |
+| P6-10 | "Vì sao thư này ở Thư rác?" | Mở thư trong Thư rác | Biểu ngữ + bảng lý do bằng ngôn ngữ người dùng, điểm từng luật | Như mong đợi; mọi mã luật có bản dịch en/vi (phép thử C# + vitest) | ✅ |
+| P6-11 | DNSBL | Danh sách nguồn | Mặc định tắt hết, có ghi chú giấy phép; bộ chấm chạy được khi không có nguồn nào | Như mong đợi (P6-01 chạy không DNSBL) | ✅ |
+
+Chưa làm trong Phase 6 (đúng phase sau): trừ điểm người gửi có trong danh bạ (danh bạ ở Phase 8); giao diện quản trị
+cho cài đặt rác, danh sách chặn và cách ly (Phase 9 — API đã có); quản trị viên xem bảng điểm ở tìm vết thư (Phase 9).

@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\src\BlueMail.Protocols.Smtp\BlueMail.Protocols.Smtp.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.MailStore\BlueMail.MailStore.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Outbound\BlueMail.Outbound.csproj" />
+    <ProjectReference Include="..\..\src\BlueMail.Antispam\BlueMail.Antispam.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\BlueMail.InteropTests\ScannerSamples.cs" Link="Scanner\ScannerSamples.cs" />

@@ -92,3 +92,27 @@ export function isExternal(senderAddress: string, ours: string[]): boolean {
   const d = domainOf(senderAddress);
   return !ours.some((o) => d === o.toLowerCase() || d.endsWith("." + o.toLowerCase()));
 }
+
+export interface SpamHit {
+  code: string;
+  score: number;
+  detail: string | null;
+}
+
+export interface SpamReport {
+  score: number;
+  threshold: number;
+  hits: SpamHit[];
+}
+
+/** The scorer's report stored with a message (mail.messages.spam_report, written by BlueMail.Mx). */
+export function parseSpamReport(json: string | null): SpamReport | null {
+  if (!json) return null;
+  try {
+    const r = JSON.parse(json) as { spam?: Partial<SpamReport> };
+    if (!r.spam || typeof r.spam.score !== "number" || !Array.isArray(r.spam.hits)) return null;
+    return { score: r.spam.score, threshold: typeof r.spam.threshold === "number" ? r.spam.threshold : 5, hits: r.spam.hits };
+  } catch {
+    return null;
+  }
+}

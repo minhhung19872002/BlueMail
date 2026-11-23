@@ -1,0 +1,17 @@
+Threshold 5: spam caught 697/700 (99.6 %), false positives 0/700 (0.00 %)
+  ham  bulk         0/205  flagged, mean score -3.3
+  ham  business     0/392  flagged, mean score -4.4
+  ham  internal     0/103  flagged, mean score -6.3
+  spam crypto      90/90   flagged, mean score 10.6
+  spam extort      59/60   flagged, mean score 8.5
+  spam fraud       88/90   flagged, mean score 9.4
+  spam invoice     47/47   flagged, mean score 11.6
+  spam jobscam     36/36   flagged, mean score 11.4
+  spam lottery     93/93   flagged, mean score 12.8
+  spam pharma      52/52   flagged, mean score 11.2
+  spam phish      190/190  flagged, mean score 13.5
+  spam seo         42/42   flagged, mean score 9.1
+  highest ham score -0.5 (business: Biên bản nghiệm thu hợp đồng số 8243) :: SPF_SOFTFAIL=1, DKIM_NONE=0.5, BAYES_00=-2
+  missed: Urgent business proposal :: SPF_PASS=-0.3, REPLYTO_FREEMAIL=1.5, HTML_IMAGE_ONLY=1.5, SENDER_DOMAIN_NEW=0.5
+  missed: Inheritance claim notification :: SPF_PASS=-0.3, DKIM_NONE=0.5, RDNS_NONE=0.8, REPLYTO_FREEMAIL=1.5, HTML_IMAGE_ONLY=1.5, SENDER_DOMAIN_NEW=0.5
+  missed: I have recorded you :: SPF_PASS=-0.3, DKIM_NONE=0.5, HELO_NO_DOT=1, HTML_IMAGE_ONLY=1.5, SENDER_DOMAIN_NEW=0.5

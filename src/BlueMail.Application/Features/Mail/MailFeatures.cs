@@ -146,12 +146,12 @@ public static class MailActionNames
     public const string MarkRead = "markRead", MarkUnread = "markUnread", Star = "star", Unstar = "unstar", Important = "important",
         NotImportant = "notImportant", Archive = "archive", MoveToInbox = "moveToInbox", Trash = "trash", Untrash = "untrash", Spam = "spam",
         NotSpam = "notSpam", AddLabel = "addLabel", RemoveLabel = "removeLabel", MoveTo = "moveTo", DeleteForever = "deleteForever",
-        Mute = "mute", Unmute = "unmute";
+        Mute = "mute", Unmute = "unmute", ReportPhishing = "reportPhishing";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         MarkRead, MarkUnread, Star, Unstar, Important, NotImportant, Archive, MoveToInbox, Trash, Untrash, Spam, NotSpam, AddLabel, RemoveLabel,
-        MoveTo, DeleteForever, Mute, Unmute,
+        MoveTo, DeleteForever, Mute, Unmute, ReportPhishing,
     };
 }
 
@@ -171,7 +171,8 @@ public sealed class MailActionValidator : AbstractValidator<MailActionCommand>
     }
 }
 
-public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store) : IRequestHandler<MailActionCommand, ChangeResult>
+public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store, Antispam.SpamLearning learning, Antispam.PhishingReports phishing)
+    : IRequestHandler<MailActionCommand, ChangeResult>
 {
     public async Task<ChangeResult> Handle(MailActionCommand c, CancellationToken ct)
     {
@@ -197,7 +198,19 @@ public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store) :
         var change = await ChangeFor(access, c, ct);
         try
         {
-            return await store.ApplyAsync(access, ids, change, ct);
+            var result = await store.ApplyAsync(access, ids, change, ct);
+            // "Report spam" / "Not spam" / "Report phishing" teach the user's and the tenant's Bayes models (PROMPT 6.9).
+            if (c.Action is MailActionNames.Spam or MailActionNames.ReportPhishing or MailActionNames.NotSpam)
+            {
+                await learning.LearnAsync(access, ids, spam: c.Action != MailActionNames.NotSpam, ct);
+            }
+
+            if (c.Action == MailActionNames.ReportPhishing)
+            {
+                await phishing.ForwardAsync(access, ids, ct);
+            }
+
+            return result;
         }
         catch (LabelNotFoundException)
         {
@@ -222,6 +235,7 @@ public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store) :
             case MailActionNames.Untrash: return new MessageChange { AddSystem = [SystemLabels.Inbox], RemoveSystem = [SystemLabels.Trash] };
             case MailActionNames.Spam: return new MessageChange { AddSystem = [SystemLabels.Spam], RemoveSystem = [SystemLabels.Inbox, SystemLabels.Trash] };
             case MailActionNames.NotSpam: return new MessageChange { AddSystem = [SystemLabels.Inbox], RemoveSystem = [SystemLabels.Spam] };
+            case MailActionNames.ReportPhishing: return new MessageChange { AddSystem = [SystemLabels.Spam], RemoveSystem = [SystemLabels.Inbox, SystemLabels.Trash] };
             case MailActionNames.AddLabel: return new MessageChange { AddLabels = Label() };
             case MailActionNames.RemoveLabel: return new MessageChange { RemoveLabels = Label() };
             case MailActionNames.MoveTo:

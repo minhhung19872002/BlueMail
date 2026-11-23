@@ -55,7 +55,7 @@ public sealed class ScannerClamAvComparisonTests
             .Where(l => l.Contains(" FOUND", StringComparison.Ordinal))
             .ToDictionary(l => l[..l.IndexOf(':', StringComparison.Ordinal)], l => l[(l.IndexOf(':', StringComparison.Ordinal) + 1)..].Replace("FOUND", "", StringComparison.Ordinal).Trim());
 
-        var scanner = new BlueMailScanner();
+        var scanner = BlueMailScanners.Create();
         var report = new StringBuilder("# BlueMail.Scanner vs ClamAV\n\n| File | Set | BlueMail | ClamAV |\n|---|---|---|---|\n");
         var disagreements = 0;
         foreach (var (path, (set, s)) in files.OrderBy(f => f.Key, StringComparer.Ordinal))

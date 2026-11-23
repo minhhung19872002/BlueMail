@@ -102,5 +102,12 @@
   "error.too_many_recipients": "Quá nhiều người nhận (tối đa 500).",
   "error.invalid_recipient": "Địa chỉ không hợp lệ: {address}",
   "error.attachment_missing": "Một tệp đính kèm không còn nữa. Hãy bỏ ra và đính kèm lại.",
-  "error.mailbox_gone": "Hộp thư của lần gửi này không còn tồn tại."
+  "error.mailbox_gone": "Hộp thư của lần gửi này không còn tồn tại.",
+  "error.spam_threshold_range": "Ngưỡng thư rác phải từ 1 đến 30.",
+  "error.reject_threshold_above_spam": "Ngưỡng từ chối phải cao hơn ngưỡng thư rác.",
+  "error.invalid_option": "Lựa chọn không hợp lệ.",
+  "error.phishing_address_not_internal": "Địa chỉ nhận báo cáo lừa đảo phải là hộp thư của tổ chức bạn.",
+  "error.list_not_found": "Không tìm thấy danh sách chặn.",
+  "error.quarantine_not_found": "Thư cách ly này không còn nữa.",
+  "error.quarantine_already_decided": "Một quản trị viên khác đã xử lý thư này."
 }

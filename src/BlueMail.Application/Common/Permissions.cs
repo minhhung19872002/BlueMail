@@ -11,9 +11,14 @@ public static class Permissions
     public const string AdminUsersView = "mail.admin.users.view";
     public const string AdminUsersEdit = "mail.admin.users.edit";
     public const string AdminAuditView = "mail.admin.audit.view";
+    public const string AdminQuarantineView = "mail.admin.quarantine.view";
+    public const string AdminQuarantineEdit = "mail.admin.quarantine.edit";
+    public const string AdminSpamEdit = "mail.admin.spam.edit";
 
     public static readonly IReadOnlyList<string> Platform = [PlatformTenantsView, PlatformTenantsEdit];
-    public static readonly IReadOnlyList<string> TenantAdmin = [AdminUsersView, AdminUsersEdit, AdminAuditView];
+
+    public static readonly IReadOnlyList<string> TenantAdmin =
+        [AdminUsersView, AdminUsersEdit, AdminAuditView, AdminQuarantineView, AdminQuarantineEdit, AdminSpamEdit];
 
     public static IReadOnlySet<string> For(bool isPlatformAdmin, bool isTenantAdmin)
     {

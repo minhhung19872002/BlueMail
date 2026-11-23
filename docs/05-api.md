@@ -66,6 +66,11 @@ answer `404` (indistinguishable from "does not exist").
 | GET | `/api/v1/admin/tenants` | `mail.platform.tenants.view` | All tenants (platform administrators) |
 | POST | `/api/v1/admin/tenants` | `mail.platform.tenants.edit` | Create tenant + primary domain + first tenant admin |
 | PUT | `/api/v1/admin/tenants/{id}/status` | `mail.platform.tenants.edit` | Suspend / reactivate a customer tenant |
+| POST | `/api/v1/mail/actions` `action: spam \| notSpam \| reportPhishing` | self | Moves the messages and teaches the user's and the tenant's Bayes model (once per message; changing one's mind moves the lesson). `reportPhishing` also delivers a copy (original attached) to the tenant's phishing report mailbox |
+| GET / PUT | `/api/v1/admin/spam/settings` | `mail.admin.spam.edit` | `{ spamThreshold (1–30), rejectThreshold (> spam), greylisting, suspiciousAttachments: SPAM \| QUARANTINE \| REJECT, phishingReportAddress (a mailbox of the tenant) }`; GET also lists block lists with licence notes |
+| PUT | `/api/v1/admin/spam/lists/{id}` | `mail.admin.spam.edit` | `{ enabled }` — turn a DNS block list on/off for the tenant (all off by default, docs/00 Z4) |
+| GET | `/api/v1/admin/quarantine?status=HELD\|RELEASED\|DELETED&page=&pageSize=` | `mail.admin.quarantine.view` | Held messages with reason, score and rule report |
+| POST / DELETE | `/api/v1/admin/quarantine/{id}/release`, `/api/v1/admin/quarantine/{id}` | `mail.admin.quarantine.edit` | Release to the recipients' Inbox (exactly once; 409 `quarantine_already_decided`) or discard; audited |
 
 ## BlueID (OIDC)
 

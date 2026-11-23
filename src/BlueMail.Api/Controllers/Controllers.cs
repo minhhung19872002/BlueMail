@@ -97,6 +97,61 @@ public sealed class MailController(ISender mediator) : ControllerBase
         ApiResponses.Ok(await mediator.Send(new GetChangesQuery(mailboxId, sinceModseq), ct));
 }
 
+[ApiController]
+[Route("api/v1/admin/spam")]
+public sealed class AdminSpamController(ISender mediator) : ControllerBase
+{
+    [HttpGet("settings")]
+    [RequirePermission(Permissions.AdminSpamEdit)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Antispam.SpamSettingsDto>> Settings(CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Antispam.GetSpamSettingsQuery(), ct));
+
+    [HttpPut("settings")]
+    [RequirePermission(Permissions.AdminSpamEdit)]
+    public async Task<ApiResponse<bool>> SaveSettings([FromBody] BlueMail.Application.Features.Antispam.SaveSpamSettingsCommand body, CancellationToken ct)
+    {
+        await mediator.Send(body, ct);
+        return ApiResponses.Ok(true);
+    }
+
+    public sealed record ToggleBody(bool Enabled);
+
+    [HttpPut("lists/{id:int}")]
+    [RequirePermission(Permissions.AdminSpamEdit)]
+    public async Task<ApiResponse<bool>> ToggleList(int id, [FromBody] ToggleBody body, CancellationToken ct)
+    {
+        await mediator.Send(new BlueMail.Application.Features.Antispam.ToggleDnsblCommand(id, body.Enabled), ct);
+        return ApiResponses.Ok(true);
+    }
+}
+
+[ApiController]
+[Route("api/v1/admin/quarantine")]
+public sealed class AdminQuarantineController(ISender mediator) : ControllerBase
+{
+    [HttpGet]
+    [RequirePermission(Permissions.AdminQuarantineView)]
+    public async Task<ApiResponse<Paged<BlueMail.Application.Features.Antispam.QuarantineItemDto>>> List([FromQuery] string? status, [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50, CancellationToken ct = default) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Antispam.ListQuarantineQuery(status, page, pageSize), ct));
+
+    [HttpPost("{id:guid}/release")]
+    [RequirePermission(Permissions.AdminQuarantineEdit)]
+    public async Task<ApiResponse<bool>> Release(Guid id, CancellationToken ct)
+    {
+        await mediator.Send(new BlueMail.Application.Features.Antispam.DecideQuarantineCommand(id, true), ct);
+        return ApiResponses.Ok(true);
+    }
+
+    [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.AdminQuarantineEdit)]
+    public async Task<ApiResponse<bool>> Delete(Guid id, CancellationToken ct)
+    {
+        await mediator.Send(new BlueMail.Application.Features.Antispam.DecideQuarantineCommand(id, false), ct);
+        return ApiResponses.Ok(true);
+    }
+}
+
 /// <summary>
 /// Content fetched by the browser without the bearer token (images in the sandboxed iframe, downloads).
 /// The signed token is the credential; access to the mailbox is re-checked when serving.

@@ -102,5 +102,12 @@
   "error.too_many_recipients": "Too many recipients (at most 500).",
   "error.invalid_recipient": "This address is not valid: {address}",
   "error.attachment_missing": "An attachment is no longer available. Remove it and attach it again.",
-  "error.mailbox_gone": "The mailbox of this send no longer exists."
+  "error.mailbox_gone": "The mailbox of this send no longer exists.",
+  "error.spam_threshold_range": "The spam threshold must be between 1 and 30.",
+  "error.reject_threshold_above_spam": "The reject threshold must be higher than the spam threshold.",
+  "error.invalid_option": "This option is not valid.",
+  "error.phishing_address_not_internal": "The phishing report address must be a mailbox of your organisation.",
+  "error.list_not_found": "Block list not found.",
+  "error.quarantine_not_found": "This held message no longer exists.",
+  "error.quarantine_already_decided": "Another administrator already decided about this message."
 }

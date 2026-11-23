@@ -32,7 +32,10 @@ builder.Services.AddControllers()
 builder.Services.Configure<ApiBehaviorOptions>(o =>
     o.InvalidModelStateResponseFactory = ctx => new ObjectResult(Problems.Build(ctx.HttpContext, HttpStatusCode.BadRequest, "bad_request"))
     { StatusCode = 400, ContentTypes = { "application/problem+json" } });
-builder.Services.AddSingleton<BlueMail.Scanner.IFileScanner>(new BlueMail.Scanner.BlueMailScanner());
+builder.Services.AddSingleton<BlueMail.Scanner.MalwareHashList>();
+builder.Services.AddSingleton<BlueMail.Scanner.PatternRuleScanner>();
+builder.Services.AddHostedService<BlueMail.Application.Scanning.ScannerFeeds>();
+builder.Services.AddSingleton<BlueMail.Scanner.IFileScanner>(sp => BlueMail.Scanner.BlueMailScanners.Create(sp.GetRequiredService<BlueMail.Scanner.MalwareHashList>(), sp.GetRequiredService<BlueMail.Scanner.PatternRuleScanner>()));
 builder.Services.AddSignalR().AddJsonProtocol(o => WebJson.Configure(o.PayloadSerializerOptions));
 builder.Services.AddHostedService<BlueMail.Api.Realtime.MailEventRelay>();
 builder.Services.AddEndpointsApiExplorer();

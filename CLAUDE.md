@@ -69,3 +69,10 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Start `dev-run.sh identity` and `api` one after the other: two `dotnet run` builds at once lock shared obj/ files.
 - Docker's embedded DNS answers PTR of container IPs with container names; ask CoreDNS (@10.77.0.53) in checks.
 - Dev keys in git are intentional (docs/00 D12).
+
+## Antispam (Phase 6)
+- `BlueMail.Antispam` (BCL only): Tokenizer, Bayes (Robinson-Fisher), `SpamRules.Score`. New rule code -> add en/vi text in
+  `web/src/i18n/locales` `spam.rule.<CODE>` (a unit test checks). DB side in `Application/Features/Antispam`; MX side `MxSpamFilter`.
+- After changing rules run `SpamQualityTests` (2-fold CV on `tests/BlueMail.SpamCorpus/corpus.jsonl`); false positives must stay 0.
+- Acceptance: `sh scripts/dev-phase6-check.sh` (rebuild mx first). Keep the phishing sample below the reject threshold (15).
+

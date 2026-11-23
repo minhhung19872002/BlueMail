@@ -77,6 +77,10 @@ public static class ApplicationServices
         services.AddScoped<Features.Sending.DraftService>();
         services.AddScoped<Features.Sending.SendService>();
         services.AddSingleton<Features.Sending.OutgoingDispatcher>();
+        services.AddScoped<Features.Antispam.BayesStore>();
+        services.AddScoped<Features.Antispam.SpamLearning>();
+        services.AddScoped<Features.Antispam.Greylisting>();
+        services.AddScoped<Features.Antispam.PhishingReports>();
         return services;
     }
 }

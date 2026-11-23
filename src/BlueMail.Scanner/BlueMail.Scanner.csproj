@@ -3,6 +3,9 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Data\builtin.rules" LogicalName="BlueMail.Scanner.Data.builtin.rules" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="BlueMail.UnitTests" />
     <InternalsVisibleTo Include="BlueMail.InteropTests" />
     <InternalsVisibleTo Include="BlueMail.FuzzTests" />

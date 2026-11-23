@@ -13,6 +13,7 @@ import { useMe, useUserFormat } from "../../session";
 import { act, getBody, getOriginal, getThread, mailKeys, trustImages, type MailAction } from "./mailApi";
 import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
 import { PdfPreview } from "./PdfPreview";
+import { SpamReasons } from "./SpamReasons";
 import { composeApi } from "../compose/composeApi";
 import { useCompose } from "../compose/composeStore";
 
@@ -72,6 +73,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
         <Tooltip title={t("mail.back")}><Button type="text" icon={<ArrowLeftOutlined className="bm-flip-rtl" />} aria-label={t("mail.back")} onClick={onClose} /></Tooltip>
         {systemKey === "INBOX" && <Tooltip title={t("mail.archive")}><Button type="text" icon={<InboxOutlined />} aria-label={t("mail.archive")} onClick={() => void run("archive")} /></Tooltip>}
         {systemKey !== "SPAM" && <Tooltip title={t("mail.reportSpam")}><Button type="text" icon={<ExclamationCircleOutlined />} aria-label={t("mail.reportSpam")} onClick={() => void run("spam")} /></Tooltip>}
+        {systemKey === "SPAM" && <Button type="text" onClick={() => void run("notSpam")}>{t("mail.notSpam")}</Button>}
         {systemKey !== "TRASH" && <Tooltip title={t("mail.delete")}><Button type="text" icon={<DeleteOutlined />} aria-label={t("mail.delete")} onClick={() => void run("trash")} /></Tooltip>}
         <Tooltip title={t("mail.markUnread")}><Button type="text" icon={<MailOutlined />} aria-label={t("mail.markUnread")} onClick={() => void run("markUnread")} /></Tooltip>
         <Tooltip title={t("mail.print")}><Button type="text" icon={<PrinterOutlined />} aria-label={t("mail.print")} onClick={() => window.print()} /></Tooltip>
@@ -80,8 +82,15 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
             { key: "mute", label: thread.data.muted ? t("mail.unmute") : t("mail.mute") },
             { key: "important", label: t("mail.important") },
             { key: "notImportant", label: t("mail.notImportant") },
+            { key: "reportPhishing", label: t("mail.reportPhishing"), danger: true },
           ],
-          onClick: ({ key }) => void run(key === "mute" ? (thread.data!.muted ? "unmute" : "mute") : (key as MailAction), key === "mute"),
+          onClick: ({ key }) => {
+            if (key === "reportPhishing") {
+              void run("reportPhishing").then(() => message.success(t("mail.phishingDone")));
+              return;
+            }
+            void run(key === "mute" ? (thread.data!.muted ? "unmute" : "mute") : (key as MailAction), key === "mute");
+          },
         }}>
           <Button type="text" icon={<MoreOutlined />} aria-label={t("mail.more")} />
         </Dropdown>
@@ -110,6 +119,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
           <MessageItem
             key={m.message.id}
             m={m}
+            inSpam={systemKey === "SPAM"}
             open={open}
             toggle={() => setExpanded((s) => { const n = new Set(s); if (n.has(m.message.id)) n.delete(m.message.id); else n.add(m.message.id); return n; })}
           />
@@ -119,7 +129,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
   );
 }
 
-function MessageItem({ m, open, toggle }: { m: ThreadMessage; open: boolean; toggle: () => void }) {
+function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: boolean; toggle: () => void; inSpam: boolean }) {
   const { t } = useTranslation();
   const me = useMe();
   const fmt = useUserFormat();
@@ -169,6 +179,7 @@ function MessageItem({ m, open, toggle }: { m: ThreadMessage; open: boolean; tog
         {t("mail.toLine", { to: [...msg.to, ...msg.cc].map((a) => a.name || a.address).join(", ") || "—" })}
       </Typography.Text>
 
+      <SpamReasons report={msg.spamReport} inSpam={inSpam} />
       {warnings.includes("dmarc") && <Alert className="bm-banner" type="error" showIcon icon={<WarningOutlined />} message={t("mail.warn.dmarc", { domain: fromDomain })} />}
       {!warnings.includes("dmarc") && warnings.length > 0 && <Alert className="bm-banner" type="warning" showIcon message={t("mail.warn.auth")} />}
       {imitated && <Alert className="bm-banner" type="error" showIcon message={t("mail.warn.lookalike", { domain: fromDomain, ours: imitated })} />}

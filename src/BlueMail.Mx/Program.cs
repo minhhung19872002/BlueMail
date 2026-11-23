@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using BlueMail.MailStore;
+using BlueMail.Application;
 using BlueMail.Dns;
 using BlueMail.Infrastructure;
 using BlueMail.Infrastructure.Configuration;
@@ -20,6 +21,9 @@ int Int(string name, int fallback) => int.TryParse(cfg[name], NumberStyles.None,
 builder.AddBlueMailLogging(settings, "mx");
 builder.Services.AddBlueMailInfrastructure(settings);
 builder.Services.AddBlueMailMailStore(); // not ApplicationCore: provisioning needs ASP.NET Identity (BUG-002)
+builder.Services.AddBlueMailSendingCore(); // Bayes store, greylisting
+builder.Services.AddScoped<BlueMail.Application.Features.Antispam.DnsblChecker>();
+builder.Services.AddScoped<MxSpamFilter>();
 builder.Services.AddSingleton(new MxOptions
 {
     Hostname = settings.MailHostname,
@@ -45,7 +49,10 @@ if (dnsServers.Count == 0)
 }
 
 builder.Services.AddSingleton(new DnsClient(new DnsClientOptions { Servers = dnsServers }));
-builder.Services.AddSingleton<IFileScanner>(new BlueMailScanner());
+builder.Services.AddSingleton<MalwareHashList>();
+builder.Services.AddSingleton<PatternRuleScanner>();
+builder.Services.AddHostedService<BlueMail.Application.Scanning.ScannerFeeds>();
+builder.Services.AddSingleton<IFileScanner>(sp => BlueMailScanners.Create(sp.GetRequiredService<MalwareHashList>(), sp.GetRequiredService<PatternRuleScanner>()));
 
 var smtpPort = Int("BM_MX_PORT", 25);
 var healthPort = Int("BM_HEALTH_PORT", 8080);

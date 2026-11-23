@@ -1,0 +1,48 @@
+# Built-in byte-pattern rules of BlueMail.Scanner (layer 8, PROMPT 2.6.4). Operators add their own rules in
+# BM_SCANNER_RULES_DIR (*.rules); a rule there with the same name replaces the built-in one.
+# Patterns that antivirus products look for are written in hex so that this file is not itself detected.
+
+# The EICAR anti-virus test file (https://www.eicar.org/download-anti-malware-testfile/): it must start at
+# offset 0 and the file may be followed by whitespace, at most 128 bytes in total.
+rule eicar_test_file : malicious
+  hex $e = 58 35 4F 21 50 25 40 41 50 5B 34 5C 50 5A 58 35 34 28 50 5E 29 37 43 43 29 37 7D 24 45 49 43 41 52 2D 53 54 41 4E 44 41 52 44 2D 41 4E 54 49 56 49 52 55 53 2D 54 45 53 54 2D 46 49 4C 45 21 24 48 2B 48 2A
+  when $e at 0 and filesize <= 128
+end
+
+# PowerShell started with an encoded or hidden command, a common first stage of mail-borne droppers.
+rule powershell_encoded_command : suspicious
+  text $ps = "powershell" nocase
+  text $enc = "-encodedcommand" nocase
+  text $e2 = " -enc " nocase
+  text $hidden = "-windowstyle hidden" nocase
+  when $ps and ($enc or $e2 or $hidden)
+end
+
+# Windows tools abused to download and run payloads ("living off the land").
+rule lolbin_downloader : suspicious
+  text $certutil = "certutil" nocase
+  text $urlcache = "-urlcache" nocase
+  text $mshta = "mshta http" nocase
+  text $bitsadmin = "bitsadmin /transfer" nocase
+  text $regsvr = "regsvr32 /s /n /u /i:http" nocase
+  when ($certutil and $urlcache) or $mshta or $bitsadmin or $regsvr
+end
+
+# Office macro that runs a shell command when the document opens.
+rule vba_autoexec_shell : malicious
+  text $open1 = "AutoOpen" nocase
+  text $open2 = "Document_Open" nocase
+  text $open3 = "Workbook_Open" nocase
+  text $shell1 = "WScript.Shell" nocase
+  text $shell2 = "Shell(" nocase
+  text $shell3 = "CreateObject(\"Shell.Application\")" nocase
+  when ($open1 or $open2 or $open3) and ($shell1 or $shell2 or $shell3)
+end
+
+# A Windows executable whose PE header sits right after a tiny DOS stub, inside a file that claims another type
+# is caught by layers 1-2; this rule catches PE images embedded at an offset inside documents.
+rule embedded_pe_image : suspicious
+  hex $mz = 4D 5A 90 00 03 00 00 00
+  text $pe = "This program cannot be run in DOS mode"
+  when $mz and $pe and not $mz at 0
+end

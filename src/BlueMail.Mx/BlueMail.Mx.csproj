@@ -4,6 +4,7 @@
     <ProjectReference Include="..\BlueMail.Protocols.Smtp\BlueMail.Protocols.Smtp.csproj" />
     <ProjectReference Include="..\BlueMail.Auth\BlueMail.Auth.csproj" />
     <ProjectReference Include="..\BlueMail.Scanner\BlueMail.Scanner.csproj" />
+    <ProjectReference Include="..\BlueMail.Antispam\BlueMail.Antispam.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="BlueMail.IntegrationTests" />

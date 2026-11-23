@@ -94,6 +94,11 @@ bằng văn bản với từng nhà cung cấp trước khi bán**:
 
 Mỗi nguồn có `license_note` trong CSDL; giao diện quản trị hiện ghi chú này cạnh công tắc.
 
+**Đã làm (Phase 6).** Bảng `spam.dnsbl_sources` có sẵn 6 nguồn (Spamhaus ZEN/DBL qua DQS, Barracuda, SpamCop, PSBL,
+SURBL), **tất cả tắt**. Tenant bật/tắt qua `PUT /api/v1/admin/spam/lists/{id}` (tạo bản riêng của tenant, không
+sửa dòng chung). Mỗi truy vấn tối đa 3 giây; danh sách chậm không bao giờ làm trễ thư. Trả lời 127.255.255.x
+(mã lỗi, ví dụ Spamhaus từ chối truy vấn) không tính là bị liệt kê.
+
 ## Z5. Ước lượng tải (ngưỡng cho phép thử tải)
 
 Giả định một máy 8 nhân / 16 GB phục vụ **2.000 hộp thư** doanh nghiệp:

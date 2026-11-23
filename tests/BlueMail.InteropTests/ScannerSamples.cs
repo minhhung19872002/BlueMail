@@ -240,6 +240,7 @@ public static class ScannerSamples
         new("files.rar", Rar5("Hồ sơ/install.msi"), ScanStatus.Malicious, ScanCodes.BlockedType),
         new("files.7z", SevenZipEncodedHeader(), ScanStatus.Suspicious, ScanCodes.ArchiveUnlistable),
         new("eicar.com", Ascii(Eicar), ScanStatus.Malicious, ScanCodes.BlockedType),
+        new("eicar.txt", Ascii(Eicar), ScanStatus.Malicious, ScanCodes.PatternRule), // byte-pattern rules (layer 8)
         new("image.png", Pdf("1 0 obj<</Type/Catalog>>endobj"), ScanStatus.Suspicious, ScanCodes.ExtensionMismatch),
     ];
 
@@ -259,6 +260,5 @@ public static class ScannerSamples
         new("archive.tar", Tar(("docs/readme.md", Ascii("# readme")), ("docs/data.csv", Ascii("a,b"))), ScanStatus.Clean),
         new("newsletter.html", Ascii("<!doctype html><html><body><h1>Tin tức</h1><p><a href=\"https://bluemail.test\">Đọc thêm</a></p></body></html>"), ScanStatus.Clean),
         new("report.doc", Cfb(false, "WordDocument", "SummaryInformation"), ScanStatus.Clean),
-        new("eicar.txt", Ascii(Eicar), ScanStatus.Clean), // caught only by byte-pattern rules (layer 8, Phase 6)
     ];
 }

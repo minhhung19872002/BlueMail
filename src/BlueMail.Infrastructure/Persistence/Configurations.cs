@@ -512,3 +512,89 @@ internal sealed class DestinationLimitConfig : IEntityTypeConfiguration<Destinat
             new DestinationLimit { Id = 5, DomainPattern = "*", MaxConnections = 10, MaxMessagesPerMinute = 600 });
     }
 }
+
+internal sealed class SpamSettingsConfig : IEntityTypeConfiguration<SpamSettings>
+{
+    public void Configure(EntityTypeBuilder<SpamSettings> b)
+    {
+        b.ToTable("settings", "spam");
+        b.HasKey(x => x.TenantId);
+        b.Property(x => x.PhishingReportAddress).HasMaxLength(320);
+    }
+}
+
+internal sealed class DnsblSourceConfig : IEntityTypeConfiguration<DnsblSource>
+{
+    public void Configure(EntityTypeBuilder<DnsblSource> b)
+    {
+        b.ToTable("dnsbl_sources", "spam");
+        b.Property(x => x.Name).HasMaxLength(100);
+        b.Property(x => x.Zone).HasMaxLength(253);
+        b.Property(x => x.LicenseNote).HasMaxLength(1000);
+        b.HasIndex(x => new { x.TenantId, x.Zone }).IsUnique().AreNullsDistinct(false);
+        // Known lists, all disabled: enabling one is an administrator's decision after checking its terms (docs/00 Z4).
+        b.HasData(
+            new DnsblSource { Id = 1, Name = "Spamhaus ZEN (DQS)", Zone = "zen.dq.spamhaus.net", Kind = ListKind.Ip, Score = 4.0, LicenseNote = "Commercial use requires a Spamhaus DQS subscription; the zone needs your DQS key prefix." },
+            new DnsblSource { Id = 2, Name = "Barracuda BRBL", Zone = "b.barracudacentral.org", Kind = ListKind.Ip, Score = 2.5, LicenseNote = "Free, requires registering the querying resolver; check terms for service providers." },
+            new DnsblSource { Id = 3, Name = "SpamCop", Zone = "bl.spamcop.net", Kind = ListKind.Ip, Score = 1.5, LicenseNote = "Free, use at own risk; higher false-positive rate." },
+            new DnsblSource { Id = 4, Name = "PSBL", Zone = "psbl.surriel.com", Kind = ListKind.Ip, Score = 1.0, LicenseNote = "Free." },
+            new DnsblSource { Id = 5, Name = "Spamhaus DBL (DQS)", Zone = "dbl.dq.spamhaus.net", Kind = ListKind.Domain, Score = 3.0, LicenseNote = "Commercial use requires a Spamhaus DQS subscription." },
+            new DnsblSource { Id = 6, Name = "SURBL", Zone = "multi.surbl.org", Kind = ListKind.Uri, Score = 3.0, LicenseNote = "Commercial use requires a licence above a small free threshold." });
+    }
+}
+
+internal sealed class BayesTokenConfig : IEntityTypeConfiguration<BayesToken>
+{
+    public void Configure(EntityTypeBuilder<BayesToken> b)
+    {
+        b.ToTable("bayes_tokens", "spam");
+        b.HasKey(x => new { x.Scope, x.ScopeId, x.Token });
+    }
+}
+
+internal sealed class BayesTotalConfig : IEntityTypeConfiguration<BayesTotal>
+{
+    public void Configure(EntityTypeBuilder<BayesTotal> b)
+    {
+        b.ToTable("bayes_totals", "spam");
+        b.HasKey(x => new { x.Scope, x.ScopeId });
+    }
+}
+
+internal sealed class SpamTrainingConfig : IEntityTypeConfiguration<SpamTraining>
+{
+    public void Configure(EntityTypeBuilder<SpamTraining> b)
+    {
+        b.ToTable("training", "spam");
+        b.HasKey(x => new { x.TenantId, x.UserId, x.MessageId });
+    }
+}
+
+internal sealed class GreylistConfig : IEntityTypeConfiguration<GreylistEntry>
+{
+    public void Configure(EntityTypeBuilder<GreylistEntry> b)
+    {
+        b.ToTable("greylist", "spam");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.IpNetwork).HasMaxLength(50);
+        b.Property(x => x.Sender).HasMaxLength(320);
+        b.Property(x => x.Recipient).HasMaxLength(320);
+        b.HasIndex(x => new { x.TenantId, x.IpNetwork, x.Sender, x.Recipient }).IsUnique();
+        b.HasIndex(x => x.FirstSeen);
+    }
+}
+
+internal sealed class QuarantineConfig : IEntityTypeConfiguration<QuarantinedMessage>
+{
+    public void Configure(EntityTypeBuilder<QuarantinedMessage> b)
+    {
+        b.ToTable("quarantine", "admin");
+        b.Property(x => x.EnvelopeFrom).HasMaxLength(320);
+        b.Property(x => x.Recipients).HasColumnType("jsonb");
+        b.Property(x => x.Subject).HasMaxLength(998);
+        b.Property(x => x.FromAddress).HasMaxLength(320);
+        b.Property(x => x.Reason).HasMaxLength(100);
+        b.Property(x => x.Report).HasColumnType("jsonb");
+        b.HasIndex(x => new { x.TenantId, x.Status, x.CreatedAt });
+    }
+}

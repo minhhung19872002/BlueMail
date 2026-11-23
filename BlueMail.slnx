@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/BlueMail.Antispam/BlueMail.Antispam.csproj" />
     <Project Path="src/BlueMail.Api/BlueMail.Api.csproj" />
     <Project Path="src/BlueMail.Application/BlueMail.Application.csproj" />
     <Project Path="src/BlueMail.Auth/BlueMail.Auth.csproj" />

@@ -40,7 +40,7 @@ export const getChanges = (since: number) => api.get<MailChanges>(`/api/v1/mail/
 
 export type MailAction =
   | "markRead" | "markUnread" | "star" | "unstar" | "important" | "notImportant" | "archive" | "moveToInbox"
-  | "trash" | "untrash" | "spam" | "notSpam" | "addLabel" | "removeLabel" | "moveTo" | "deleteForever" | "mute" | "unmute";
+  | "trash" | "untrash" | "spam" | "notSpam" | "addLabel" | "removeLabel" | "moveTo" | "deleteForever" | "mute" | "unmute" | "reportPhishing";
 
 export interface ActionRequest {
   action: MailAction;

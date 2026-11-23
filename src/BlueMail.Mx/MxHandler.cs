@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using BlueMail.Antispam;
 using BlueMail.Auth;
 using BlueMail.Dkim;
 using BlueMail.Dns;
@@ -96,6 +97,17 @@ public sealed class MxHandler(
             RecipientStatus.OverQuota => new SmtpReply(452, "4.2.2", "Mailbox full"),
             _ => SmtpReply.TemporaryFailure,
         };
+        if (reply is null && r.Status == RecipientStatus.Ok)
+        {
+            // Greylisting (optional per tenant, off by default): an unknown (network, sender, recipient) retries later.
+            var settings = await scope.ServiceProvider.GetRequiredService<MxSpamFilter>().SettingsAsync(r.TenantId, ct);
+            if (settings.Greylisting && !await scope.ServiceProvider.GetRequiredService<Application.Features.Antispam.Greylisting>()
+                    .PassAsync(r.TenantId, session.RemoteAddress, session.From?.Address ?? "", recipient.Address, ct))
+            {
+                reply = new SmtpReply(451, "4.7.1", "Greylisted, please try again in a few minutes");
+            }
+        }
+
         if (reply is null)
         {
             _recipients[recipient.Address] = r;
@@ -202,26 +214,86 @@ public sealed class MxHandler(
         var facts = MessageFacts.Extract(stored, final);
         final.Position = 0;
 
-        var toSpam = dmarc.Result == DmarcResult.Fail && dmarc.Disposition == DmarcPolicy.Quarantine
-                     || statuses.Values.Any(v => v == VirusStatus.Suspicious);
-        var labels = toSpam ? new[] { SystemLabels.Spam } : new[] { SystemLabels.Inbox, SystemLabels.CategoryPrimary };
         var authJson = JsonSerializer.Serialize(auth);
-        var reportJson = findings.Count == 0 ? null : JsonSerializer.Serialize(new { findings });
         var store = scope.ServiceProvider.GetRequiredService<PgMailStore>();
+        var filter = scope.ServiceProvider.GetRequiredService<MxSpamFilter>();
+        var htmlPart = parsed.Root.Walk().FirstOrDefault(p => p.IsLeaf && !p.IsAttachment && p.MediaType == "text/html");
+        string? html = null;
+        if (htmlPart is not null)
+        {
+            try
+            {
+                html = htmlPart.ReadText(message);
+            }
+            catch (Exception ex) when (ex is InvalidDataException or IOException or DecoderFallbackException)
+            {
+                html = null;
+            }
+        }
 
-        // Recipients that resolve to the same mailbox (alias + primary, group + member) get one copy.
+        var (links, images) = Application.Features.Antispam.SpamInputs.HtmlFacts(html);
+        var spamInput = new SpamInput
+        {
+            RemoteIp = MxSpamFilter.Normalize(session.RemoteAddress),
+            Helo = session.Helo,
+            ReverseDns = _ptr,
+            Spf = spf.AuthResultsValue,
+            Dkim = dkim.Select(d => (d.AuthResultsValue, d.Domain)).ToList(),
+            Dmarc = dmarc.AuthResultsValue,
+            DmarcPolicy = dmarc.Disposition.ToString().ToLowerInvariant(),
+            Arc = arc.AuthResultsValue,
+            FromAddress = parsed.From[0].Address,
+            FromName = parsed.From[0].Name,
+            ReplyTo = parsed.ReplyTo.FirstOrDefault()?.Address,
+            Subject = parsed.Subject,
+            Date = parsed.Date,
+            HasMessageId = parsed.MessageId is not null,
+            TextBody = facts.BodyText,
+            HtmlBody = html,
+            Images = images,
+            Links = links,
+            SuspiciousAttachmentCodes = findings.Where(x => x.Severity == ScanStatus.Suspicious).Select(x => x.Code).ToList(),
+            OurHostname = options.Hostname,
+        };
+
+        // Recipients that resolve to the same mailbox (alias + primary, group + member) get one copy; each mailbox
+        // gets its own verdict (the owner's Bayes model and reputation differ).
         var accepted = session.Recipients.Select(r => _recipients.GetValueOrDefault(r.Address)).Where(r => r is not null).Select(r => r!).ToList();
+        var plan = new List<(Guid Tenant, MailboxVerdict Verdict)>();
+        foreach (var tenant in accepted.GroupBy(r => r.TenantId))
+        {
+            var verdicts = await filter.ScoreAsync(tenant.Key, tenant.SelectMany(r => r.MailboxIds).Distinct().ToList(), spamInput, [.. findings.Cast<object>()], ct);
+            plan.AddRange(verdicts.Select(v => (tenant.Key, v)));
+        }
+
+        // Spam above the reject threshold for every recipient is refused in session (PROMPT 2.3): the sender learns
+        // it, nothing is stored. With mixed verdicts the message is accepted and the rejecting copies are quarantined.
+        if (plan.Count > 0 && plan.All(p => p.Verdict.Decision == SpamDecision.Reject))
+        {
+            var reject = new SmtpReply(550, "5.7.1", "Message rejected as spam");
+            await LogAllAsync(scope, session, msgId, message.Length, MailLogStatus.Rejected, reject, plan.Max(p => p.Verdict.Score),
+                new { auth, report = JsonDocument.Parse(plan[0].Verdict.ReportJson).RootElement }, ct);
+            return reject;
+        }
+
         try
         {
-            foreach (var tenant in accepted.GroupBy(r => r.TenantId))
+            foreach (var group in plan.GroupBy(p => (p.Tenant, Kind: p.Verdict.Decision is SpamDecision.Reject or SpamDecision.Quarantine)))
             {
-                var targets = tenant.SelectMany(r => r.MailboxIds).Distinct().Select(mb => new MailboxDelivery(mb, labels)).ToList();
-                if (targets.Count > 0)
+                if (group.Key.Kind)
                 {
-                    await store.DeliverAsync(new DeliveryRequest(tenant.Key, final, facts, targets, DateTimeOffset.UtcNow, authJson, null, reportJson, statuses), ct);
+                    await QuarantineAsync(scope, session, group.Key.Tenant, final, facts, group.Select(g => g.Verdict).ToList(), ct);
+                    final.Position = 0;
+                    continue;
                 }
 
-                final.Position = 0;
+                foreach (var v in group.Select(g => g.Verdict))
+                {
+                    var labels = v.Decision == SpamDecision.Spam ? new[] { SystemLabels.Spam } : new[] { SystemLabels.Inbox, SystemLabels.CategoryPrimary };
+                    await store.DeliverAsync(new DeliveryRequest(group.Key.Tenant, final, facts, [new MailboxDelivery(v.MailboxId, labels)], DateTimeOffset.UtcNow,
+                        authJson, v.Score, v.ReportJson, statuses), ct);
+                    final.Position = 0;
+                }
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -234,8 +306,47 @@ public sealed class MxHandler(
         }
 
         var ok = new SmtpReply(250, "2.0.0", "Message accepted for delivery");
-        await LogAllAsync(scope, session, msgId, final.Length, toSpam ? MailLogStatus.Quarantined : MailLogStatus.Delivered, ok, null, auth, ct);
+        foreach (var r in session.Recipients)
+        {
+            // One log line per recipient with that recipient's outcome.
+            var res = _recipients.GetValueOrDefault(r.Address);
+            var verdicts = plan.Where(p => res is not null && res.MailboxIds.Contains(p.Verdict.MailboxId)).Select(p => p.Verdict).ToList();
+            var status = verdicts.Any(v => v.Decision is SpamDecision.Reject or SpamDecision.Quarantine) ? MailLogStatus.Quarantined : MailLogStatus.Delivered;
+            await LogAsync(scope, session, res?.TenantId ?? Guid.Empty, r.Address, msgId, final.Length, status, ok, verdicts.Count == 0 ? null : verdicts.Max(v => v.Score),
+                new { auth, spam = verdicts.Select(v => v.Decision.ToString().ToUpperInvariant()) }, ct);
+        }
+
         return ok;
+    }
+
+    /// <summary>Held for the tenant's administrators (PROMPT 6.9, 7.6): the content goes to S3, the recipients wait.</summary>
+    private static async Task QuarantineAsync(IServiceScope scope, SmtpEnvelope session, Guid tenant, Stream content, MessageFacts facts,
+        IReadOnlyList<MailboxVerdict> verdicts, CancellationToken ct)
+    {
+        var blobs = scope.ServiceProvider.GetRequiredService<BlobStore>();
+        var db = scope.ServiceProvider.GetRequiredService<BlueMailDbContext>();
+        var sha = await BlobStore.HashAsync(content, ct);
+        if (!await blobs.ExistsAsync(tenant, sha, ct))
+        {
+            await blobs.PutAsync(tenant, sha, content, ct);
+        }
+
+        var top = verdicts.MaxBy(v => v.Score)!;
+        db.Quarantine.Add(new QuarantinedMessage
+        {
+            TenantId = tenant,
+            BlobSha256 = sha,
+            Size = content.Length,
+            EnvelopeFrom = session.From?.Address,
+            Recipients = JsonSerializer.Serialize(verdicts.Select(v => v.MailboxId)),
+            Subject = facts.Subject is { Length: > 998 } s ? s[..998] : facts.Subject,
+            FromAddress = facts.From?.Address,
+            Reason = top.Decision == SpamDecision.Reject ? "spam_score" : "suspicious_attachment",
+            SpamScore = top.Score,
+            Report = top.ReportJson,
+            Status = QuarantineStatus.Held,
+        });
+        await db.SaveChangesAsync(ct);
     }
 
     private string BuildReceived(SmtpEnvelope s)

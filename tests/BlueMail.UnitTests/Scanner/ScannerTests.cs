@@ -5,7 +5,8 @@ namespace BlueMail.UnitTests.Scanner;
 
 public class ScannerSampleTests
 {
-    private static readonly BlueMailScanner Scanner = new();
+    // The production scanner: layers 1-6, known hashes (7), pattern rules (8).
+    private static readonly IFileScanner Scanner = BlueMailScanners.Create();
 
     public static TheoryData<string> DangerousNames => new(ScannerSamples.Dangerous().Select(s => s.Name));
 
