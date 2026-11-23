@@ -25,6 +25,7 @@ internal sealed class FakeMx : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     public ConcurrentDictionary<string, Func<SmtpReply?>> Rcpt { get; } = new(StringComparer.OrdinalIgnoreCase);
     public ConcurrentBag<(string[] Rcpts, byte[] Data)> Received { get; } = [];
+    public ConcurrentBag<string> MailFrom { get; } = [];
 
     /// <summary>When set, the final reply to DATA/BDAT waits for it (to simulate a worker killed mid-transaction).</summary>
     public TaskCompletionSource? HoldFinalReply { get; set; }
@@ -66,7 +67,11 @@ internal sealed class FakeMx : IAsyncDisposable
     private sealed class Handler(FakeMx mx) : ISmtpHandler
     {
         public ValueTask<SmtpReply?> OnConnectAsync(SmtpEnvelope s, CancellationToken ct) => ValueTask.FromResult<SmtpReply?>(null);
-        public ValueTask<SmtpReply?> OnMailFromAsync(SmtpEnvelope s, SmtpPath f, CancellationToken ct) => ValueTask.FromResult<SmtpReply?>(null);
+        public ValueTask<SmtpReply?> OnMailFromAsync(SmtpEnvelope s, SmtpPath f, CancellationToken ct)
+        {
+            mx.MailFrom.Add(f.IsNull ? "" : f.Address);
+            return ValueTask.FromResult<SmtpReply?>(null);
+        }
 
         public ValueTask<SmtpReply?> OnRecipientAsync(SmtpEnvelope s, SmtpPath r, CancellationToken ct) =>
             ValueTask.FromResult(mx.Rcpt.TryGetValue(r.Address, out var f) ? f() : null);
@@ -227,8 +232,10 @@ public class SendingTests(StackFixture stack)
     private DeliveryWorker Worker(FakeMx mx, Func<DateTimeOffset> clock)
     {
         var dns = new DnsClient(new DnsClientOptions { Servers = [new IPEndPoint(IPAddress.Loopback, 9)], Timeout = TimeSpan.FromMilliseconds(200), Attempts = 1 });
-        return new DeliveryWorker(stack.Api.Services.GetRequiredService<IServiceScopeFactory>(), new MxResolver(dns), new MtaStsResolver(dns, new HttpClient()), dns,
-            new OutboundOptions { Helo = "out1.acme.test", Smarthost = "127.0.0.1:" + mx.Port, Clock = clock, Lease = TimeSpan.FromMinutes(15) },
+        var scopes = stack.Api.Services.GetRequiredService<IServiceScopeFactory>();
+        var options = new OutboundOptions { Helo = "out1.acme.test", Smarthost = "127.0.0.1:" + mx.Port, Clock = clock, Lease = TimeSpan.FromMinutes(15) };
+        return new DeliveryWorker(scopes, new MxResolver(dns), new MtaStsResolver(dns, new HttpClient()), dns, options,
+            new SendingIps(scopes, dns, options, NullLogger<SendingIps>.Instance), stack.Api.Services.GetRequiredService<Verp>(), new DnssecValidator(dns),
             NullLogger<DeliveryWorker>.Instance);
     }
 

@@ -8,7 +8,9 @@ The dev network (10.77.0.0/24) hosts three test domains:
 DKIM public keys are read from deploy/dev/dkim/<domain>.public.b64 (dev-only keys).
 Re-run this script whenever the keys or IP plan change.
 """
+import hashlib
 import pathlib
+import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DKIM_DIR = ROOT / "deploy" / "dev" / "dkim"
@@ -24,7 +26,7 @@ IP = {
     "web": "10.77.0.20",         # Caddy (web, API, mta-sts)
     "postfix": "10.77.0.30",     # doitac.test
 }
-SERIAL = "2026112301"
+SERIAL = "2026112302"
 DKIM_SELECTOR = {"bluemail.test": "bm2026", "acme.test": "bm2026", "doitac.test": "dt2026"}
 
 
@@ -86,7 +88,23 @@ def doitac_zone() -> str:
     # A domain with null MX (RFC 7505) and one without MX (implicit A fallback)
     z += "nullmx IN MX 0 .\n"
     z += f"nomx IN A {IP['postfix']}\n"
+    # DANE (Phase 12): the zone is DNSSEC-signed by CoreDNS (deploy/coredns/keys). mail.doitac.test publishes the
+    # real key of the Postfix certificate; dane-bad.doitac.test points at mail2 with a TLSA that matches nothing.
+    spki = spki_sha256(ROOT / "deploy" / "dev" / "postfix" / "tls" / "cert.pem")
+    wrong = spki[:-2] + ("00" if spki[-2:] != "00" else "01")
+    z += f"_25._tcp.mail IN TLSA 3 1 1 {spki}\n"
+    z += "dane-bad IN MX 10 mail2.doitac.test.\n"
+    z += f"mail2 IN A {IP['postfix']}\n"
+    z += f"_25._tcp.mail2 IN TLSA 3 1 1 {wrong}\n"
+    z += f"_smtp._tls IN TXT {txt('v=TLSRPTv1; rua=mailto:tlsrpt@doitac.test')}\n"
     return z
+
+
+def spki_sha256(cert: pathlib.Path) -> str:
+    """SHA-256 of the certificate's SubjectPublicKeyInfo, for TLSA 3 1 1 (DANE-EE, RFC 7671)."""
+    pem = subprocess.run(["openssl", "x509", "-in", str(cert), "-pubkey", "-noout"], check=True, capture_output=True).stdout
+    der = subprocess.run(["openssl", "pkey", "-pubin", "-outform", "der"], input=pem, check=True, capture_output=True).stdout
+    return hashlib.sha256(der).hexdigest()
 
 
 def reverse_zone() -> str:

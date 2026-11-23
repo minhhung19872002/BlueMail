@@ -52,7 +52,16 @@ builder.Services.AddSingleton(new OutboundOptions
     MaxParallelDomains = Int("BM_OUTBOUND_PARALLEL", 32),
     UseIpv6 = cfg["BM_OUTBOUND_IPV6"] == "true",
     Smarthost = string.IsNullOrWhiteSpace(cfg["BM_SMARTHOST"]) ? null : cfg["BM_SMARTHOST"],
+    Dane = cfg["BM_DANE"] != "off",
 });
+// Extra DNSSEC trust anchors (privately signed zones, e.g. the dev doitac.test): "zone keytag alg digesttype hex; ...".
+builder.Services.AddSingleton(sp => new DnssecValidator(sp.GetRequiredService<DnsClient>())
+{
+    ExtraAnchors = DnssecAnchors.Parse(cfg["BM_DNSSEC_ANCHORS"]),
+});
+builder.Services.AddSingleton<SendingIps>();
+builder.Services.AddHttpClient("tlsrpt", c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddSingleton<TlsReportSender>();
 builder.Services.AddSingleton<DeliveryWorker>();
 builder.Services.AddHostedService<OutboundLoop>();
 
@@ -65,10 +74,11 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c
 app.Run();
 
 /// <summary>Submits due sends, then delivers due queue entries; sleeps briefly only when there was nothing to do.</summary>
-internal sealed class OutboundLoop(OutgoingDispatcher dispatcher, DeliveryWorker worker, ILogger<OutboundLoop> log) : BackgroundService
+internal sealed class OutboundLoop(OutgoingDispatcher dispatcher, DeliveryWorker worker, TlsReportSender reports, ILogger<OutboundLoop> log) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var nextReports = DateTimeOffset.UtcNow.AddMinutes(1);
         while (!stoppingToken.IsCancellationRequested)
         {
             var busy = 0;
@@ -76,6 +86,11 @@ internal sealed class OutboundLoop(OutgoingDispatcher dispatcher, DeliveryWorker
             {
                 busy += await dispatcher.RunOnceAsync(stoppingToken);
                 busy += await worker.RunOnceAsync(stoppingToken);
+                if (DateTimeOffset.UtcNow >= nextReports)
+                {
+                    nextReports = DateTimeOffset.UtcNow.AddHours(1); // yesterday's TLS reports go out in the first hour of the day
+                    await reports.RunOnceAsync(stoppingToken);
+                }
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {

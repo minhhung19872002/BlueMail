@@ -24,6 +24,8 @@ export interface DraftState {
   replyToMessageId: string | null;
   mode: "new" | "reply" | "replyAll" | "forward";
   attachments: DraftAttachment[];
+  /** Confidential mode (Phase 12): outside recipients get a link that expires; optional mailed code. */
+  confidential?: { expiresDays: number; requireCode: boolean } | null;
 }
 
 export interface DraftDto {

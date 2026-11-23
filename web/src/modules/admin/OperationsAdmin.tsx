@@ -7,19 +7,22 @@ import { ApiError } from "../../api/client";
 import { dateTime } from "../../format";
 import { useCan, useUserFormat } from "../../session";
 import { AdminPermission, adminApi, type QueueItem, type TraceRow } from "./adminApi";
+import { SendingLocks } from "./SendingAdmin";
 
 /** Message trace, outbound queue, suppression list, sending health (PROMPT 7.5). */
 export function OperationsAdmin() {
   const { t } = useTranslation();
   const [view, setView] = useState("trace");
+  const canLocks = useCan(AdminPermission.UsersEdit);
   return (
     <Space direction="vertical" className="bm-full">
       <Segmented value={view} onChange={(v) => setView(String(v))}
-        options={["trace", "queue", "suppressions", "health"].map((v) => ({ value: v, label: t(`admin.ops.${v}`) }))} />
+        options={["trace", "queue", "suppressions", "health", ...(canLocks ? ["locks"] : [])].map((v) => ({ value: v, label: t(`admin.ops.${v}`) }))} />
       {view === "trace" && <Trace />}
       {view === "queue" && <Queue />}
       {view === "suppressions" && <Suppressions />}
       {view === "health" && <Health />}
+      {view === "locks" && <SendingLocks />}
     </Space>
   );
 }

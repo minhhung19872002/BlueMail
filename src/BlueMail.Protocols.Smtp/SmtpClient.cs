@@ -33,6 +33,12 @@ public sealed record SmtpClientOptions
     /// <summary>When TLS is required (MTA-STS enforce), the certificate must be valid for one of these names.</summary>
     public IReadOnlyList<string> ValidCertificateNames { get; init; } = [];
 
+    /// <summary>
+    /// DANE (RFC 7672): when set, TLS is required and this check replaces the PKIX one - the server certificate and
+    /// the chain it sent must match a TLSA record.
+    /// </summary>
+    public Func<X509Certificate2, IReadOnlyList<X509Certificate2>, bool>? CertificateCheck { get; init; }
+
     public IPAddress? LocalAddress { get; init; }
 }
 
@@ -161,8 +167,21 @@ public sealed class SmtpClient : IAsyncDisposable
 
         var required = _options.Tls == TlsRequirement.Required;
         var names = _options.ValidCertificateNames;
+        var dane = _options.CertificateCheck;
         var ssl = new SslStream(_stream, leaveInnerStreamOpen: false, (_, cert, chain, errors) =>
         {
+            if (dane is not null)
+            {
+                if (cert is null)
+                {
+                    return false;
+                }
+
+                var leaf = cert as X509Certificate2 ?? X509CertificateLoader.LoadCertificate(cert.GetRawCertData());
+                var sent = chain?.ChainElements.Select(e => e.Certificate).ToList() ?? [];
+                return dane(leaf, sent);
+            }
+
             if (!required)
             {
                 return true; // RFC 7435 opportunistic TLS: encrypt, do not authenticate

@@ -1,6 +1,6 @@
 $ORIGIN acme.test.
 $TTL 300
-@ IN SOA ns1.acme.test. hostmaster.acme.test. 2026112301 3600 600 86400 60
+@ IN SOA ns1.acme.test. hostmaster.acme.test. 2026112302 3600 600 86400 60
 @ IN NS ns1.acme.test.
 ns1 IN A 10.77.0.53
 @ IN MX 10 mx.bluemail.test.
@@ -8,7 +8,7 @@ ns1 IN A 10.77.0.53
 _dmarc IN TXT "v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@bluemail.test; adkim=r; aspf=r"
 bm2026._domainkey IN TXT "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnRWhK7OBQAo1SVsBNfHUGGuiD/NzQjoJvg7+/sDzxvjByQRWoAolGxmhBuUiyQf+O/4uD/Xc5gfJmuJ9W16n/6TYGCpkNpg9zsvSvRPRx12gCP9XOXX8ncYspCeHuDdJkLKGhC0Fa4YGXrHwcuf609BF/2BQFT1sowvqAIG7cqoPLjEzgiPr9L3Cbnr6" "6CMSTNiP9POIeIscXyRL4CzQ/QQqO9RHfMYVw/e/G9ZyMGaINJY7qstpRomLmrNmP/7WzlWSPx8bqyzgsIMnt/A4sPBqfZ04YKS5S1UJ8NsaS+jrddJ517btooqBOR5XDhCG/9FBdFG9U7gvKGTHQlkuJQIDAQAB"
 mta-sts IN A 10.77.0.20
-_mta-sts IN TXT "v=STSv1; id=2026112301"
+_mta-sts IN TXT "v=STSv1; id=2026112302"
 _smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:tlsrpt@bluemail.test"
 autoconfig IN A 10.77.0.20
 _imaps._tcp IN SRV 0 1 993 imap.bluemail.test.

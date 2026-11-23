@@ -731,7 +731,8 @@
       "reports": "Reports",
       "tenants": "Organisations",
       "compliance": "Compliance",
-      "migration": "Data migration"
+      "migration": "Data migration",
+      "sending": "Sending infrastructure"
     },
     "domains": {
       "add": "New domain, e.g. company.vn",
@@ -983,7 +984,8 @@
       "trace": "Message trace",
       "queue": "Outgoing queue",
       "suppressions": "Suppressed addresses",
-      "health": "Sending health"
+      "health": "Sending health",
+      "locks": "Paused senders"
     },
     "trace": {
       "sender": "Sender",
@@ -1121,6 +1123,59 @@
       "supportOpen": "Open the support session",
       "export": "Export all data",
       "exportHint": "Every mailbox, contacts and settings of the organisation as one ZIP (end of contract)."
+    },
+    "sending": {
+      "pools": "IP pools",
+      "addPool": "New pool",
+      "editPool": "Edit pool",
+      "poolName": "Name",
+      "poolKind": "Kind",
+      "poolsHelp": "Organisations send from the addresses of their pool (or the default pool). An address is used only when its PTR record names its HELO and resolves back to it. New addresses warm up: their daily limit rises over about six weeks.",
+      "kind": {
+        "TRIAL": "Trial",
+        "SHARED": "Shared",
+        "DEDICATED": "Dedicated"
+      },
+      "default": "Default",
+      "makeDefault": "Default pool for organisations without one",
+      "tenants": "{count, plural, one {# organisation} other {# organisations}}",
+      "addIp": "Add address",
+      "address": "Address",
+      "helo": "HELO name",
+      "heloHelp": "Must equal the PTR record of the address, and resolve back to it.",
+      "ptrPending": "Not checked yet",
+      "ptrOk": "Matches",
+      "ptrBad": "Does not match",
+      "warmup": "Warm-up",
+      "warm": "Warm (no daily limit)",
+      "warmupDay": "Day {day}: up to {cap} messages today",
+      "startWarmup": "Warm up this address",
+      "warmupHelp": "Recommended for a new address: about 50 messages the first day, more each day after.",
+      "sentToday": "Sent today",
+      "enabled": "In use",
+      "tls": "TLS of outgoing connections",
+      "tlsHelp": "Outcome of TLS per receiving domain and policy (MTA-STS, DANE or none). Domains that publish a TLS-RPT address get a daily report.",
+      "period": "Period",
+      "lastDays": "{count, plural, one {Last day} other {Last # days}}",
+      "domain": "Domain",
+      "policy": "Policy",
+      "ok": "Successful",
+      "failed": "Failed",
+      "failureTypes": "Failures"
+    },
+    "locks": {
+      "help": "Sending stops on its own for an account whose mail bounces or is reported as spam far more than normal - often a sign the account was taken over. Check the account (password, sessions, forwarding rules) before letting it send again.",
+      "none": "No account is paused.",
+      "user": "User",
+      "at": "Paused at",
+      "reason": "Reason",
+      "stats": "Last 24 hours",
+      "statsValue": "{sent} sent, {bounces} hard bounces, {complaints} complaints",
+      "r": {
+        "hard_bounce_rate": "Too many messages to addresses that do not exist",
+        "complaint_rate": "Too many spam complaints"
+      },
+      "unlock": "Allow sending"
     }
   },
   "support": {
@@ -1267,5 +1322,29 @@
     "createdTitle": "Your app password",
     "once": "It is shown only now. Type it in the mail program instead of your password.",
     "user": "User name"
+  },
+  "confidential": {
+    "title": "Confidential mode",
+    "explain": "People outside your organisation get a link to read the message on BlueMail instead of the message itself. You can withdraw access at any time. Readers can still copy or photograph what they see.",
+    "expiry": "Expires after",
+    "days": "{count, plural, one {# day} other {# days}}",
+    "requireCode": "Recipients need a code sent to their email",
+    "apply": "Use confidential mode",
+    "turnOff": "Turn off",
+    "on": "{count, plural, one {Confidential: link works # day} other {Confidential: link works # days}}",
+    "from": "From {from}",
+    "expires": "Available until {when}",
+    "noCopyProtection": "The sender shared this message through BlueMail confidential mode. Please do not copy or forward it; the page cannot stop screenshots.",
+    "codeNeeded": "To open it, get a code sent to {address}.",
+    "sendCode": "Send me a code",
+    "codeSent": "A code was sent to {address}.",
+    "code": "6-digit code",
+    "open": "Open the message",
+    "sentUntil": "Sent in confidential mode. People outside can open it until {when}.",
+    "revoked": "You withdrew access: people outside can no longer open this message.",
+    "openedBy": "Opened by: {list}",
+    "notOpened": "Nobody outside has opened it yet.",
+    "revoke": "Withdraw access",
+    "restore": "Restore access"
   }
 }

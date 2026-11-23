@@ -313,3 +313,25 @@ Chạy: `sh scripts/dev-phase11-check.sh` (Python imaplib/smtplib + imaptest), `
 | P11-09 | Ra ngoài | Thư nộp qua SMTP tới Postfix doitac.test | Tới nơi, `dkim=pass` ở bên nhận | Như mong đợi | ✅ |
 | P11-10 | Tự cấu hình | autoconfig, autodiscover | IMAP 993 / SMTP 465 SSL | Như mong đợi | ✅ |
 | P11-11 | Phần mềm thư thật | Thunderbird, Outlook, iPhone Mail đọc/gửi/xoá/gắn nhãn hai chiều với web | Đồng bộ hai chiều | **Chưa chạy** trên máy thật (cần máy có các phần mềm này); đã kiểm bằng imaplib/smtplib/imaptest | ⏳ |
+
+## Phase 12 — Gửi thư quy mô thật, DNSSEC/DANE, chế độ bảo mật
+
+Chuẩn bị: vùng `doitac.test` được CoreDNS ký (`deploy/coredns/keys`, tạo bằng `scripts/dev-gen-dnssec.py`), outbound tin
+nó qua `BM_DNSSEC_ANCHORS`; chạy lại `python scripts/dev-gen-zones.py` + `docker restart bluemail-dev-dns-1` khi đổi
+vùng. Chạy: `sh scripts/dev-phase12-check.sh`; `dotnet test tests/BlueMail.InteropTests --filter Dnssec` (cần Internet
+cho phần thật; `BM_OFFLINE=1` để bỏ qua); `dotnet test tests/BlueMail.IntegrationTests --filter DeliverabilityTests`.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P12-01 | DNSSEC khớp dnspython | 16 tên thật (ietf.org, isc.org, cloudflare.com, nic.cz, example.com, google.com, dnssec-failed.org…) | Cùng Secure/Insecure/Bogus | Khớp 16/16 (3 lần liên tiếp) | ✅ |
+| P12-02 | DNSSEC vùng dev | CoreDNS ký doitac.test; tên có, không có, kiểu không có; neo sai | Secure; neo sai → Bogus | Như mong đợi | ✅ |
+| P12-03 | DANE gửi thành công | Gửi tới an@doitac.test (TLSA 3 1 1 khớp khoá Postfix) | TLS bắt buộc, giao thành công, `tls_results` = tlsa thành công | Như mong đợi | ✅ |
+| P12-04 | DANE chặn | Gửi tới dane-bad.doitac.test (TLSA không khớp) | Không gửi văn bản trần; DEFERRED; `tlsa-invalid` | Như mong đợi | ✅ |
+| P12-05 | VERP | Xem `MAIL FROM` ở Postfix bên nhận | `bounces+<id>.<mac>@bluemail.test` | Như mong đợi | ✅ |
+| P12-06 | Trả lại muộn | DSN từ null sender tới địa chỉ VERP | Người nhận BOUNCED, chặn gửi, sự kiện ghi một lần, thư báo vào Hộp thư đến người gửi | Như mong đợi | ✅ |
+| P12-07 | ARF | Báo cáo `abuse` tới fbl@bluemail.test | Sự kiện COMPLAINT, địa chỉ bị chặn gửi | Như mong đợi | ✅ |
+| P12-08 | Tự khoá | 25 người nhận, 4 trả lại cứng trong 24 giờ | Khoá; gửi bị từ chối `sending_locked`; quản trị mở được | Như mong đợi | ✅ |
+| P12-09 | Làm ấm | IP duy nhất của dải đã chạm trần hôm nay | Thư chờ, không tính lần thử, thử lại sau 30 phút | Như mong đợi | ✅ |
+| P12-10 | TLS-RPT | Kết quả hôm qua của doitac.test | Báo cáo gzip JSON ký DKIM tới `rua`, đúng RFC 8460 (tên tệp, tiêu đề, trường) | Như mong đợi | ✅ |
+| P12-11 | Chế độ bảo mật | Gửi bảo mật có mã; mở bằng mã sai/đúng; gửi lại; thu hồi | Bên ngoài chỉ nhận liên kết; mã sai 403; gửi lại không trùng; thu hồi → 403; người khác không thu hồi được | Như mong đợi | ✅ |
+| P12-12 | IP thật, Gmail/Outlook thật | Gửi từ IP công khai có PTR tới Gmail, Outlook.com; đăng ký Postmaster/SNDS/JMRP | Vào Hộp thư đến, `dkim=pass spf=pass dmarc=pass` | **Chưa chạy**: cần IP công khai và tên miền thật | ⏳ |

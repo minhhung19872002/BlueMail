@@ -66,3 +66,10 @@ Mỗi RFC: phạm vi đã làm, chưa làm, bằng chứng kiểm thử. Cập n
 | RFC 4978 COMPRESS=DEFLATE | `BlueMail.Imap` | DEFLATE hai chiều sau OK | — | thủ công |
 | RFC 6409 / RFC 8314 SMTP nộp thư | `BlueMail.Submission` | 587 STARTTLS, 465 TLS ngầm định, MAIL trước AUTH bị từ chối, thêm Message-ID/Date, bỏ Bcc, chân thư bắt buộc | — | `imap_submission_checks.py`, `SmtpAuthTests` |
 | RFC 4954 SMTP AUTH, RFC 4616 PLAIN, RFC 7628 OAUTHBEARER | `Protocols.Smtp` | PLAIN, LOGIN, XOAUTH2, OAUTHBEARER (thử thách lỗi), 538/535/454 | — | `SmtpAuthTests` |
+
+| RFC 4033–4035, RFC 6840 DNSSEC (kiểm) | `BlueMail.Dns/Dnssec.cs` | Chuỗi tin cậy từ khoá gốc, RRSIG (8, 13, 14), DS (SHA-1/256/384), NSEC, ký tự đại diện, chuỗi CNAME | Thuật toán 15/16 (Ed25519/448 — không có trong BCL) coi là không an toàn | `DnssecLiveTests`, `DnssecDevZoneTests` |
+| RFC 5155 NSEC3 | `Dnssec.cs` | Băm, closest encloser, opt-out | Kiểm wildcard NSEC3 giản lược | Vector RFC 5155 phụ lục A; tên thật |
+| RFC 6698 / RFC 7671 / RFC 7672 DANE SMTP | `Dns/Dane.cs`, `Outbound/DeliveryWorker` | DANE-TA(2), DANE-EE(3), selector 0/1, matching 0/1/2; TLSA bogus → không gửi; DANE trước MTA-STS | PKIX-TA/EE bỏ qua (đúng RFC 7672) | `dev-phase12-check.sh`, `DeliverabilityTests` |
+| RFC 8460 SMTP TLS Reporting | `Outbound/TlsReports.cs` | Đếm theo ngày, báo cáo gzip JSON qua mailto (ký DKIM) / https | `policy-string` chưa ghi | `dev-phase12-check.sh` (báo cáo thật tới doitac.test) |
+| RFC 3464 DSN (nhận) / RFC 6522 | `Application/Features/Sending/Feedback.cs` | Trả lại muộn qua VERP | — | `DeliverabilityTests` (unit + integration) |
+| RFC 5965 ARF, RFC 6449 FBL | `Feedback.cs`, `MxHandler` | `abuse`/`fraud`/`virus` → chặn gửi, điểm lạm dụng | Không gửi ARF ra ngoài | `dev-phase12-check.sh` |

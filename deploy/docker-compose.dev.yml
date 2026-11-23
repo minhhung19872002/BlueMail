@@ -13,6 +13,7 @@ services:
     volumes:
       - ./coredns/Corefile:/etc/coredns/Corefile:ro
       - ./coredns/zones:/zones:ro
+      - ./coredns/keys:/keys:ro
     ports: ["127.0.0.1:${BM_DEV_DNS_PORT:-55353}:53/udp", "127.0.0.1:${BM_DEV_DNS_PORT:-55353}:53/tcp"]
     networks: { bmnet: { ipv4_address: 10.77.0.53 } }
     restart: unless-stopped
@@ -168,6 +169,8 @@ services:
       BM_S3_ENDPOINT: http://10.77.0.11:3900
       BM_DNS_SERVERS: 10.77.0.53
       BM_OUTBOUND_HELO: out1.bluemail.test
+      # Private DNSSEC anchor of the dev doitac.test zone (signed by CoreDNS) for DANE (scripts/dev-gen-dnssec.py).
+      BM_DNSSEC_ANCHORS: "doitac.test 61090 13 2 2C2F21A49C4FB05B0CE60C0D6688D2043E095B5C5EF3DAB36CD4A60A98CA5EAE"
       ASPNETCORE_ENVIRONMENT: Development
     depends_on: [postgres, valkey, s3, dns, mx]
     networks: { bmnet: { ipv4_address: 10.77.0.26 } }

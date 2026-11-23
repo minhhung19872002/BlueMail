@@ -23,6 +23,7 @@ import { ForwardingPage } from "./modules/settings/ForwardingPage";
 import { ContactsPage } from "./modules/contacts/ContactsPage";
 import { SettingsPage } from "./modules/settings/SettingsPage";
 import { AdminConsole } from "./modules/admin/AdminConsole";
+import { ConfidentialPage } from "./modules/mail/ConfidentialPage";
 
 // Vite may hand over the CommonJS build of antd/locale wrapped in { default } (seen: dialogs in English for vi).
 const unwrap = (m: Locale): Locale => (m as Locale & { default?: Locale }).default ?? m;
@@ -125,6 +126,7 @@ export function App() {
       <AntApp>
         <Routes>
           <Route path="/auth/callback" element={<Callback />} />
+          <Route path="/c/:token" element={<ConfidentialPage />} />
           <Route path="*" element={<AuthGate />} />
         </Routes>
       </AntApp>

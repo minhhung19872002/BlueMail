@@ -13,6 +13,10 @@ acme.test {
 }
 doitac.test {
     file /zones/doitac.test.db
+    # Signed on the fly with a dev key (scripts/dev-gen-dnssec.py); BlueMail.Outbound trusts it via BM_DNSSEC_ANCHORS.
+    dnssec {
+        key file /keys/Kdoitac.test.+013+61090
+    }
     log
     errors
 }

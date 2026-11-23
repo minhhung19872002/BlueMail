@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { App, Button, DatePicker, Dropdown, Input, Modal, Progress, Select, Space, Tag, Tooltip, Typography, type MenuProps } from "antd";
+import { App, Button, Checkbox, DatePicker, Dropdown, Input, Modal, Progress, Select, Space, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
-  CloseOutlined, DeleteOutlined, DownOutlined, ExpandAltOutlined, FileTextOutlined, MinusOutlined, PaperClipOutlined, ShrinkOutlined,
+  CloseOutlined, DeleteOutlined, DownOutlined, ExpandAltOutlined, FileTextOutlined, LockOutlined, MinusOutlined, PaperClipOutlined, ShrinkOutlined,
 } from "@ant-design/icons";
 import type { Editor } from "@tiptap/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import { bytes, dateTime } from "../../format";
 import { useMe, useUserFormat } from "../../session";
 import { useUi } from "../../store/ui";
 import { mailKeys } from "../mail/mailApi";
+import { confidentialDays } from "../mail/confidentialApi";
 import { scheduleSuggestions, sendWarnings, toEditorHtml, toStoredHtml, uploadIdsIn, type Recipient, type SendWarning } from "./compose";
 import { composeApi, emptyDraft, type DraftAttachment, type DraftState } from "./composeApi";
 import { MailEditor } from "./MailEditor";
@@ -384,6 +385,7 @@ export function ComposeWindow({ w }: { w: ComposeWindowState }) {
             }}>
               <Button type="text" icon={<FileTextOutlined />} aria-label={t("compose.templates")} />
             </Dropdown>
+            <ConfidentialButton value={state.confidential ?? null} onChange={(v) => patch({ confidential: v })} />
             <span className="bm-header-spacer" />
             {savedAt && <Typography.Text type="secondary" className="bm-saved">{t("compose.saved")}</Typography.Text>}
             <Tooltip title={t("compose.discard")}>
@@ -402,6 +404,36 @@ export function ComposeWindow({ w }: { w: ComposeWindowState }) {
         </>
       )}
     </div>
+  );
+}
+
+/** Confidential mode toggle (Phase 12): link lifetime and whether the recipient needs a code sent by mail. */
+function ConfidentialButton({ value, onChange }: { value: DraftState["confidential"] | null; onChange: (v: DraftState["confidential"] | null) => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [days, setDays] = useState(value?.expiresDays ?? 7);
+  const [code, setCode] = useState(value?.requireCode ?? false);
+  return (
+    <>
+      <Tooltip title={value ? t("confidential.on", { count: value.expiresDays }) : t("confidential.title")}>
+        <Button type={value ? "link" : "text"} icon={<LockOutlined />} aria-pressed={!!value} aria-label={t("confidential.title")} onClick={() => setOpen(true)} />
+      </Tooltip>
+      <Modal open={open} title={t("confidential.title")} onCancel={() => setOpen(false)}
+        footer={[
+          value && <Button key="off" onClick={() => { onChange(null); setOpen(false); }}>{t("confidential.turnOff")}</Button>,
+          <Button key="ok" type="primary" onClick={() => { onChange({ expiresDays: days, requireCode: code }); setOpen(false); }}>{t("confidential.apply")}</Button>,
+        ]}>
+        <Space direction="vertical">
+          <Typography.Paragraph type="secondary">{t("confidential.explain")}</Typography.Paragraph>
+          <label>
+            {t("confidential.expiry")}{" "}
+            <Select value={days} onChange={setDays} style={{ minWidth: 160 }}
+              options={confidentialDays.map((d) => ({ value: d, label: t("confidential.days", { count: d }) }))} />
+          </label>
+          <Checkbox checked={code} onChange={(e) => setCode(e.target.checked)}>{t("confidential.requireCode")}</Checkbox>
+        </Space>
+      </Modal>
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 $ORIGIN doitac.test.
 $TTL 300
-@ IN SOA ns1.doitac.test. hostmaster.doitac.test. 2026112301 3600 600 86400 60
+@ IN SOA ns1.doitac.test. hostmaster.doitac.test. 2026112302 3600 600 86400 60
 @ IN NS ns1.doitac.test.
 ns1 IN A 10.77.0.53
 @ IN MX 10 mail.doitac.test.
@@ -10,3 +10,8 @@ _dmarc IN TXT "v=DMARC1; p=reject; adkim=s; aspf=s"
 dt2026._domainkey IN TXT "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0MRwjA1BaSbAOpwrgHdbpw7sKoyABUF/O3N9g7xvCGF6vgHWz6qxK6+RWerO8/AlaLbuhq7P5yoISAoRuNNU7U4w8BT6+EHD4CFOM0DHq9mPhKhmo+dmRjIsBeSoM2yOvul+EDfse2kii28DGx3pzG8o2CADct5404ScT+mrjrOAyswkfCvl2BsES5Ui" "tOVmVoRsgbO4QplcTp/z/hD5A99H98Tna+Y28NRKza2uwnQttFwknnOQND66gC22p/inOqFkpvOgayGlVAXANwwkIH1WHhAs3uiYgpDGEwFur4kXO1DzmgvGj6LJUHeEGQD/Nv+kxYZweHOPfIY3+GVd/QIDAQAB"
 nullmx IN MX 0 .
 nomx IN A 10.77.0.30
+_25._tcp.mail IN TLSA 3 1 1 9929e141d81d2194074abd6f2822033b6e300cdb14841b578c77c3442f076d05
+dane-bad IN MX 10 mail2.doitac.test.
+mail2 IN A 10.77.0.30
+_25._tcp.mail2 IN TLSA 3 1 1 9929e141d81d2194074abd6f2822033b6e300cdb14841b578c77c3442f076d00
+_smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:tlsrpt@doitac.test"

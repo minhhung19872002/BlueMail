@@ -39,6 +39,11 @@ public class User : IdentityUser<Guid>, ITenantOwned, IAuditedEntity, ISoftDelet
     public Guid? OrgUnitId { get; set; }
     public bool ImapEnabled { get; set; } = true;
 
+    /// <summary>Sending stopped by the abuse self-lock (bounce/complaint rates, SenderReputation) until an admin lifts it.</summary>
+    public DateTimeOffset? SendingLockedAt { get; set; }
+
+    public string? SendingLockReason { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public Guid? CreatedBy { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

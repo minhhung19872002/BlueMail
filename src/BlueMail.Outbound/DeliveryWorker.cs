@@ -24,6 +24,9 @@ public sealed record OutboundOptions
     /// <summary>Relay everything through this host instead of MX (PROMPT 2.4 smarthost), "host:port".</summary>
     public string? Smarthost { get; init; }
 
+    /// <summary>DANE for SMTP (RFC 7672): validate DNSSEC and use TLSA records of MX hosts. Env BM_DANE (default on).</summary>
+    public bool Dane { get; init; } = true;
+
     /// <summary>Test hook: time source.</summary>
     public Func<DateTimeOffset> Clock { get; init; } = () => DateTimeOffset.UtcNow;
 }
@@ -41,6 +44,9 @@ public sealed class DeliveryWorker(
     MtaStsResolver sts,
     DnsClient dns,
     OutboundOptions options,
+    SendingIps sources,
+    Verp verp,
+    DnssecValidator dnssec,
     ILogger<DeliveryWorker> log)
 {
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _domainSlots = new(StringComparer.OrdinalIgnoreCase);
@@ -142,14 +148,33 @@ public sealed class DeliveryWorker(
             return;
         }
 
+        var source = await sources.ChooseAsync(msg.TenantId, ct);
+        if (source is null)
+        {
+            // Every address of the pool is at its warm-up cap (or unusable): not an attempt, try again later.
+            await db.OutboundRecipients.IgnoreQueryFilters().Where(r => rcpts.Select(x => x.Id).Contains(r.Id))
+                .ExecuteUpdateAsync(r => r.SetProperty(x => x.LockedUntil, (DateTimeOffset?)null).SetProperty(x => x.NextAttemptAt, options.Clock().AddMinutes(30)), ct);
+            return;
+        }
+
         var slot = _domainSlots.GetOrAdd(domain, _ => new SemaphoreSlim(Math.Max(1, limit.MaxConnections)));
         await slot.WaitAsync(ct);
         try
         {
             var raw = new MemoryStream();
             await sp.GetRequiredService<BlobStore>().ReadAsync(msg.TenantId, msg.BlobSha256, raw, ct: ct);
-            var results = await AttemptAsync(domain, msg, raw.ToArray(), rcpts.Select(r => r.Rcpt).ToList(), ct);
+            var results = await AttemptAsync(domain, msg, raw.ToArray(), rcpts.Select(r => r.Rcpt).ToList(), source, ct);
             await RecordAsync(sp, msg, rcpts.Select(r => (r, results[r.Rcpt])).ToList(), ct);
+            var handedOver = results.Values.Count(o => o.Status == RecipientDeliveryStatus.Delivered);
+            if (source.Id is { } ipId && handedOver > 0)
+            {
+                await sources.CountAsync(ipId, handedOver, ct);
+            }
+
+            if (msg.SenderUserId is { } sender && results.Values.Any(o => o.Suppress))
+            {
+                await sp.GetRequiredService<SenderReputation>().EvaluateAsync(msg.TenantId, sender, ct);
+            }
         }
         finally
         {
@@ -164,13 +189,15 @@ public sealed class DeliveryWorker(
     }
 
     /// <summary>Tries the MX hosts in order until one gives a definite answer for the recipients.</summary>
-    private async Task<Dictionary<string, Outcome>> AttemptAsync(string domain, OutboundMessage msg, byte[] content, List<string> rcpts, CancellationToken ct)
+    private async Task<Dictionary<string, Outcome>> AttemptAsync(string domain, OutboundMessage msg, byte[] content, List<string> rcpts, SourceIp source,
+        CancellationToken ct)
     {
         Dictionary<string, Outcome> All(Outcome o) => rcpts.ToDictionary(r => r, _ => o, StringComparer.OrdinalIgnoreCase);
 
         IReadOnlyList<MxHost> hosts;
         int port = options.SmtpPort;
         StsPolicy? policy = null;
+        var mxSecure = false;
         if (options.Smarthost is { } smart)
         {
             var colon = smart.LastIndexOf(':');
@@ -194,6 +221,19 @@ public sealed class DeliveryWorker(
             }
 
             hosts = route.Hosts;
+            if (options.Dane)
+            {
+                var signedMx = await dnssec.ResolveAsync(domain, DnsType.MX, ct);
+                if (signedMx.Status == DnssecStatus.Bogus)
+                {
+                    // RFC 7672 2.2.1: a bogus MX answer is a lookup failure - wait, never fall back to an unauthenticated answer.
+                    await TlsResultAsync(domain, "tlsa", "", "", source, TlsFailures.DnssecInvalid, ct);
+                    return All(Outcome.Deferred("451 4.7.5 DNSSEC validation failed for the MX of " + domain + ": " + signedMx.Reason, null, null, null));
+                }
+
+                mxSecure = signedMx.Status == DnssecStatus.Secure;
+            }
+
             policy = await sts.GetAsync(domain, ct);
             if (policy is { Mode: StsMode.Enforce })
             {
@@ -229,9 +269,22 @@ public sealed class DeliveryWorker(
                 }
             }
 
+            DanePolicy? dane = null;
+            if (options.Dane && options.Smarthost is null && ips.Count > 0)
+            {
+                dane = await Dns.Dane.PolicyAsync(dnssec, host.Host, port, mxSecure, ct);
+                if (dane.State == DaneState.Unavailable)
+                {
+                    // RFC 7672 2.2.1: TLSA lookup failed - this host cannot be used now, the next one may be.
+                    await TlsResultAsync(domain, "tlsa", host.Host, "", source, TlsFailures.DnssecInvalid, ct);
+                    last = All(Outcome.Deferred("451 4.7.5 TLSA lookup failed for " + host.Host + ": " + dane.Reason, host.Host, null, null));
+                    continue;
+                }
+            }
+
             foreach (var ip in ips.Take(3))
             {
-                var r = await TryHostAsync(host.Host, ip, port, msg, content, rcpts, policy, ct);
+                var r = await TryHostAsync(domain, host.Host, ip, port, msg, content, rcpts, policy, dane, source, ct);
                 if (r.Definite)
                 {
                     return r.Results;
@@ -246,22 +299,30 @@ public sealed class DeliveryWorker(
 
     private sealed record HostAttempt(bool Definite, Dictionary<string, Outcome> Results);
 
-    private async Task<HostAttempt> TryHostAsync(string host, IPAddress ip, int port, OutboundMessage msg, byte[] content, List<string> rcpts, StsPolicy? policy,
-        CancellationToken ct)
+    private async Task<HostAttempt> TryHostAsync(string domain, string host, IPAddress ip, int port, OutboundMessage msg, byte[] content, List<string> rcpts,
+        StsPolicy? policy, DanePolicy? dane, SourceIp source, CancellationToken ct)
     {
-        var tlsRequired = policy is { Mode: StsMode.Enforce };
+        // DANE takes precedence over MTA-STS (RFC 8461 2).
+        var useDane = dane is { State: DaneState.Required };
+        var stsRequired = !useDane && policy is { Mode: StsMode.Enforce };
+        var policyType = useDane ? "tlsa" : policy is not null ? "sts" : "no-policy-found";
         await using var client = new SmtpClient(new SmtpClientOptions
         {
-            Helo = options.Helo,
-            Tls = tlsRequired ? TlsRequirement.Required : TlsRequirement.Opportunistic,
-            ValidCertificateNames = tlsRequired ? [host] : [],
+            Helo = source.Helo,
+            LocalAddress = source.Address,
+            Tls = useDane || stsRequired ? TlsRequirement.Required : TlsRequirement.Opportunistic,
+            ValidCertificateNames = stsRequired ? [host] : [],
+            CertificateCheck = useDane ? (leaf, chain) => Dns.Dane.Matches(dane!, host, leaf, chain) : null,
         });
         var mxName = host;
         var ipText = ip.ToString();
+        var greeted = false;
         try
         {
             await client.ConnectAsync(host, ip, port, ct);
-            var (perRcpt, final) = await client.SendAsync(msg.EnvelopeFrom, rcpts, content, msg.SmtpUtf8, msg.EightBit, ct);
+            greeted = true;
+            await TlsResultAsync(domain, policyType, host, ipText, source, client.TlsActive ? null : TlsFailures.StartTlsNotSupported, ct);
+            var (perRcpt, final) = await client.SendAsync(ReturnPath(msg), rcpts, content, msg.SmtpUtf8, msg.EightBit, ct);
             await client.QuitAsync(ct);
             var results = new Dictionary<string, Outcome>(StringComparer.OrdinalIgnoreCase);
             foreach (var r in perRcpt)
@@ -294,6 +355,15 @@ public sealed class DeliveryWorker(
         }
         catch (SmtpClientException e)
         {
+            if (!greeted && e.Response is null && e.Message.Contains("TLS", StringComparison.Ordinal))
+            {
+                // The connection stopped at TLS: what the policy required was not met (RFC 8460 4.3).
+                var failure = e.Message.Contains("STARTTLS", StringComparison.Ordinal) ? TlsFailures.StartTlsNotSupported
+                    : useDane ? TlsFailures.TlsaInvalid
+                    : TlsFailures.ValidationFailure;
+                await TlsResultAsync(domain, policyType, host, ipText, source, failure, ct);
+            }
+
             var text = e.Response?.ToString() ?? "451 4.4.2 " + e.Message;
             var outcome = e.Transient || e.Response is { IsPermanent: false }
                 ? Outcome.Deferred(text, mxName, ipText, client.TlsActive)
@@ -307,6 +377,31 @@ public sealed class DeliveryWorker(
             // A permanent answer to the whole transaction is definite; connection problems try the next host.
             return new HostAttempt(outcome.Status == RecipientDeliveryStatus.Bounced, rcpts.ToDictionary(r => r, _ => outcome, StringComparer.OrdinalIgnoreCase));
         }
+    }
+
+    /// <summary>MAIL FROM: a VERP address for our users' mail (late bounces find the message); SRS and null senders unchanged.</summary>
+    private string ReturnPath(OutboundMessage msg)
+    {
+        if (msg.IsNotification || string.IsNullOrEmpty(msg.EnvelopeFrom) || Application.Features.Rules.Srs.IsSrs(msg.EnvelopeFrom) || msg.SenderUserId is null)
+        {
+            return msg.EnvelopeFrom;
+        }
+
+        return verp.Encode(msg.Id, msg.EnvelopeFrom[(msg.EnvelopeFrom.LastIndexOf('@') + 1)..]);
+    }
+
+    /// <summary>One TLS outcome for SMTP TLS reporting (RFC 8460), counted per day, domain, policy, MX and addresses.</summary>
+    private async Task TlsResultAsync(string domain, string policyType, string mx, string receivingIp, SourceIp source, string? failure, CancellationToken ct)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BlueMailDbContext>();
+        var day = DateOnly.FromDateTime(options.Clock().UtcDateTime);
+        var sending = source.Address?.ToString() ?? "";
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO mta.tls_results (day, policy_domain, policy_type, mx_host, receiving_ip, sending_ip, failure_type, count)
+            VALUES ({day}, {domain.ToLowerInvariant()}, {policyType}, {mx.ToLowerInvariant()}, {receivingIp}, {sending}, {failure}, 1)
+            ON CONFLICT (day, policy_domain, policy_type, mx_host, receiving_ip, sending_ip, failure_type) DO UPDATE SET count = mta.tls_results.count + 1
+            """, ct);
     }
 
     private async Task RecordAsync(IServiceProvider sp, OutboundMessage msg, List<(Claimed Rcpt, Outcome Outcome)> outcomes, CancellationToken ct)

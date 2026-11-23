@@ -114,3 +114,11 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - IMAP session code: `src/BlueMail.Imap/ImapSession*.cs`; store queries `MailStore/ImapStore.cs`; writes only through
   `ApplyAsync`/`DeliverAsync`. After IMAP changes run `sh scripts/dev-phase11-check.sh` (imaptest must stay 0/460).
 - SMTP AUTH lives in `SmtpServerSession` (pending SASL line state); MX passes no Authenticate and offers no AUTH.
+
+## Sending at scale (Phase 12)
+- DNSSEC: `BlueMail.Dns/Dnssec.cs` (validator), `Dane.cs`; outbound uses them unless `BM_DANE=off`. Dev zone doitac.test is
+  signed by CoreDNS (`deploy/coredns/keys`, anchor in compose `BM_DNSSEC_ANCHORS`); keep `tests/interop/dnssec_check.py` agreeing.
+- VERP/feedback: `Application/Features/Sending/Feedback.cs` (Verp, ReportParser, FeedbackProcessor, SenderReputation); MX accepts
+  VERP addresses and `BM_FEEDBACK_ADDRESS` (default fbl@<platform>). IP pools/warm-up: `Outbound/SendingIps.cs`, `WarmupSchedule`.
+- Confidential mode: `ConfidentialService` + `web/src/modules/mail/ConfidentialPage.tsx` (public route `/c/:token`).
+- Acceptance: `sh scripts/dev-phase12-check.sh` (rebuild mx/outbound/submission first). Build the whole slnx before `docker compose build`.

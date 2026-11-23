@@ -60,6 +60,11 @@ public sealed class RawSubmission(IServiceProvider sp, BlueMailDbContext db, PgM
             return new SubmissionReply(554, "5.7.1", "Sending is suspended for this organisation");
         }
 
+        if (await sp.GetRequiredService<SenderReputation>().IsLockedAsync(login.UserId, ct))
+        {
+            return new SubmissionReply(550, "5.7.1", "Sending from this account is paused (too many bounces or complaints); ask your administrator");
+        }
+
         // Tenant policies (PROMPT 7.4): message size, blocked file types.
         var unit = await policies.OrgUnitOfAsync(login.UserId, ct);
         var maxMb = await policies.IntAsync(login.TenantId, unit, PolicyKeys.MaxMessageSizeMb, ct);

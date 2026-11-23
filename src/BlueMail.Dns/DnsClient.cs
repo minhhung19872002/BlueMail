@@ -217,10 +217,10 @@ public sealed class DnsClient(DnsClientOptions options)
         return new DnsResult(DnsStatus.TempFail, [], name, false);
     }
 
-    private async Task<DnsMessage?> ExchangeAsync(IPEndPoint server, string name, DnsType type, CancellationToken ct)
+    private async Task<DnsMessage?> ExchangeAsync(IPEndPoint server, string name, DnsType type, CancellationToken ct, bool dnssec = false)
     {
         var id = (ushort)RandomNumberGenerator.GetInt32(0, 65536);
-        var query = DnsWire.EncodeQuery(id, name, type, options.UdpPayloadSize, dnssecOk: false);
+        var query = DnsWire.EncodeQuery(id, name, type, options.UdpPayloadSize, dnssecOk: dnssec, checkingDisabled: dnssec);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(options.Timeout);
         try
@@ -250,7 +250,7 @@ public sealed class DnsClient(DnsClientOptions options)
                     continue;
                 }
 
-                return msg.Truncated ? await TcpExchangeAsync(server, name, type, timeout.Token) : msg;
+                return msg.Truncated ? await TcpExchangeAsync(server, name, type, timeout.Token, dnssec) : msg;
             }
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -259,10 +259,10 @@ public sealed class DnsClient(DnsClientOptions options)
         }
     }
 
-    private static async Task<DnsMessage?> TcpExchangeAsync(IPEndPoint server, string name, DnsType type, CancellationToken ct)
+    private static async Task<DnsMessage?> TcpExchangeAsync(IPEndPoint server, string name, DnsType type, CancellationToken ct, bool dnssec = false)
     {
         var id = (ushort)RandomNumberGenerator.GetInt32(0, 65536);
-        var query = DnsWire.EncodeQuery(id, name, type, 65535, dnssecOk: false);
+        var query = DnsWire.EncodeQuery(id, name, type, 65535, dnssecOk: dnssec, checkingDisabled: dnssec);
         using var tcp = new TcpClient(server.AddressFamily);
         await tcp.ConnectAsync(server, ct);
         await using var stream = tcp.GetStream();
@@ -277,6 +277,35 @@ public sealed class DnsClient(DnsClientOptions options)
         await stream.ReadExactlyAsync(body, ct);
         var msg = DnsWire.Decode(body);
         return Matches(msg, id, name, type) ? msg : null;
+    }
+
+    /// <summary>
+    /// The whole response with DNSSEC records (DO and CD set: signatures included, validation is ours - see
+    /// <see cref="DnssecValidator"/>). Not cached. Null when no server answered usefully.
+    /// </summary>
+    public async Task<DnsMessage?> QueryDnssecAsync(string name, DnsType type, CancellationToken ct = default)
+    {
+        var qname = Normalize(name);
+        for (var attempt = 0; attempt < options.Attempts; attempt++)
+        {
+            foreach (var server in options.Servers)
+            {
+                try
+                {
+                    var msg = await ExchangeAsync(server, qname, type, ct, dnssec: true);
+                    if (msg is { RCode: DnsRCode.NoError or DnsRCode.NxDomain })
+                    {
+                        return msg;
+                    }
+                }
+                catch (Exception ex) when (ex is SocketException or DnsFormatException or TimeoutException or IOException)
+                {
+                    // next server / attempt
+                }
+            }
+        }
+
+        return null;
     }
 
     private static bool Matches(DnsMessage msg, ushort id, string name, DnsType type) =>

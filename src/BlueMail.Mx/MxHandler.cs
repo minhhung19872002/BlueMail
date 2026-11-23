@@ -28,6 +28,9 @@ public sealed record MxOptions
 
     public long MaxMessageBytes { get; init; } = 50L * 1024 * 1024;
     public int MaxRecipients { get; init; } = 100;
+
+    /// <summary>Address registered with mailbox providers' feedback loops (ARF complaints, RFC 6449); env BM_FEEDBACK_ADDRESS.</summary>
+    public string? FeedbackAddress { get; init; }
 }
 
 /// <summary>
@@ -47,6 +50,9 @@ public sealed class MxHandler(
 
     /// <summary>Bounces to our SRS addresses (rcpt -> original sender, tenant), relayed back (PROMPT 6.8).</summary>
     private readonly Dictionary<string, (string Original, Guid Tenant)> _srsBounces = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Late bounces / complaints: VERP return paths (-> queued message) and the feedback-loop address (null).</summary>
+    private readonly Dictionary<string, Guid?> _feedback = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Per-recipient size limit from the tenant policy (checked again on the real size after DATA).</summary>
     private readonly Dictionary<string, long> _maxBytes = new(StringComparer.OrdinalIgnoreCase);
@@ -83,6 +89,7 @@ public sealed class MxHandler(
     {
         _recipients.Clear();
         _srsBounces.Clear();
+        _feedback.Clear();
         _maxBytes.Clear();
         _moderated.Clear();
         var spf = new SpfEvaluator(new DnsClientSpfDns(dns));
@@ -99,6 +106,25 @@ public sealed class MxHandler(
     public async ValueTask<SmtpReply?> OnRecipientAsync(SmtpEnvelope session, SmtpPath recipient, CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
+        if (options.FeedbackAddress is { } fbl && recipient.Address.Equals(fbl, StringComparison.OrdinalIgnoreCase))
+        {
+            _feedback[recipient.Address] = null;
+            return null;
+        }
+
+        if (Application.Features.Sending.Verp.IsVerp(recipient.Address))
+        {
+            // Return path of our outgoing mail: only addresses we made (valid MAC) are accepted.
+            var queued = scope.ServiceProvider.GetRequiredService<Application.Features.Sending.Verp>().Decode(recipient.Address);
+            if (queued is not null)
+            {
+                _feedback[recipient.Address] = queued;
+                return null;
+            }
+
+            return new SmtpReply(550, "5.1.1", "No such user here");
+        }
+
         var resolver = scope.ServiceProvider.GetRequiredService<RecipientResolver>();
         var r = await resolver.ResolveAsync(recipient.Address, session.DeclaredSize ?? 0, ct);
         if (r.Status == RecipientStatus.Unknown && Application.Features.Rules.Srs.IsSrs(recipient.Address))
@@ -198,6 +224,26 @@ public sealed class MxHandler(
             var bad = new SmtpReply(554, "5.6.0", "Message could not be parsed");
             await LogAllAsync(scope, session, null, message.Length, MailLogStatus.Rejected, bad, null, new { error = ex.Message }, ct);
             return bad;
+        }
+
+        if (_feedback.Count > 0)
+        {
+            // Bounces and complaints about our own outgoing mail (PROMPT 2.4): recorded, not stored as ordinary mail.
+            message.Position = 0;
+            var report = new byte[message.Length];
+            await message.ReadExactlyAsync(report, ct);
+            var processor = scope.ServiceProvider.GetRequiredService<Application.Features.Sending.FeedbackProcessor>();
+            foreach (var queued in _feedback.Values.Distinct())
+            {
+                await processor.HandleAsync(report, queued, ct);
+            }
+
+            if (session.Recipients.All(rc => _feedback.ContainsKey(rc.Address)))
+            {
+                var reportAccepted = new SmtpReply(250, "2.0.0", "Report received");
+                await LogAllAsync(scope, session, null, message.Length, MailLogStatus.Delivered, reportAccepted, null, new { feedback = _feedback.Count }, ct);
+                return reportAccepted;
+            }
         }
 
         var keys = new DnsDkimKeyResolver(dns);

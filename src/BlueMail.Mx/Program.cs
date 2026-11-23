@@ -29,6 +29,9 @@ builder.Services.AddSingleton(new MxOptions
     Hostname = settings.MailHostname,
     MaxMessageBytes = Int("BM_MAX_MESSAGE_MB", 50) * 1024L * 1024,
     MaxRecipients = Int("BM_MAX_RECIPIENTS", 100),
+    FeedbackAddress = Environment.GetEnvironmentVariable("BM_FEEDBACK_ADDRESS") is { Length: > 0 } fbl
+        ? fbl
+        : "fbl@" + settings.MailHostname[(settings.MailHostname.IndexOf('.') + 1)..],
 });
 builder.Services.AddSingleton(new MxListenerOptions
 {

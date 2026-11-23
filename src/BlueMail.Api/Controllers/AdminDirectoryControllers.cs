@@ -174,6 +174,18 @@ public sealed class AdminOperationsController(ISender mediator) : ControllerBase
         return ApiResponses.Ok(true);
     }
 
+    [HttpGet("sending-locks")]
+    [RequirePermission(Permissions.AdminUsersEdit)]
+    public async Task<ApiResponse<IReadOnlyList<SendingLockDto>>> SendingLocks(CancellationToken ct) => ApiResponses.Ok(await mediator.Send(new ListSendingLocksQuery(), ct));
+
+    [HttpDelete("sending-locks/{userId:guid}")]
+    [RequirePermission(Permissions.AdminUsersEdit)]
+    public async Task<ApiResponse<bool>> Unlock(Guid userId, CancellationToken ct)
+    {
+        await mediator.Send(new UnlockSendingCommand(userId), ct);
+        return ApiResponses.Ok(true);
+    }
+
     [HttpGet("health")]
     [RequirePermission(Permissions.AdminReportsView)]
     public async Task<ApiResponse<SendingHealthDto>> Health([FromQuery] int days = 7, CancellationToken ct = default) =>
@@ -217,8 +229,41 @@ public sealed class PlatformTenantsController(ISender mediator) : ControllerBase
 
     public sealed record SupportBody(Guid UserId, string Reason);
 
+    [HttpPut("{id:guid}/ip-pool")]
+    [RequirePermission(Permissions.PlatformTenantsEdit)]
+    public async Task<ApiResponse<bool>> Pool(Guid id, [FromBody] PoolBody body, CancellationToken ct)
+    {
+        await mediator.Send(new AssignTenantPoolCommand(id, body.PoolId), ct);
+        return ApiResponses.Ok(true);
+    }
+
+    public sealed record PoolBody(Guid? PoolId);
+
     [HttpPost("{id:guid}/support-signin")]
     [RequirePermission(Permissions.PlatformTenantsEdit)]
     public async Task<ApiResponse<string>> Support(Guid id, [FromBody] SupportBody body, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new StartSupportSignInCommand(id, body.UserId, body.Reason), ct));
+}
+
+/// <summary>Sending infrastructure of the platform (PROMPT 2.4): IP pools, warm-up, TLS reports.</summary>
+[ApiController]
+[Route("api/v1/admin/platform")]
+public sealed class PlatformSendingController(ISender mediator) : ControllerBase
+{
+    [HttpGet("ip-pools")]
+    [RequirePermission(Permissions.PlatformTenantsView)]
+    public async Task<ApiResponse<IReadOnlyList<IpPoolDto>>> Pools(CancellationToken ct) => ApiResponses.Ok(await mediator.Send(new ListIpPoolsQuery(), ct));
+
+    [HttpPost("ip-pools")]
+    [RequirePermission(Permissions.PlatformTenantsEdit)]
+    public async Task<ApiResponse<Guid>> SavePool([FromBody] SaveIpPoolCommand body, CancellationToken ct) => ApiResponses.Ok(await mediator.Send(body, ct));
+
+    [HttpPost("sending-ips")]
+    [RequirePermission(Permissions.PlatformTenantsEdit)]
+    public async Task<ApiResponse<int>> SaveIp([FromBody] SaveSendingIpCommand body, CancellationToken ct) => ApiResponses.Ok(await mediator.Send(body, ct));
+
+    [HttpGet("tls-reports")]
+    [RequirePermission(Permissions.PlatformTenantsView)]
+    public async Task<ApiResponse<IReadOnlyList<TlsSummaryDto>>> Tls([FromQuery] int days = 7, CancellationToken ct = default) =>
+        ApiResponses.Ok(await mediator.Send(new TlsSummaryQuery(days), ct));
 }

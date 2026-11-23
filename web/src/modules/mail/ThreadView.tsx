@@ -20,6 +20,7 @@ import { SpamReasons } from "./SpamReasons";
 import { rulesApi } from "../settings/rulesApi";
 import { composeApi } from "../compose/composeApi";
 import { useCompose } from "../compose/composeStore";
+import { confidentialApi } from "./confidentialApi";
 
 interface Props {
   threadId: string;
@@ -274,6 +275,7 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
           )}
         </div>
       )}
+      {sender && msg.rfcMessageId && sender.toLowerCase() === me.email.toLowerCase() && <ConfidentialBanner rfcMessageId={msg.rfcMessageId} />}
       <ReplyBar messageId={msg.id} />
       {original && <OriginalModal id={msg.id} onClose={() => setOriginal(false)} />}
     </Card>
@@ -284,7 +286,7 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
  * The sanitized document (server: HtmlSanitizer) passes DOMPurify again, then goes into an iframe sandbox without
  * allow-scripts and allow-same-origin (PROMPT 6.3). Links may open new tabs, isolated from BlueMail.
  */
-function MessageFrame({ html, title }: { html: string; title: string }) {
+export function MessageFrame({ html, title }: { html: string; title: string }) {
   const doc = useMemo(() => {
     const parsed = new DOMParser().parseFromString(html, "text/html");
     const meta = [...parsed.head.querySelectorAll("meta, style")].map((e) => e.outerHTML).join("");
@@ -319,6 +321,24 @@ function ReplyBar({ messageId }: { messageId: string }) {
 }
 
 /** In "Scheduled": when it will go, and a way to stop it (it goes back to Drafts and opens in the editor). */
+/** A confidential message I sent (Phase 12): until when it can be opened, who opened it, withdraw or restore access. */
+function ConfidentialBanner({ rfcMessageId }: { rfcMessageId: string }) {
+  const { t } = useTranslation();
+  const fmt = useUserFormat();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["confidential-status", rfcMessageId], queryFn: () => confidentialApi.status(rfcMessageId) });
+  if (!q.data) return null;
+  const s = q.data;
+  const opened = s.recipients.filter((r) => r.opens > 0).map((r) => r.address);
+  const toggle = () => void confidentialApi.setRevoked(s.id, !s.revokedAt).then(() => qc.invalidateQueries({ queryKey: ["confidential-status", rfcMessageId] }));
+  return (
+    <Alert className="bm-banner" type={s.revokedAt ? "warning" : "info"} showIcon
+      message={s.revokedAt ? t("confidential.revoked") : t("confidential.sentUntil", { when: dateTime(s.expiresAt, fmt) })}
+      description={opened.length > 0 ? t("confidential.openedBy", { list: opened.join(", ") }) : t("confidential.notOpened")}
+      action={<Button size="small" onClick={toggle}>{s.revokedAt ? t("confidential.restore") : t("confidential.revoke")}</Button>} />
+  );
+}
+
 function ScheduledBanner({ messageId }: { messageId: string }) {
   const { t } = useTranslation();
   const fmt = useUserFormat();

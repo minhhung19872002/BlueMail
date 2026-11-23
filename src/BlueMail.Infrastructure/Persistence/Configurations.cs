@@ -514,6 +514,99 @@ internal sealed class DestinationLimitConfig : IEntityTypeConfiguration<Destinat
     }
 }
 
+internal sealed class IpPoolConfig : IEntityTypeConfiguration<IpPool>
+{
+    public void Configure(EntityTypeBuilder<IpPool> b)
+    {
+        b.ToTable("ip_pools", "mta");
+        b.Property(x => x.Name).HasMaxLength(100);
+        b.Property(x => x.Kind).HasMaxLength(20);
+        b.HasIndex(x => x.Name).IsUnique();
+        b.HasIndex(x => x.IsDefault).IsUnique().HasFilter("is_default");
+    }
+}
+
+internal sealed class SendingIpConfig : IEntityTypeConfiguration<SendingIp>
+{
+    public void Configure(EntityTypeBuilder<SendingIp> b)
+    {
+        b.ToTable("sending_ips", "mta");
+        b.Property(x => x.Address).HasMaxLength(45);
+        b.Property(x => x.Helo).HasMaxLength(253);
+        b.HasIndex(x => x.Address).IsUnique();
+        b.HasOne<IpPool>().WithMany().HasForeignKey(x => x.PoolId);
+    }
+}
+
+internal sealed class SendingIpDayConfig : IEntityTypeConfiguration<SendingIpDay>
+{
+    public void Configure(EntityTypeBuilder<SendingIpDay> b)
+    {
+        b.ToTable("sending_ip_days", "mta");
+        b.HasKey(x => new { x.SendingIpId, x.Day });
+        b.HasOne<SendingIp>().WithMany().HasForeignKey(x => x.SendingIpId);
+    }
+}
+
+internal sealed class FeedbackEventConfig : IEntityTypeConfiguration<FeedbackEvent>
+{
+    public void Configure(EntityTypeBuilder<FeedbackEvent> b)
+    {
+        b.ToTable("feedback_events", "mta");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.Kind).HasMaxLength(20);
+        b.Property(x => x.Rcpt).HasMaxLength(320);
+        b.Property(x => x.Status).HasMaxLength(20);
+        b.Property(x => x.Detail).HasMaxLength(1000);
+        b.Property(x => x.ReporterDomain).HasMaxLength(253);
+        b.HasIndex(x => new { x.SenderUserId, x.ReceivedAt });
+        b.HasIndex(x => new { x.OutboundMessageId, x.Rcpt, x.Kind }).IsUnique();
+    }
+}
+
+internal sealed class TlsResultConfig : IEntityTypeConfiguration<TlsResult>
+{
+    public void Configure(EntityTypeBuilder<TlsResult> b)
+    {
+        b.ToTable("tls_results", "mta");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.PolicyDomain).HasMaxLength(253);
+        b.Property(x => x.PolicyType).HasMaxLength(20);
+        b.Property(x => x.MxHost).HasMaxLength(253);
+        b.Property(x => x.ReceivingIp).HasMaxLength(45);
+        b.Property(x => x.SendingIp).HasMaxLength(45);
+        b.Property(x => x.FailureType).HasMaxLength(60);
+        b.HasIndex(x => new { x.Day, x.PolicyDomain, x.PolicyType, x.MxHost, x.ReceivingIp, x.SendingIp, x.FailureType }).IsUnique().AreNullsDistinct(false);
+    }
+}
+
+internal sealed class ConfidentialMessageConfig : IEntityTypeConfiguration<ConfidentialMessage>
+{
+    public void Configure(EntityTypeBuilder<ConfidentialMessage> b)
+    {
+        b.ToTable("confidential_messages", "mail");
+        b.Property(x => x.RfcMessageId).HasMaxLength(998);
+        b.Property(x => x.Subject).HasMaxLength(998);
+        b.Property(x => x.FromAddress).HasMaxLength(320);
+        b.HasIndex(x => new { x.TenantId, x.RfcMessageId }).IsUnique().HasFilter("deleted_at IS NULL");
+        b.HasIndex(x => x.ExpiresAt);
+    }
+}
+
+internal sealed class ConfidentialRecipientConfig : IEntityTypeConfiguration<ConfidentialRecipient>
+{
+    public void Configure(EntityTypeBuilder<ConfidentialRecipient> b)
+    {
+        b.ToTable("confidential_recipients", "mail");
+        b.Property(x => x.Address).HasMaxLength(320);
+        b.Property(x => x.TokenHash).HasMaxLength(64);
+        b.Property(x => x.CodeHash).HasMaxLength(64);
+        b.HasIndex(x => x.TokenHash).IsUnique();
+        b.HasIndex(x => new { x.ConfidentialMessageId, x.Address }).IsUnique().HasFilter("deleted_at IS NULL");
+        b.HasOne<ConfidentialMessage>().WithMany().HasForeignKey(x => x.ConfidentialMessageId);
+    }
+}
+
 internal sealed class SpamSettingsConfig : IEntityTypeConfiguration<SpamSettings>
 {
     public void Configure(EntityTypeBuilder<SpamSettings> b)

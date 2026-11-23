@@ -86,6 +86,11 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
             throw new ComposeException("tenant_suspended"); // a suspended tenant stops sending (PROMPT 7.1)
         }
 
+        if (await sp.GetRequiredService<SenderReputation>().IsLockedAsync(o.UserId, ct))
+        {
+            throw new ComposeException("sending_locked"); // abuse self-lock (PROMPT 2.4)
+        }
+
         var draft = await db.Drafts.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(d => d.Id == o.DraftId, ct) ?? throw new ComposeException("draft_not_found");
         var state = JsonSerializer.Deserialize<DraftState>(draft.State, DraftState.Json)!;
         if (!await senders.MayUseAsync(access, o.FromAddress, ct))
@@ -174,7 +179,14 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
         }
 
         // 3. Outbound queue: DKIM-signed with the From domain's key, one row per external recipient, once per send.
-        if (external.Count > 0 && !await db.OutboundMessages.IgnoreQueryFilters().AnyAsync(m => m.OutgoingId == o.Id, ct))
+        if (external.Count > 0 && state.Confidential is { } confidential)
+        {
+            // Confidential mode: outside recipients get a personal link to the message instead of the message.
+            var senderName = await db.Users.IgnoreQueryFilters().Where(u => u.Id == o.UserId).Select(u => u.DisplayName).FirstOrDefaultAsync(ct);
+            await sp.GetRequiredService<ConfidentialService>().SendLinksAsync(o, confidential, state.Subject, forRecipients, external, senderName,
+                await LocaleAsync(db, o.UserId, ct), ct);
+        }
+        else if (external.Count > 0 && !await db.OutboundMessages.IgnoreQueryFilters().AnyAsync(m => m.OutgoingId == o.Id, ct))
         {
             // Mandatory footer for mail leaving the organisation (policy outbound_footer, PROMPT 7.4); internal copies stay as written.
             var policies = sp.GetRequiredService<BlueMail.Application.Features.Admin.Policies.PolicyService>();

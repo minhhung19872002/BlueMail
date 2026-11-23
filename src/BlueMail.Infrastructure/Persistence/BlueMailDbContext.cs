@@ -62,6 +62,13 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<OutboundRecipient> OutboundRecipients => Set<OutboundRecipient>();
     public DbSet<Suppression> Suppressions => Set<Suppression>();
     public DbSet<DestinationLimit> DestinationLimits => Set<DestinationLimit>();
+    public DbSet<IpPool> IpPools => Set<IpPool>();
+    public DbSet<SendingIp> SendingIps => Set<SendingIp>();
+    public DbSet<SendingIpDay> SendingIpDays => Set<SendingIpDay>();
+    public DbSet<FeedbackEvent> FeedbackEvents => Set<FeedbackEvent>();
+    public DbSet<TlsResult> TlsResults => Set<TlsResult>();
+    public DbSet<ConfidentialMessage> ConfidentialMessages => Set<ConfidentialMessage>();
+    public DbSet<ConfidentialRecipient> ConfidentialRecipients => Set<ConfidentialRecipient>();
     public DbSet<SpamSettings> SpamSettings => Set<SpamSettings>();
     public DbSet<DnsblSource> DnsblSources => Set<DnsblSource>();
     public DbSet<BayesToken> BayesTokens => Set<BayesToken>();

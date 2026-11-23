@@ -356,3 +356,39 @@ IMAP và SMTP nộp thư chỉ nhận mật khẩu sau TLS. Mật khẩu tài kh
 BlueID (kiểm chữ ký, issuer, audience, rồi `ISessionValidator` như web). Dò mật khẩu: 10 lần sai/tài khoản, 30 lần/IP trong 15 phút
 thì khoá tạm, không kiểm tiếp (không làm "máy hỏi mật khẩu"). Thu hồi mật khẩu ứng dụng, khoá tài khoản, đổi mật khẩu → kênh
 Valkey `bm:invalidate-user` → kết nối IMAP đang mở của người đó bị đóng ngay.
+
+## D26. DNSSEC tự kiểm, DANE trước MTA-STS, gốc không có DNSSEC thì "không xác định"
+
+`BlueMail.Dns.DnssecValidator` hỏi máy phân giải với DO+CD (lấy chữ ký, không để máy phân giải lọc) và tự dựng chuỗi tin
+cậy từ khoá gốc KSK-2017/KSK-2024 (DS SHA-256 nhúng trong mã) qua DS → DNSKEY; chữ ký thuật toán 8, 13, 14 bằng
+`System.Security.Cryptography`; NSEC/NSEC3 chứng minh không tồn tại (kể cả opt-out). Vùng chỉ ký bằng thuật toán khác
+= không an toàn (RFC 4035 §5.2). Một bản ghi NSEC có NS mà kèm A/TXT… (kiểu "black lies" của CoreDNS, Cloudflare)
+**không** phải điểm uỷ quyền (BUG-061). Nếu máy phân giải không trả DNSKEY của gốc thì kết quả là `Indeterminate`
+("không có DNSSEC"), không phải `Bogus`: trên mạng không có DNSSEC, gửi thư vẫn chạy như trước khi có DANE, log ghi rõ.
+Sai chữ ký thật → `Bogus` → không gửi tới MX đó (RFC 7672 §2.2.1). DANE dùng DANE-TA/DANE-EE, bỏ qua PKIX-*; có DANE thì
+không xét MTA-STS (RFC 8461 §2). Vùng ký riêng (dev `doitac.test`) tin qua `BM_DNSSEC_ANCHORS`. Kiểm chứng: cùng kết quả
+với bộ kiểm dựng trên dnspython (`tests/interop/dnssec_check.py`) trên 16 tên thật và vùng dev do CoreDNS ký.
+
+## D27. VERP, thư trả lại muộn, ARF và tự khoá gửi
+
+`MAIL FROM` thư của người dùng = `bounces+<id hàng đợi>.<12 hex HMAC>@<tên miền người gửi>` (khoá dẫn xuất từ khoá chủ,
+khác khoá SRS): SPF vẫn căn chỉnh DMARC vì cùng tên miền, MX chỉ nhận VERP có mã kiểm đúng (không thành chỗ chuyển tiếp
+mở). Thư hệ thống (DSN, chuyển tiếp SRS) giữ địa chỉ cũ. Báo cáo trả lại muộn / ARF được xử lý trong MX (không lưu như
+thư thường); mỗi (thư, người nhận, loại) ghi một lần (ràng buộc duy nhất). Ngưỡng tự khoá (24 giờ, ≥ 20 người nhận:
+trả lại cứng > 10 %, hoặc ≥ 3 khiếu nại và > 0,3 %) là mức các nhà cung cấp lớn coi là lạm dụng; khoá ở cột
+`identity.users.sending_locked_at`, chỉ quản trị viên tổ chức mở, có nhật ký kiểm toán.
+
+## D28. Dải IP, làm ấm, PTR
+
+Dải IP là hạ tầng nền tảng (không có `tenant_id`, như `mta.destination_limits`); tổ chức trỏ tới dải qua
+`tenants.ip_pool_id`. Trần làm ấm theo ngày UTC, đếm số người nhận đã giao (`mta.sending_ip_days`, upsert cộng dồn).
+Thư bị giữ vì trần không tính là một lần thử (không bao giờ dẫn tới DSN). IP chỉ được dùng khi PTR = HELO và HELO trỏ lại
+IP (kiểm mỗi giờ). Không có dải áp dụng cho tổ chức → địa chỉ của máy (BUG-062).
+
+## D29. Chế độ bảo mật
+
+Chỉ người nhận ngoài hệ thống nhận liên kết; người trong hệ thống nhận thư (đã ở trong cùng kho, cùng chính sách giữ
+thư). Mã liên kết = HMAC(khoá, id thư + địa chỉ) nên gửi lại sau sự cố tạo đúng liên kết cũ và không xếp hàng thêm
+(chống trùng bằng Message-ID của thư báo); chỉ lưu SHA-256 của mã. Nội dung là bản đã soạn (blob mã hoá của tenant),
+hiển thị qua cùng bộ lọc HTML như khi đọc thư, ảnh ngoài luôn chặn. Mã 6 số: 10 phút, 5 lần sai, 1 mã/phút. Không
+có DRM: trang nói rõ không ngăn được chụp màn hình.

@@ -1,6 +1,6 @@
 $ORIGIN 0.77.10.in-addr.arpa.
 $TTL 300
-@ IN SOA ns1.bluemail.test. hostmaster.bluemail.test. 2026112301 3600 600 86400 60
+@ IN SOA ns1.bluemail.test. hostmaster.bluemail.test. 2026112302 3600 600 86400 60
 @ IN NS ns1.bluemail.test.
 25 IN PTR mx.bluemail.test.
 26 IN PTR out1.bluemail.test.

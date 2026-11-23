@@ -35,6 +35,9 @@ public sealed record DraftState
     public string Mode { get; init; } = "new";
     public IReadOnlyList<DraftAttachment> Attachments { get; init; } = [];
 
+    /// <summary>Confidential mode (Phase 12): outside recipients get a link instead of the message.</summary>
+    public DraftConfidential? Confidential { get; init; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public IEnumerable<DraftAddress> AllRecipients => To.Concat(Cc).Concat(Bcc);

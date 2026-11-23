@@ -1598,6 +1598,14 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("security_stamp");
 
+                    b.Property<string>("SendingLockReason")
+                        .HasColumnType("text")
+                        .HasColumnName("sending_lock_reason");
+
+                    b.Property<DateTimeOffset?>("SendingLockedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sending_locked_at");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2127,6 +2135,183 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.ConfidentialMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<byte[]>("BlobSha256")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("blob_sha256");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("FromAddress")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("from_address");
+
+                    b.Property<bool>("RequireCode")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_code");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("RfcMessageId")
+                        .IsRequired()
+                        .HasMaxLength(998)
+                        .HasColumnType("character varying(998)")
+                        .HasColumnName("rfc_message_id");
+
+                    b.Property<Guid>("SenderUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sender_user_id");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(998)
+                        .HasColumnType("character varying(998)")
+                        .HasColumnName("subject");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_confidential_messages");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_confidential_messages_expires_at");
+
+                    b.HasIndex("TenantId", "RfcMessageId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_confidential_messages_tenant_id_rfc_message_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("confidential_messages", "mail");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.ConfidentialRecipient", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("address");
+
+                    b.Property<int>("CodeAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("code_attempts");
+
+                    b.Property<DateTimeOffset?>("CodeExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("code_expires_at");
+
+                    b.Property<string>("CodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<Guid>("ConfidentialMessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("confidential_message_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<DateTimeOffset?>("FirstOpenedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_opened_at");
+
+                    b.Property<int>("Opens")
+                        .HasColumnType("integer")
+                        .HasColumnName("opens");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_confidential_recipients");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_confidential_recipients_token_hash");
+
+                    b.HasIndex("ConfidentialMessageId", "Address")
+                        .IsUnique()
+                        .HasDatabaseName("ix_confidential_recipients_confidential_message_id_address")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("confidential_recipients", "mail");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Mail.DestinationLimit", b =>
                 {
                     b.Property<int>("Id")
@@ -2386,6 +2571,71 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.ToTable("drafts", "mail");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.FeedbackEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("detail");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid?>("OutboundMessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("outbound_message_id");
+
+                    b.Property<string>("Rcpt")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("rcpt");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("ReporterDomain")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("reporter_domain");
+
+                    b.Property<Guid?>("SenderUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sender_user_id");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_feedback_events");
+
+                    b.HasIndex("SenderUserId", "ReceivedAt")
+                        .HasDatabaseName("ix_feedback_events_sender_user_id_received_at");
+
+                    b.HasIndex("OutboundMessageId", "Rcpt", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_feedback_events_outbound_message_id_rcpt_kind");
+
+                    b.ToTable("feedback_events", "mta");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Mail.FilterJob", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2589,6 +2839,48 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_greylist_tenant_id_ip_network_sender_recipient");
 
                     b.ToTable("greylist", "spam");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.IpPool", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ip_pools");
+
+                    b.HasIndex("IsDefault")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ip_pools_is_default")
+                        .HasFilter("is_default");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ip_pools_name");
+
+                    b.ToTable("ip_pools", "mta");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Mail.Label", b =>
@@ -3728,6 +4020,80 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.ToTable("quarantine", "admin");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.SendingIp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("address");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("Helo")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("helo");
+
+                    b.Property<Guid>("PoolId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("pool_id");
+
+                    b.Property<DateTimeOffset?>("PtrCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ptr_checked_at");
+
+                    b.Property<bool?>("PtrOk")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ptr_ok");
+
+                    b.Property<DateTimeOffset?>("WarmupStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("warmup_started_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sending_ips");
+
+                    b.HasIndex("Address")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sending_ips_address");
+
+                    b.HasIndex("PoolId")
+                        .HasDatabaseName("ix_sending_ips_pool_id");
+
+                    b.ToTable("sending_ips", "mta");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.SendingIpDay", b =>
+                {
+                    b.Property<int>("SendingIpId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sending_ip_id");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int>("Sent")
+                        .HasColumnType("integer")
+                        .HasColumnName("sent");
+
+                    b.HasKey("SendingIpId", "Day")
+                        .HasName("pk_sending_ip_days");
+
+                    b.ToTable("sending_ip_days", "mta");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Mail.Signature", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3974,6 +4340,74 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("TenantId", "Address"), false);
 
                     b.ToTable("suppressions", "mta");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.TlsResult", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer")
+                        .HasColumnName("count");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<string>("FailureType")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("failure_type");
+
+                    b.Property<string>("MxHost")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("mx_host");
+
+                    b.Property<string>("PolicyDomain")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("policy_domain");
+
+                    b.Property<string>("PolicyType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("policy_type");
+
+                    b.Property<string>("ReceivingIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("receiving_ip");
+
+                    b.Property<DateTimeOffset?>("ReportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reported_at");
+
+                    b.Property<string>("SendingIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("sending_ip");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tls_results");
+
+                    b.HasIndex("Day", "PolicyDomain", "PolicyType", "MxHost", "ReceivingIp", "SendingIp", "FailureType")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tls_results_day_policy_domain_policy_type_mx_host_receiving");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("Day", "PolicyDomain", "PolicyType", "MxHost", "ReceivingIp", "SendingIp", "FailureType"), false);
+
+                    b.ToTable("tls_results", "mta");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Mail.TrustedImageSender", b =>
@@ -5529,6 +5963,16 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_user_aliases_asp_net_users_user_id");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.ConfidentialRecipient", b =>
+                {
+                    b.HasOne("BlueMail.Domain.Mail.ConfidentialMessage", null)
+                        .WithMany()
+                        .HasForeignKey("ConfidentialMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_confidential_recipients_confidential_messages_confidential_");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Mail.Draft", b =>
                 {
                     b.HasOne("BlueMail.Domain.Mail.Mailbox", null)
@@ -5583,6 +6027,26 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_outbound_recipients_outbound_messages_outbound_message_id");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.SendingIp", b =>
+                {
+                    b.HasOne("BlueMail.Domain.Mail.IpPool", null)
+                        .WithMany()
+                        .HasForeignKey("PoolId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sending_ips_ip_pools_pool_id");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.SendingIpDay", b =>
+                {
+                    b.HasOne("BlueMail.Domain.Mail.SendingIp", null)
+                        .WithMany()
+                        .HasForeignKey("SendingIpId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_sending_ip_days_sending_ips_sending_ip_id");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Mail.TrustedImageSender", b =>

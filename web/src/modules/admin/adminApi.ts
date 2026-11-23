@@ -144,6 +144,14 @@ export const adminApi = {
   suppressions: (search: string, page: number) => api.get<Paged<Suppression>>(`/api/v1/admin/suppressions?${q({ search, page, pageSize: 50 })}`),
   removeSuppression: (id: number) => api.delete<boolean>(`/api/v1/admin/suppressions/${id}`),
   health: (days: number) => api.get<SendingHealth>(`/api/v1/admin/health?days=${days}`),
+  sendingLocks: () => api.get<SendingLock[]>("/api/v1/admin/sending-locks"),
+  unlockSending: (userId: string) => api.delete<boolean>(`/api/v1/admin/sending-locks/${userId}`),
+  ipPools: () => api.get<IpPool[]>("/api/v1/admin/platform/ip-pools"),
+  saveIpPool: (p: { id: string | null; name: string; kind: string; isDefault: boolean }) => api.post<string>("/api/v1/admin/platform/ip-pools", p),
+  saveSendingIp: (ip: { id: number | null; poolId: string; address: string; helo: string; enabled: boolean; startWarmup: boolean }) =>
+    api.post<number>("/api/v1/admin/platform/sending-ips", ip),
+  tlsReports: (days: number) => api.get<TlsSummary[]>(`/api/v1/admin/platform/tls-reports?days=${days}`),
+  setTenantPool: (tenantId: string, poolId: string | null) => api.put<boolean>(`/api/v1/admin/tenants/${tenantId}/ip-pool`, { poolId }),
   report: (kind: string, from: string | null, to: string | null) => api.get<Report>(`/api/v1/admin/reports/${kind}?${q({ from, to })}`),
   reportXlsx: (kind: string, from: string | null, to: string | null) => api.blob(`/api/v1/admin/reports/${kind}/xlsx?${q({ from, to })}`),
 
@@ -161,4 +169,43 @@ export function download(blob: Blob, name: string) {
   a.download = name;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export interface SendingLock {
+  userId: string;
+  email: string;
+  displayName: string;
+  lockedAt: string;
+  reason: string | null;
+  sent: number;
+  hardBounces: number;
+  complaints: number;
+}
+
+export interface SendingIp {
+  id: number;
+  address: string;
+  helo: string;
+  enabled: boolean;
+  ptrOk: boolean | null;
+  warmupDay: number | null;
+  capToday: number | null;
+  sentToday: number;
+}
+
+export interface IpPool {
+  id: string;
+  name: string;
+  kind: "TRIAL" | "SHARED" | "DEDICATED";
+  isDefault: boolean;
+  tenants: number;
+  ips: SendingIp[];
+}
+
+export interface TlsSummary {
+  domain: string;
+  policyType: string;
+  successful: number;
+  failed: number;
+  failureTypes: string[];
 }

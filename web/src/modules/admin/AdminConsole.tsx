@@ -10,6 +10,7 @@ import { OperationsAdmin } from "./OperationsAdmin";
 import { PoliciesAdmin } from "./PoliciesAdmin";
 import { ReportsAdmin } from "./ReportsAdmin";
 import { SecurityAdmin } from "./SecurityAdmin";
+import { SendingAdmin } from "./SendingAdmin";
 import { TenantsPage } from "./TenantsPage";
 import { UsersPage } from "./UsersPage";
 
@@ -25,6 +26,7 @@ const sections = [
   { key: "compliance", any: [AdminPermission.ComplianceView], render: () => <ComplianceAdmin /> },
   { key: "migration", any: [AdminPermission.MigrationEdit], render: () => <MigrationAdmin /> },
   { key: "tenants", any: [AdminPermission.TenantsView], render: () => <TenantsPage /> },
+  { key: "sending", any: [AdminPermission.TenantsView], render: () => <SendingAdmin /> },
 ] as const;
 
 export function useAdminSections() {

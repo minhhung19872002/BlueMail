@@ -16,6 +16,9 @@ public enum DnsRCode : byte { NoError = 0, FormErr = 1, ServFail = 2, NxDomain =
 /// <summary>A resource record. <see cref="Data"/> is the parsed RDATA (see the record types below).</summary>
 public sealed record DnsRecord(string Name, DnsType Type, ushort Class, uint Ttl, object Data)
 {
+    /// <summary>RDATA as received (names inside may be compressed: use <see cref="DnsWire.CanonicalRdata"/> for DNSSEC).</summary>
+    public byte[] RawRdata { get; init; } = [];
+
     public override string ToString() => $"{Name} {Ttl} {Type} {Data}";
 }
 
@@ -41,6 +44,29 @@ public sealed record TxtData(IReadOnlyList<byte[]> Strings)
 }
 
 public sealed record UnknownData(byte[] Raw);
+
+/// <summary>RRSIG (RFC 4034 3.1).</summary>
+public sealed record RrsigData(DnsType TypeCovered, byte Algorithm, byte Labels, uint OriginalTtl, uint Expiration, uint Inception, ushort KeyTag,
+    string SignerName, byte[] Signature);
+
+/// <summary>DNSKEY (RFC 4034 2.1).</summary>
+public sealed record DnskeyData(ushort Flags, byte Protocol, byte Algorithm, byte[] PublicKey)
+{
+    public bool IsZoneKey => (Flags & 0x0100) != 0;
+    public bool IsSecureEntryPoint => (Flags & 0x0001) != 0;
+}
+
+/// <summary>DS (RFC 4034 5.1).</summary>
+public sealed record DsData(ushort KeyTag, byte Algorithm, byte DigestType, byte[] Digest);
+
+/// <summary>NSEC (RFC 4034 4.1).</summary>
+public sealed record NsecData(string NextName, IReadOnlySet<DnsType> Types);
+
+/// <summary>NSEC3 (RFC 5155 3.1).</summary>
+public sealed record Nsec3Data(byte HashAlgorithm, byte Flags, ushort Iterations, byte[] Salt, byte[] NextHashedOwner, IReadOnlySet<DnsType> Types)
+{
+    public bool OptOut => (Flags & 0x01) != 0;
+}
 
 /// <summary>A parsed DNS message (RFC 1035 4.1).</summary>
 public sealed class DnsMessage
@@ -69,13 +95,13 @@ public static class DnsWire
 {
     private const int MaxPointerJumps = 64;
 
-    public static byte[] EncodeQuery(ushort id, string name, DnsType type, ushort udpPayload, bool dnssecOk)
+    public static byte[] EncodeQuery(ushort id, string name, DnsType type, ushort udpPayload, bool dnssecOk, bool checkingDisabled = false)
     {
         var buf = new List<byte>(64);
         Span<byte> header = stackalloc byte[12];
         BinaryPrimitives.WriteUInt16BigEndian(header, id);
         header[2] = 0x01; // RD
-        header[3] = 0x00;
+        header[3] = checkingDisabled ? (byte)0x10 : (byte)0x00; // CD: we validate DNSSEC ourselves
         BinaryPrimitives.WriteUInt16BigEndian(header[4..], 1); // QDCOUNT
         BinaryPrimitives.WriteUInt16BigEndian(header[10..], 1); // ARCOUNT (OPT)
         buf.AddRange(header.ToArray());
@@ -192,7 +218,7 @@ public static class DnsWire
             var rdStart = pos;
             var data = ParseRdata(m, type, rdStart, rdlen);
             pos = rdStart + rdlen;
-            list.Add(new DnsRecord(name, type, cls, ttl, data));
+            list.Add(new DnsRecord(name, type, cls, ttl, data) { RawRdata = m.Slice(rdStart, rdlen).ToArray() });
         }
 
         return list;
@@ -244,6 +270,39 @@ public static class DnsWire
                     BinaryPrimitives.ReadUInt16BigEndian(rd[4..]), ReadName(m, ref p, start + len));
             case DnsType.TLSA when len >= 3:
                 return new TlsaData(rd[0], rd[1], rd[2], rd[3..].ToArray());
+            case DnsType.RRSIG when len >= 19:
+                {
+                    p = start + 18;
+                    var signer = ReadName(m, ref p, start + len);
+                    return new RrsigData((DnsType)BinaryPrimitives.ReadUInt16BigEndian(rd), rd[2], rd[3], BinaryPrimitives.ReadUInt32BigEndian(rd[4..]),
+                        BinaryPrimitives.ReadUInt32BigEndian(rd[8..]), BinaryPrimitives.ReadUInt32BigEndian(rd[12..]), BinaryPrimitives.ReadUInt16BigEndian(rd[16..]),
+                        signer, m[p..(start + len)].ToArray());
+                }
+
+            case DnsType.DNSKEY when len >= 4:
+                return new DnskeyData(BinaryPrimitives.ReadUInt16BigEndian(rd), rd[2], rd[3], rd[4..].ToArray());
+            case DnsType.DS when len >= 4:
+                return new DsData(BinaryPrimitives.ReadUInt16BigEndian(rd), rd[2], rd[3], rd[4..].ToArray());
+            case DnsType.NSEC:
+                {
+                    var next = ReadName(m, ref p, start + len);
+                    return new NsecData(next, TypeBitmap(m[p..(start + len)]));
+                }
+
+            case DnsType.NSEC3 when len >= 5:
+                {
+                    var saltLen = rd[4];
+                    Need(m, start + 5 + saltLen, 1);
+                    var hashLen = rd[5 + saltLen];
+                    var bitmapStart = 6 + saltLen + hashLen;
+                    if (bitmapStart > len)
+                    {
+                        throw new DnsFormatException("NSEC3 too short");
+                    }
+
+                    return new Nsec3Data(rd[0], rd[1], BinaryPrimitives.ReadUInt16BigEndian(rd[2..]), rd.Slice(5, saltLen).ToArray(),
+                        rd.Slice(6 + saltLen, hashLen).ToArray(), TypeBitmap(rd[bitmapStart..]));
+                }
             case DnsType.CAA when len >= 2 && 2 + rd[1] <= len:
                 return new CaaData(rd[0], Encoding.ASCII.GetString(rd.Slice(2, rd[1])), Encoding.UTF8.GetString(rd[(2 + rd[1])..]));
             default:
@@ -252,6 +311,87 @@ public static class DnsWire
     }
 
     private static uint U32(ReadOnlySpan<byte> m, int p) => BinaryPrimitives.ReadUInt32BigEndian(m[p..]);
+
+    /// <summary>Type bit maps of NSEC/NSEC3 (RFC 4034 4.1.2).</summary>
+    internal static HashSet<DnsType> TypeBitmap(ReadOnlySpan<byte> b)
+    {
+        var set = new HashSet<DnsType>();
+        var i = 0;
+        while (i + 2 <= b.Length)
+        {
+            int window = b[i], len = b[i + 1];
+            if (len is 0 or > 32 || i + 2 + len > b.Length)
+            {
+                throw new DnsFormatException("Bad type bitmap");
+            }
+
+            for (var j = 0; j < len; j++)
+            {
+                for (var bit = 0; bit < 8; bit++)
+                {
+                    if ((b[i + 2 + j] & (0x80 >> bit)) != 0)
+                    {
+                        set.Add((DnsType)(window * 256 + j * 8 + bit));
+                    }
+                }
+            }
+
+            i += 2 + len;
+        }
+
+        return set;
+    }
+
+    /// <summary>A name in canonical wire form (RFC 4034 6.2): uncompressed, lower-case labels.</summary>
+    public static byte[] CanonicalName(string name)
+    {
+        var buf = new List<byte>();
+        WriteName(buf, name.ToLowerInvariant());
+        return [.. buf];
+    }
+
+    /// <summary>
+    /// Canonical RDATA (RFC 4034 6.2 with RFC 6840 5.1): names in the record types that embed them are written
+    /// uncompressed and lower-case; other RDATA is used as received.
+    /// </summary>
+    public static byte[] CanonicalRdata(DnsRecord r)
+    {
+        var buf = new List<byte>();
+        switch (r.Data)
+        {
+            case string name when r.Type is DnsType.NS or DnsType.CNAME or DnsType.PTR:
+                WriteName(buf, name.ToLowerInvariant());
+                return [.. buf];
+            case MxData mx:
+                buf.Add((byte)(mx.Preference >> 8));
+                buf.Add((byte)mx.Preference);
+                WriteName(buf, mx.Exchange.ToLowerInvariant());
+                return [.. buf];
+            case SoaData soa:
+                WriteName(buf, soa.MName.ToLowerInvariant());
+                WriteName(buf, soa.RName.ToLowerInvariant());
+                foreach (var v in new[] { soa.Serial, soa.Refresh, soa.Retry, soa.Expire, soa.Minimum })
+                {
+                    buf.Add((byte)(v >> 24));
+                    buf.Add((byte)(v >> 16));
+                    buf.Add((byte)(v >> 8));
+                    buf.Add((byte)v);
+                }
+
+                return [.. buf];
+            case SrvData srv:
+                foreach (var v in new[] { srv.Priority, srv.Weight, srv.Port })
+                {
+                    buf.Add((byte)(v >> 8));
+                    buf.Add((byte)v);
+                }
+
+                WriteName(buf, srv.Target.ToLowerInvariant());
+                return [.. buf];
+            default:
+                return r.RawRdata;
+        }
+    }
 
     private static string ReadName(ReadOnlySpan<byte> m, ref int pos) => ReadName(m, ref pos, m.Length);
 

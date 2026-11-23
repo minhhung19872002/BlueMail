@@ -174,3 +174,23 @@ each refresh re-checks the session. CORS only for `BM_WEB_URL`. Pages: `/account
 
 Protocols: IMAP `imap.<platform>` 993 (TLS) / 143 (STARTTLS required before LOGIN); SMTP submission `smtp.<platform>` 465 (TLS) /
 587 (STARTTLS, AUTH only after TLS). AUTH: PLAIN, LOGIN, XOAUTH2, OAUTHBEARER (BlueID access token).
+
+### Sending at scale and confidential mode (Phase 12)
+
+| Method | Path | Guard | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/admin/sending-locks` | `mail.admin.users.edit` | Users whose sending is paused (reason, last-24h sent / hard bounces / complaints) |
+| DELETE | `/api/v1/admin/sending-locks/{userId}` | `mail.admin.users.edit` | Allow sending again (audited) |
+| GET / POST | `/api/v1/admin/platform/ip-pools` | `mail.platform.tenants.view` / `.edit` | Pools with their IPs (PTR state, warm-up day and cap, sent today); create/update `{ id?, name, kind: TRIAL\|SHARED\|DEDICATED, isDefault }` |
+| POST | `/api/v1/admin/platform/sending-ips` | `mail.platform.tenants.edit` | Add/update `{ id?, poolId, address, helo, enabled, startWarmup }` |
+| GET | `/api/v1/admin/platform/tls-reports?days=` | `mail.platform.tenants.view` | TLS outcomes per destination domain and policy |
+| PUT | `/api/v1/admin/tenants/{id}/ip-pool` | `mail.platform.tenants.edit` | `{ poolId }` (null = default pool) |
+| GET | `/api/v1/confidential/{token}` | anonymous (token) | Subject, sender, expiry, whether a code is needed, masked recipient |
+| POST | `/api/v1/confidential/{token}/code` | anonymous (token) | Mail a 6-digit code to the recipient (one a minute; 409 `confidential_code_wait`) |
+| POST | `/api/v1/confidential/{token}/open` | anonymous (token + code) | `{ code }` → sanitized HTML document, text, file links (30 min) |
+| GET | `/api/v1/confidential/{token}/files/{part}?e=&s=` | anonymous (signed link) | One attachment |
+| GET | `/api/v1/mail/confidential?rfcMessageId=` | self | Sender's status: expiry, revoked, recipients with open counts |
+| PUT | `/api/v1/mail/confidential/{id}/revoked` | self | `{ revoked }` withdraw / restore access |
+
+Draft state gains `confidential: { expiresDays: 1|7|30|90|365, requireCode }`. Sending while paused fails with
+`sending_locked` (web) or `550 5.7.1` (SMTP submission).

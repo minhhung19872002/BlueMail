@@ -731,7 +731,8 @@
       "reports": "Báo cáo",
       "tenants": "Tổ chức",
       "compliance": "Tuân thủ",
-      "migration": "Chuyển dữ liệu"
+      "migration": "Chuyển dữ liệu",
+      "sending": "Hạ tầng gửi thư"
     },
     "domains": {
       "add": "Tên miền mới, ví dụ congty.vn",
@@ -983,7 +984,8 @@
       "trace": "Truy vết thư",
       "queue": "Hàng đợi gửi",
       "suppressions": "Địa chỉ ngừng gửi",
-      "health": "Tình trạng gửi"
+      "health": "Tình trạng gửi",
+      "locks": "Tài khoản tạm ngừng gửi"
     },
     "trace": {
       "sender": "Người gửi",
@@ -1121,6 +1123,59 @@
       "supportOpen": "Mở phiên hỗ trợ",
       "export": "Xuất toàn bộ dữ liệu",
       "exportHint": "Mọi hộp thư, danh bạ và cài đặt của tổ chức trong một tệp ZIP (khi kết thúc hợp đồng)."
+    },
+    "sending": {
+      "pools": "Dải IP",
+      "addPool": "Thêm dải",
+      "editPool": "Sửa dải",
+      "poolName": "Tên",
+      "poolKind": "Loại",
+      "poolsHelp": "Tổ chức gửi thư từ các địa chỉ trong dải của mình (hoặc dải mặc định). Một địa chỉ chỉ được dùng khi bản ghi PTR của nó trả về đúng tên HELO và tên đó trỏ lại địa chỉ. Địa chỉ mới được làm ấm: giới hạn mỗi ngày tăng dần trong khoảng sáu tuần.",
+      "kind": {
+        "TRIAL": "Dùng thử",
+        "SHARED": "Dùng chung",
+        "DEDICATED": "Riêng"
+      },
+      "default": "Mặc định",
+      "makeDefault": "Dải mặc định cho tổ chức chưa có dải riêng",
+      "tenants": "{count, plural, other {# tổ chức}}",
+      "addIp": "Thêm địa chỉ",
+      "address": "Địa chỉ",
+      "helo": "Tên HELO",
+      "heloHelp": "Phải trùng bản ghi PTR của địa chỉ và trỏ lại đúng địa chỉ đó.",
+      "ptrPending": "Chưa kiểm",
+      "ptrOk": "Khớp",
+      "ptrBad": "Không khớp",
+      "warmup": "Làm ấm",
+      "warm": "Đã ấm (không giới hạn ngày)",
+      "warmupDay": "Ngày {day}: tối đa {cap} thư hôm nay",
+      "startWarmup": "Làm ấm địa chỉ này",
+      "warmupHelp": "Nên bật cho địa chỉ mới: khoảng 50 thư ngày đầu, tăng dần mỗi ngày.",
+      "sentToday": "Đã gửi hôm nay",
+      "enabled": "Đang dùng",
+      "tls": "TLS của kết nối gửi đi",
+      "tlsHelp": "Kết quả TLS theo tên miền nhận và chính sách (MTA-STS, DANE hoặc không có). Tên miền công bố địa chỉ TLS-RPT nhận báo cáo hằng ngày.",
+      "period": "Khoảng thời gian",
+      "lastDays": "{count, plural, other {# ngày gần đây}}",
+      "domain": "Tên miền",
+      "policy": "Chính sách",
+      "ok": "Thành công",
+      "failed": "Thất bại",
+      "failureTypes": "Lỗi"
+    },
+    "locks": {
+      "help": "Tài khoản tự ngừng gửi khi thư của nó bị trả lại hoặc bị báo thư rác nhiều bất thường - thường là dấu hiệu tài khoản bị chiếm. Hãy kiểm tra tài khoản (mật khẩu, phiên đăng nhập, quy tắc chuyển tiếp) trước khi cho gửi lại.",
+      "none": "Không có tài khoản nào bị tạm ngừng.",
+      "user": "Người dùng",
+      "at": "Ngừng lúc",
+      "reason": "Lý do",
+      "stats": "24 giờ qua",
+      "statsValue": "{sent} thư gửi, {bounces} trả lại cứng, {complaints} khiếu nại",
+      "r": {
+        "hard_bounce_rate": "Quá nhiều thư tới địa chỉ không tồn tại",
+        "complaint_rate": "Quá nhiều khiếu nại thư rác"
+      },
+      "unlock": "Cho gửi lại"
     }
   },
   "support": {
@@ -1267,5 +1322,29 @@
     "createdTitle": "Mật khẩu ứng dụng của bạn",
     "once": "Mật khẩu chỉ hiện lúc này. Hãy nhập vào phần mềm thư thay cho mật khẩu của bạn.",
     "user": "Tên đăng nhập"
+  },
+  "confidential": {
+    "title": "Chế độ bảo mật",
+    "explain": "Người ngoài tổ chức nhận một liên kết để đọc thư trên BlueMail thay vì nhận chính thư. Bạn có thể thu hồi quyền xem bất cứ lúc nào. Người đọc vẫn có thể sao chép hoặc chụp lại nội dung họ thấy.",
+    "expiry": "Hết hạn sau",
+    "days": "{count, plural, other {# ngày}}",
+    "requireCode": "Người nhận cần mã gửi tới email của họ",
+    "apply": "Dùng chế độ bảo mật",
+    "turnOff": "Tắt",
+    "on": "{count, plural, other {Bảo mật: liên kết dùng được # ngày}}",
+    "from": "Từ {from}",
+    "expires": "Xem được tới {when}",
+    "noCopyProtection": "Người gửi chia sẻ thư này qua chế độ bảo mật của BlueMail. Vui lòng không sao chép hay chuyển tiếp; trang này không ngăn được việc chụp màn hình.",
+    "codeNeeded": "Để mở thư, hãy lấy mã gửi tới {address}.",
+    "sendCode": "Gửi mã cho tôi",
+    "codeSent": "Đã gửi mã tới {address}.",
+    "code": "Mã 6 chữ số",
+    "open": "Mở thư",
+    "sentUntil": "Đã gửi ở chế độ bảo mật. Người ngoài mở được tới {when}.",
+    "revoked": "Bạn đã thu hồi quyền xem: người ngoài không mở được thư này nữa.",
+    "openedBy": "Đã mở: {list}",
+    "notOpened": "Chưa có người ngoài nào mở thư.",
+    "revoke": "Thu hồi quyền xem",
+    "restore": "Cho xem lại"
   }
 }
