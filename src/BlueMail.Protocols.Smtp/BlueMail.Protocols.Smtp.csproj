@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="BlueMail.UnitTests" />
+    <InternalsVisibleTo Include="BlueMail.FuzzTests" />
+    <InternalsVisibleTo Include="BlueMail.IntegrationTests" />
+  </ItemGroup>
+</Project>
