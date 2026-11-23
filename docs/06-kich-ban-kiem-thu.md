@@ -312,7 +312,7 @@ Chạy: `sh scripts/dev-phase11-check.sh` (Python imaplib/smtplib + imaptest), `
 | P11-08 | Đã gửi không trùng | Gửi qua SMTP rồi APPEND vào Sent (như Thunderbird) | Một bản | Như mong đợi | ✅ |
 | P11-09 | Ra ngoài | Thư nộp qua SMTP tới Postfix doitac.test | Tới nơi, `dkim=pass` ở bên nhận | Như mong đợi | ✅ |
 | P11-10 | Tự cấu hình | autoconfig, autodiscover | IMAP 993 / SMTP 465 SSL | Như mong đợi | ✅ |
-| P11-11 | Phần mềm thư thật | Thunderbird, Outlook, iPhone Mail đọc/gửi/xoá/gắn nhãn hai chiều với web | Đồng bộ hai chiều | **Chưa chạy** trên máy thật (cần máy có các phần mềm này); đã kiểm bằng imaplib/smtplib/imaptest | ⏳ |
+| P11-11 | Phần mềm thư thật | Thunderbird, Outlook, iPhone Mail đọc/gửi/xoá/gắn nhãn hai chiều với web | Đồng bộ hai chiều | **Outlook 16.0.20625 (Windows), 2026-11-24**, hồ sơ riêng, IMAP 993 + SMTP 465 SSL/TLS, chứng chỉ dev: Outlook→máy chủ đánh dấu đọc, gắn cờ (→ STARRED), xoá (→ TRASH) đúng; gửi tới lan@ → lan nhận, đúng **một** bản Sent (sau sửa BUG-080); web gắn sao → Outlook hiện cờ sau F9. Tìm và sửa trong lúc chạy: BUG-078 (Garage mất khối khi Docker tắt cứng; IMAP cắt phiên khi đọc S3 lỗi; FETCH dài bị Outlook coi là treo), BUG-079 (IDLE lần hai), BUG-080 (Outlook APPEND bản Sent với Message-ID mới). Còn lại: các thư dev nhận sau 16:14 UTC 23/11 mất nội dung (dữ liệu dev, trước khi bật fsync) nên Outlook báo `800CCCD2` (máy chủ trả NO có lý do) cho các thư đó — đúng thiết kế. Thunderbird, iPhone Mail chưa chạy (không có trên máy này) | ⚠️ Outlook ✅, Thunderbird/iPhone ⏳ |
 
 ## Phase 12 — Gửi thư quy mô thật, DNSSEC/DANE, chế độ bảo mật
 

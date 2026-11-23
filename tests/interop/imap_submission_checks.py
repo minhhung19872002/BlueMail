@@ -150,6 +150,20 @@ c.append("Sent", "(\\Seen)", None, msg)
 c.select("Sent")
 typ, data = c.search(None, "HEADER", "Message-ID", mid)
 check("one Sent copy after SMTP + APPEND", len(data[0].split()) == 1, data)
+# Outlook APPENDs its Sent copy under a new Message-ID (same Date, From, To, Subject): still one copy (BUG-080).
+token = uuid.uuid4().hex
+date = email.utils.formatdate()
+outlook = lambda m: (f"From: {USER}\r\nTo: an@doitac.test\r\nSubject: outlook twin {token}\r\nMessage-ID: {m}\r\n"  # noqa: E731
+                     f"Date: {date}\r\n\r\nSent like Outlook\r\n").encode()
+s = smtplib.SMTP_SSL(SMTP, 465, context=CTX, timeout=30)
+s.login(USER, PASSWORD)
+s.sendmail(USER, ["an@doitac.test"], outlook(f"<a{token}@bluemail.test>"))
+s.quit()
+time.sleep(1)
+c.append("Sent", "(\\Seen)", None, outlook(f"<b{token}@bluemail.test>"))
+c.select("Sent")
+typ, data = c.search(None, "SUBJECT", f"\"outlook twin {token}\"")
+check("one Sent copy when the APPEND has a new Message-ID", len(data[0].split()) == 1, data)
 c.delete(box)
 c.logout()
 

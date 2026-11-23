@@ -622,9 +622,20 @@ internal sealed partial class ImapSession
         var (uid, validity) = await WithStoreAsync(async s =>
         {
             // A mail program that sent through SMTP submission also APPENDs to Sent: same Message-ID, no second copy.
-            if (parsed.MessageId is { } mid && await s.ImapFindByMessageIdAsync(_access!, f.LabelId, mid, ct) is { } existing)
+            var ms = new MemoryStream(raw, writable: false);
+            var facts = MessageFacts.Extract(parsed, ms);
+            ms.Position = 0;
+            var existing = parsed.MessageId is { } mid ? await s.ImapFindByMessageIdAsync(_access!, f.LabelId, mid, ct) : null;
+            if (existing is null && f.SystemKey == SystemLabels.Sent && facts.Date is { } sent)
             {
-                var u = (await s.ImapUidsOfAsync(_access!, f.LabelId, [existing], ct))[existing];
+                // Outlook's copy for Sent carries a new Message-ID (BUG-080): recognise it by its contents instead.
+                existing = await s.ImapFindSentTwinAsync(_access!, f.LabelId, facts.From?.Address, facts.Subject, sent,
+                    facts.To.Concat(facts.Cc).Select(a => a.Address).ToList(), ct);
+            }
+
+            if (existing is { } twin)
+            {
+                var u = (await s.ImapUidsOfAsync(_access!, f.LabelId, [twin], ct))[twin];
                 return (u, (await s.ImapStatusAsync(_access!, f.LabelId, ct)).UidValidity);
             }
 
@@ -645,10 +656,7 @@ internal sealed partial class ImapSession
                 system.Add(SystemLabels.Starred);
             }
 
-            var ms = new MemoryStream(raw, writable: false);
-            var facts = MessageFacts.Extract(parsed, ms);
-            ms.Position = 0;
-            var delivered = await s.DeliverAsync(new DeliveryRequest(_access!.TenantId, ms, facts,
+            var delivered =await s.DeliverAsync(new DeliveryRequest(_access!.TenantId, ms, facts,
                 [
                     new MailboxDelivery(_access.MailboxId, system, Seen: has("\\Seen"), ExtraLabelIds: extra, Draft: has("\\Draft"))
                     {

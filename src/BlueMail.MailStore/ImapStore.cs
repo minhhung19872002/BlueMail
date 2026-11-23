@@ -148,6 +148,34 @@ public sealed partial class PgMailStore
         return await cmd.ExecuteScalarAsync(ct) as Guid?;
     }
 
+    /// <summary>
+    /// A message in the folder that is the same sent mail under another Message-ID: Outlook gives the copy it APPENDs to
+    /// Sent a new Message-ID after submitting the original over SMTP (docs/08 BUG-080). Same Date (to the second), sender,
+    /// subject and To+Cc addresses, stored within the last hour.
+    /// </summary>
+    public async Task<Guid?> ImapFindSentTwinAsync(MailboxAccess access, Guid labelId, string? from, string? subject, DateTimeOffset sentAt,
+        IReadOnlyCollection<string> recipients, CancellationToken ct = default)
+    {
+        var c = await OpenConnAsync(ct);
+        await using var cmd = new NpgsqlCommand("""
+            SELECT m.id FROM mail.messages m JOIN mail.message_labels ml ON ml.tenant_id = m.tenant_id AND ml.message_id = m.id AND ml.label_id = @l
+            WHERE m.tenant_id = @t AND m.mailbox_id = @mb AND m.deleted_at IS NULL AND m.expunged_at IS NULL
+              AND m.created_at > now() - interval '1 hour' AND m.sent_at = @sent
+              AND lower(coalesce(m.from_addr, '')) = @from AND coalesce(m.subject, '') = @subject
+              AND (SELECT coalesce(array_agg(DISTINCT lower(e->>'address') ORDER BY lower(e->>'address')), '{}')
+                   FROM jsonb_array_elements(m.to_addrs || m.cc_addrs) e) = @rcpt
+            LIMIT 1
+            """, c);
+        cmd.Parameters.AddWithValue("t", access.TenantId);
+        cmd.Parameters.AddWithValue("mb", access.MailboxId);
+        cmd.Parameters.AddWithValue("l", labelId);
+        cmd.Parameters.AddWithValue("sent", sentAt.ToUniversalTime());
+        cmd.Parameters.AddWithValue("from", (from ?? "").ToLowerInvariant());
+        cmd.Parameters.AddWithValue("subject", subject ?? "");
+        cmd.Parameters.AddWithValue("rcpt", recipients.Select(r => r.ToLowerInvariant()).Distinct().Order(StringComparer.Ordinal).ToArray());
+        return await cmd.ExecuteScalarAsync(ct) as Guid?;
+    }
+
     /// <summary>Envelope fields for IMAP SEARCH (FROM, TO, CC, BCC, SUBJECT, SENT*), from the indexed columns.</summary>
     public async Task<IReadOnlyDictionary<Guid, ImapSearchMeta>> ImapMetaAsync(MailboxAccess access, IReadOnlyCollection<Guid> ids, CancellationToken ct = default)
     {
