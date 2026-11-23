@@ -15,6 +15,7 @@ import { MeContext } from "./session";
 import { AppShell } from "./layout/AppShell";
 import { MailboxPage } from "./modules/mail/MailboxPage";
 import { SessionsPage } from "./modules/settings/SessionsPage";
+import { SignaturesPage } from "./modules/settings/SignaturesPage";
 import { UsersPage } from "./modules/admin/UsersPage";
 import { TenantsPage } from "./modules/admin/TenantsPage";
 
@@ -61,6 +62,7 @@ function Authenticated() {
           <Route path="/mail/label/:labelId" element={<MailboxPage />} />
           <Route path="/mail/:label" element={<MailboxPage />} />
           <Route path="/settings/sessions" element={<SessionsPage />} />
+          <Route path="/settings/signatures" element={<SignaturesPage />} />
           <Route path="/admin/users" element={<UsersPage />} />
           <Route path="/admin/tenants" element={<TenantsPage />} />
           <Route path="*" element={<Navigate to="/mail/inbox" replace />} />

@@ -46,6 +46,18 @@ answer `404` (indistinguishable from "does not exist").
 | GET | `/api/v1/mail/p/{token}` | signed URL (re-checks mailbox access) | Attachment / inline part / `.eml` / ZIP of attachments; `nosniff`, sandbox CSP, `Content-Disposition` |
 | GET | `/api/v1/mail/img/{token}` | signed URL | Image proxy: only URLs BlueMail signed; http/https ports 80/443, public addresses only (checked per connection and redirect), image types without SVG, ≤ 10 MB, cached 6 h, no cookies/referrer |
 | WS | `/hubs/mail` (SignalR, `access_token` query) | bearer, session re-validated on `Subscribe(mailboxId?)` | Event `mailboxChanged { mailboxId, modseq, kind }`; the client then calls `/mail/changes` |
+| GET | `/api/v1/mail/compose/from-options` | self | Addresses the caller may send from (own, aliases, shared mailboxes with send-as) |
+| GET | `/api/v1/mail/compose/from-message/{id}?mode=reply\|replyAll\|forward` | self | Prefilled draft state: recipients, Re:/Fwd:, In-Reply-To/References, quoted original, forwarded files |
+| GET | `/api/v1/mail/compose/suggest?q=` | self | Recipient suggestions (users, groups, shared mailboxes of the tenant; recent correspondents) |
+| POST | `/api/v1/mail/drafts` | self | `{ draftId?, version?, state }` autosave; stores a new RFC 5322 version in Drafts; 409 `draft_changed` on a stale version |
+| GET / DELETE | `/api/v1/mail/drafts/{id}`, `GET /api/v1/mail/drafts/by-message/{messageId}` | self | Open / discard a draft |
+| POST | `/api/v1/mail/drafts/{id}/send` | self | `{ scheduleAt?, archive?, undoSeconds (5/10/20/30) }`; 409 `already_sending`, 403 `from_not_allowed`, 400 `no_recipients`, `too_many_recipients`, `invalid_recipient`, `attachment_infected`, `upload_incomplete` |
+| POST | `/api/v1/mail/outgoing/{id}/cancel` | self | Undo / cancel a scheduled send; returns the draft id; 409 `too_late_to_undo` |
+| GET | `/api/v1/mail/outgoing` | self | Pending sends (undo window, scheduled, submitting) |
+| GET / POST / DELETE | `/api/v1/mail/signatures[/{id}]`, `/api/v1/mail/templates[/{id}]` | self | Signatures (defaults for new/reply) and templates; HTML sanitized on save |
+| OPTIONS / POST / HEAD / PATCH / DELETE | `/api/v1/uploads[/{id}]` | self | tus 1.0 resumable upload (`Upload-Length`, `Upload-Metadata`, `Upload-Offset`, `application/offset+octet-stream`, chunk ≤ 8 MiB); scanned on completion |
+| GET | `/api/v1/uploads/{id}/content` | self | Uploaded image for the editor preview |
+| GET | `/api/v1/files/{token}` | link token (hashed in DB, 30 days, counted) | Download of a file sent as a link (> 25 MB) |
 | GET | `/api/v1/account/sessions` | self | Signed-in devices |
 | DELETE | `/api/v1/account/sessions/{id}` | self | Sign a device out (immediate) |
 | GET | `/api/v1/admin/users?search=&page=&pageSize=` | `mail.admin.users.view` | Users of the caller's tenant |

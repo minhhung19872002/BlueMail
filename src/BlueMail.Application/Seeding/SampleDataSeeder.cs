@@ -10,7 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace BlueMail.Application.Seeding;
 
-public sealed record SeedOptions(string PlatformAdminEmail, string PlatformAdminPassword, string PlatformDomain, string? SampleUserPassword);
+public sealed record SeedOptions(string PlatformAdminEmail, string PlatformAdminPassword, string PlatformDomain, string? SampleUserPassword,
+    string? DevDkimDirectory = null);
 
 /// <summary>
 /// Sample data (PROMPT 10). Every part checks for itself before inserting (a tenant by code, a user by
@@ -19,7 +20,7 @@ public sealed record SeedOptions(string PlatformAdminEmail, string PlatformAdmin
 /// phases.
 /// </summary>
 public sealed class SampleDataSeeder(
-    BlueMailDbContext db, TenantProvisioning tenants, UserProvisioning users, IMailStore store, ILogger<SampleDataSeeder> log)
+    BlueMailDbContext db, TenantProvisioning tenants, UserProvisioning users, IMailStore store, Features.Sending.DkimKeyService dkim, ILogger<SampleDataSeeder> log)
 {
     private sealed record SampleUser(string Local, string DisplayName, string? Locale, string? TimeZone, bool Admin = false, string? OrgUnit = null);
 
@@ -101,6 +102,19 @@ public sealed class SampleDataSeeder(
             // The sample domains are published in the dev DNS (deploy/coredns): mark them verified so mail is accepted.
             await db.Domains.IgnoreQueryFilters().Where(d => d.TenantId == tenant.Id && d.VerifiedAt == null)
                 .ExecuteUpdateAsync(d => d.SetProperty(x => x.VerifiedAt, DateTimeOffset.UtcNow), ct);
+
+            // Dev only: the keys the dev DNS publishes (deploy/dev/dkim, selector bm2026), so receivers verify our signatures.
+            if (o.DevDkimDirectory is { } dir && Path.Combine(dir, t.Domain + ".private.pem") is var pem && File.Exists(pem))
+            {
+                var domain = await db.Domains.IgnoreQueryFilters().FirstAsync(d => d.TenantId == tenant.Id && d.Domain == t.Domain, ct);
+                if (!await db.DkimKeys.IgnoreQueryFilters().AnyAsync(k => k.DomainId == domain.Id && k.Status == DkimKeyStatus.Active && k.DeletedAt == null, ct))
+                {
+                    using var rsa = System.Security.Cryptography.RSA.Create();
+                    rsa.ImportFromPem(await File.ReadAllTextAsync(pem, ct));
+                    await dkim.StoreAsync(tenant.Id, domain.Id, "bm2026", rsa, ct);
+                    log.LogInformation("Imported dev DKIM key for {Domain}", t.Domain);
+                }
+            }
 
             var units = new Dictionary<string, Guid>(StringComparer.Ordinal);
             foreach (var name in t.OrgUnits)

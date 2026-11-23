@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, App, Button, Card, Descriptions, Dropdown, Modal, Space, Spin, Table, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
   ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, ExclamationCircleOutlined, EyeOutlined, FileZipOutlined, InboxOutlined,
-  MailOutlined, MoreOutlined, PaperClipOutlined, PrinterOutlined, StarFilled, StarOutlined, WarningOutlined,
+  MailOutlined, MoreOutlined, PaperClipOutlined, PrinterOutlined, RollbackOutlined, ShareAltOutlined, StarFilled, StarOutlined, WarningOutlined,
 } from "@ant-design/icons";
 import DOMPurify from "dompurify";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,6 +13,8 @@ import { useMe, useUserFormat } from "../../session";
 import { act, getBody, getOriginal, getThread, mailKeys, trustImages, type MailAction } from "./mailApi";
 import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
 import { PdfPreview } from "./PdfPreview";
+import { composeApi } from "../compose/composeApi";
+import { useCompose } from "../compose/composeStore";
 
 interface Props {
   threadId: string;
@@ -96,6 +98,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
           {starred ? <StarFilled className="bm-star-on" /> : <StarOutlined />}
         </button>
       </header>
+      {systemKey === "SCHEDULED" && msgs.length > 0 && <ScheduledBanner messageId={msgs[msgs.length - 1]!.message.id} />}
       {msgs.map((m, i) => {
         if (hiddenIds.has(m.message.id)) {
           return i === 1 ? (
@@ -199,6 +202,7 @@ function MessageItem({ m, open, toggle }: { m: ThreadMessage; open: boolean; tog
           )}
         </div>
       )}
+      <ReplyBar messageId={msg.id} />
       {original && <OriginalModal id={msg.id} onClose={() => setOriginal(false)} />}
     </Card>
   );
@@ -223,6 +227,47 @@ function MessageFrame({ html, title }: { html: string; title: string }) {
       referrerPolicy="no-referrer"
       srcDoc={doc}
     />
+  );
+}
+
+/** Reply / reply all / forward (PROMPT 6.3, 6.4): opens a compose window prefilled by the server. */
+function ReplyBar({ messageId }: { messageId: string }) {
+  const { t } = useTranslation();
+  const { message } = App.useApp();
+  const open = useCompose((s) => s.open);
+  const start = (mode: "reply" | "replyAll" | "forward") =>
+    void composeApi.fromMessage(messageId, mode).then((initial) => open({ initial }), () => message.error(t("errors.actionFailed")));
+  return (
+    <Space className="bm-reply-bar" wrap>
+      <Button icon={<RollbackOutlined />} onClick={() => start("reply")}>{t("compose.reply")}</Button>
+      <Button icon={<RollbackOutlined />} onClick={() => start("replyAll")}>{t("compose.replyAll")}</Button>
+      <Button icon={<ShareAltOutlined className="bm-flip-rtl" />} onClick={() => start("forward")}>{t("compose.forward")}</Button>
+    </Space>
+  );
+}
+
+/** In "Scheduled": when it will go, and a way to stop it (it goes back to Drafts and opens in the editor). */
+function ScheduledBanner({ messageId }: { messageId: string }) {
+  const { t } = useTranslation();
+  const fmt = useUserFormat();
+  const qc = useQueryClient();
+  const open = useCompose((s) => s.open);
+  const q = useQuery({
+    queryKey: ["scheduled", messageId],
+    queryFn: async () => {
+      const draft = await composeApi.byMessage(messageId);
+      const pending = await composeApi.pending();
+      return pending.find((p) => p.draftId === draft.id) ?? null;
+    },
+  });
+  if (!q.data) return null;
+  return (
+    <Alert className="bm-banner" type="info" showIcon message={t("compose.scheduledFor", { when: dateTime(q.data.sendAt, fmt) })}
+      action={<Button size="small" onClick={() => void composeApi.cancel(q.data!.id).then(async (draftId) => {
+        await qc.invalidateQueries({ queryKey: mailKeys.lists });
+        await qc.invalidateQueries({ queryKey: mailKeys.labels });
+        open({ draftId });
+      })}>{t("compose.cancelSchedule")}</Button>} />
   );
 }
 

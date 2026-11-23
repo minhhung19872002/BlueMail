@@ -13,6 +13,7 @@ for the full specification.
 | 1 | Foundation: solution, BlueID (OIDC, 2FA, sessions), tenants + isolation, hash-chained audit log, health, Serilog, mail store schema (modseq/UID, partitioned), React shell | done |
 | 2 | Own libraries: BlueMail.Mime, BlueMail.Dns, BlueMail.Dkim (DKIM + ARC), BlueMail.Scanner (layers 1–6); verified against Python email, dnspython, dkimpy, OpenDKIM, Postfix and ClamAV; fuzzed | done |
 | 3 | IMailStore + encrypted S3 store, threading, multilingual search; BlueMail.Mx (SMTP in, SPF/DKIM/DMARC/ARC, scanning, delivery) | done |
+| 5 | Sending: compose (TipTap), drafts with autosave, resumable attachments (tus), signatures, templates, reply/forward, undo, schedule; BlueMail.Outbound (own SMTP client, DKIM, PostgreSQL queue with leases, MX/null MX, STARTTLS, MTA-STS, retries, DSN, suppression); internal delivery | done |
 | 4 | Web reading: labels, conversation list (cursor paging), reading pane, sanitized HTML in a sandboxed iframe, image proxy, attachments (pdf.js, ZIP), single/bulk actions, SignalR live updates, incremental sync | done |
 
 ## Quick start (development)

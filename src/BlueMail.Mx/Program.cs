@@ -20,7 +20,6 @@ int Int(string name, int fallback) => int.TryParse(cfg[name], NumberStyles.None,
 builder.AddBlueMailLogging(settings, "mx");
 builder.Services.AddBlueMailInfrastructure(settings);
 builder.Services.AddBlueMailMailStore(); // not ApplicationCore: provisioning needs ASP.NET Identity (BUG-002)
-builder.Services.AddScoped<RecipientResolver>();
 builder.Services.AddSingleton(new MxOptions
 {
     Hostname = settings.MailHostname,

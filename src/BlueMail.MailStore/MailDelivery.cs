@@ -9,7 +9,7 @@ using StackExchange.Redis;
 namespace BlueMail.MailStore;
 
 public sealed record MailboxDelivery(Guid MailboxId, IReadOnlyList<string> SystemLabels, bool Seen = false, string? Category = null, bool Important = false,
-    IReadOnlyList<Guid>? ExtraLabelIds = null);
+    IReadOnlyList<Guid>? ExtraLabelIds = null, bool Draft = false);
 
 public sealed record DeliveryRequest(
     Guid TenantId,
@@ -116,7 +116,7 @@ public sealed partial class PgMailStore
                 seen, flagged, answered, forwarded, draft, keywords, spam_score, spam_report, auth_results, list_id, list_unsubscribe, category, is_important,
                 modseq, legal_hold_count, search_vector, created_at, updated_at)
             VALUES (@t, @id, @mb, @sha, @thread, @mid, @irt, @refs, @subj, @ns, @from, @fromName, @to::jsonb, @cc::jsonb, '[]'::jsonb, @replyTo::jsonb,
-                @sent, @recv, @size, @snippet, @hasAtt, @mime::jsonb, @seen, false, false, false, false, '{}', @spam, @spamReport::jsonb, @auth::jsonb,
+                @sent, @recv, @size, @snippet, @hasAtt, @mime::jsonb, @seen, false, false, false, @draft, '{}', @spam, @spamReport::jsonb, @auth::jsonb,
                 @listId, @unsub::jsonb, @category, @important, @modseq, 0,
                 setweight(to_tsvector('simple', public.f_unaccent(@vSubject)), 'A') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vPeople)), 'B') ||
@@ -130,7 +130,7 @@ public sealed partial class PgMailStore
             ("ns", Trunc(f.NormalizedSubject, 998)), ("from", (object?)Trunc(f.From?.Address, 320) ?? DBNull.Value),
             ("fromName", (object?)Trunc(f.From?.Name, 400) ?? DBNull.Value), ("to", Addrs(f.To)), ("cc", Addrs(f.Cc)), ("replyTo", Addrs(f.ReplyTo)),
             ("sent", (object?)f.Date ?? DBNull.Value), ("recv", r.ReceivedAt), ("size", r.Content.Length), ("snippet", f.Snippet),
-            ("hasAtt", f.HasAttachments), ("mime", JsonSerializer.Serialize(f.Parts, MessageFacts.Json)), ("seen", target.Seen),
+            ("hasAtt", f.HasAttachments), ("mime", JsonSerializer.Serialize(f.Parts, MessageFacts.Json)), ("seen", target.Seen), ("draft", target.Draft),
             ("spam", (object?)r.SpamScore ?? DBNull.Value), ("spamReport", (object?)r.SpamReportJson ?? DBNull.Value), ("auth", (object?)r.AuthResultsJson ?? DBNull.Value),
             ("listId", (object?)Trunc(f.ListId, 998) ?? DBNull.Value),
             ("unsub", f.ListUnsubscribe is null ? DBNull.Value : JsonSerializer.Serialize(new { header = f.ListUnsubscribe, post = f.ListUnsubscribePost })),

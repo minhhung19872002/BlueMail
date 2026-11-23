@@ -405,4 +405,63 @@ public sealed partial class PgMailStore
             .Select(ml => ml.MessageId).Distinct().CountAsync(ct);
         return inBin == ids.Distinct().Count();
     }
+
+    /// <summary>
+    /// Sets \Answered or $Forwarded after a reply/forward was sent: a flag change like any other, with a new modseq
+    /// and FLAGS rows in label_changes so IMAP clients see it (RFC 7162).
+    /// </summary>
+    public async Task MarkRepliedAsync(MailboxAccess access, Guid messageId, bool forwarded, CancellationToken ct = default)
+    {
+        access.Require(MailboxRights.Write);
+        long modseq;
+        await using (var tx = await db.Database.BeginTransactionAsync(ct))
+        {
+            var c = (NpgsqlConnection)db.Database.GetDbConnection();
+            var t = (NpgsqlTransaction)tx.GetDbTransaction();
+            modseq = await Scalar<long>(c, t, ct, "UPDATE mail.mailboxes SET highest_modseq = highest_modseq + 1 WHERE id = @mb AND tenant_id = @t RETURNING highest_modseq",
+                ("mb", access.MailboxId), ("t", access.TenantId));
+            var column = forwarded ? "forwarded" : "answered";
+            var n = await Scalar<long>(c, t, ct,
+                $"WITH u AS (UPDATE mail.messages SET {column} = true, modseq = @modseq, updated_at = now() " +
+                $"WHERE tenant_id = @t AND mailbox_id = @mb AND id = @m AND NOT {column} RETURNING id) SELECT count(*) FROM u",
+                ("modseq", modseq), ("t", access.TenantId), ("mb", access.MailboxId), ("m", messageId));
+            if (n == 0)
+            {
+                await tx.RollbackAsync(ct);
+                return;
+            }
+
+            await Exec(c, t, ct,
+                "INSERT INTO mail.label_changes (tenant_id, label_id, imap_uid, modseq, change, occurred_at) " +
+                "SELECT tenant_id, label_id, imap_uid, @modseq, 'FLAGS', now() FROM mail.message_labels WHERE tenant_id = @t AND message_id = @m",
+                ("modseq", modseq), ("t", access.TenantId), ("m", messageId));
+            await Exec(c, t, ct, "UPDATE mail.message_labels SET modseq = @modseq WHERE tenant_id = @t AND message_id = @m",
+                ("modseq", modseq), ("t", access.TenantId), ("m", messageId));
+            await tx.CommitAsync(ct);
+        }
+
+        await events.PublishAsync(access.TenantId, access.MailboxId, modseq, "message.changed");
+    }
+
+    /// <summary>
+    /// Claims one due send for submission (UNDO_WINDOW/SCHEDULED past send_at, or SUBMITTING whose lease expired):
+    /// one conditional UPDATE with SKIP LOCKED, so two dispatchers never take the same send.
+    /// </summary>
+    public async Task<Guid?> ClaimDueSendAsync(TimeSpan lease, CancellationToken ct = default)
+    {
+        var seconds = lease.TotalSeconds;
+        var claimed = await db.Database.SqlQuery<Guid>($"""
+            UPDATE mail.outgoing SET status = 'SUBMITTING', claimed_at = now(), updated_at = now()
+            WHERE id = (
+                SELECT id FROM mail.outgoing
+                WHERE deleted_at IS NULL AND (
+                      (status IN ('UNDO_WINDOW', 'SCHEDULED') AND send_at <= now())
+                   OR (status = 'SUBMITTING' AND claimed_at < now() - make_interval(secs => {seconds})))
+                ORDER BY send_at
+                LIMIT 1
+                FOR UPDATE SKIP LOCKED)
+            RETURNING id AS "Value"
+            """).ToListAsync(ct);
+        return claimed.Count == 0 ? null : claimed[0];
+    }
 }

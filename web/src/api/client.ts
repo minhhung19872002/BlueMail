@@ -59,7 +59,16 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return (json as Envelope<T>).data;
 }
 
+/** Binary content with the bearer token (e.g. preview of an uploaded inline image). */
+async function blob(path: string): Promise<Blob> {
+  const token = await accessToken();
+  const res = await fetch(config().apiBase + path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, "http_" + res.status, res.statusText);
+  return res.blob();
+}
+
 export const api = {
+  blob,
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body: unknown) => request<T>("POST", path, body),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),

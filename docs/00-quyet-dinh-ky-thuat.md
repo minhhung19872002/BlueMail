@@ -236,3 +236,26 @@ So sánh với `email` của Python (PROMPT 11) cho thấy 8 điểm BlueMail ch
 `tests/BlueMail.Corpus/python-differences.json`): ở các thư sai chuẩn, BlueMail đọc ra chữ có nghĩa thay vì ký tự
 thay thế (đoán bảng mã có kiểm soát, ghép từ mã hoá bị cắt), giới hạn độ sâu lồng, và hiểu `-0000` là UTC theo
 RFC 5322. Mục nào trong danh sách không còn khác biệt thì phép thử đỏ để buộc dọn danh sách.
+
+## D12. Khoá của mạng dev nằm trong git (đã xác nhận với chủ sản phẩm)
+
+`deploy/.env.dev` (khoá gốc, khoá OIDC, khoá S3, mật khẩu mẫu) và `deploy/dev/dkim/*.pem` (khoá DKIM của các tên
+miền giả `*.test`) được commit có chủ ý để ai clone repo cũng dựng được mạng thử nghiệm ngay. GitGuardian cảnh báo
+"Generic Encryption Key / High Entropy Secret" ngày 2026-11-23; đã kiểm: khoá của bản chạy thật (`deploy/.env`,
+`deploy/.env.local`) **chưa từng** vào lịch sử git và khác hoàn toàn khoá dev. Chủ sản phẩm quyết định giữ nguyên
+(cảnh báo là dương tính giả). Quy tắc: không bao giờ dùng khoá dev cho tên miền thật; `scripts/install.sh` sinh
+khoá ngẫu nhiên cho mọi bản cài thật.
+
+## D13. Hàng đợi gửi đi: thuê bao (lease) thay vì giữ khoá giao dịch
+
+Người nhận được "thuê" (`locked_until`) bằng một lệnh UPDATE … `FOR UPDATE SKIP LOCKED` rồi giao dịch kết thúc ngay;
+phiên SMTP chạy ngoài giao dịch CSDL. Tiến trình chết → thuê hết hạn → tiến trình khác nhận lại. Kết quả ghi ngay
+sau khi máy chủ nhận trả lời. Khoảng hở duy nhất có thể gửi trùng là "máy nhận đã trả 250 nhưng ta chết trước khi
+ghi" (mili giây), là bản chất của SMTP (giao ít nhất một lần, RFC 5321 6.1); máy nhận chưa trả lời cuối thì không
+tính là đã giao (phép thử `Worker_killed_before_the_final_reply…`).
+
+## D14. Envelope-from là địa chỉ người gửi; VERP từ Phase 12
+
+Thư trả lại đến chậm (bounce không đồng bộ, ARF) được xử lý ở Phase 12 (PROMPT mục 13). Tới lúc đó envelope-from là
+chính địa chỉ người gửi để thư trả lại của máy khác về đúng hộp thư người gửi, thay vì một địa chỉ VERP mà `mx` chưa
+biết xử lý (sẽ bị từ chối 550 và mất).

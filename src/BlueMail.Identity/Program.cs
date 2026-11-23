@@ -185,7 +185,7 @@ namespace BlueMail.Identity
 
             if (string.Equals(config["BM_SEED_SAMPLE_DATA"], "true", StringComparison.OrdinalIgnoreCase))
             {
-                await seeder.SeedSampleTenantsAsync(new SeedOptions(adminEmail ?? "", adminPassword ?? "", platformDomain, config["BM_SEED_USER_PASSWORD"]),
+                await seeder.SeedSampleTenantsAsync(new SeedOptions(adminEmail ?? "", adminPassword ?? "", platformDomain, config["BM_SEED_USER_PASSWORD"], config["BM_DEV_DKIM_DIR"]),
                     CancellationToken.None);
             }
         }

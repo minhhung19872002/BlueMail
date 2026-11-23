@@ -374,3 +374,141 @@ internal sealed class TrustedImageSenderConfig : IEntityTypeConfiguration<Truste
         b.HasOne<Mailbox>().WithMany().HasForeignKey(x => x.MailboxId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+internal sealed class SignatureConfig : IEntityTypeConfiguration<Signature>
+{
+    public void Configure(EntityTypeBuilder<Signature> b)
+    {
+        b.ToTable("signatures", "mail");
+        b.Property(x => x.Name).HasMaxLength(200);
+        b.Property(x => x.FromAddress).HasMaxLength(320);
+        b.HasIndex(x => new { x.UserId, x.Name }).IsUnique().HasFilter(Sql.NotDeleted);
+    }
+}
+
+internal sealed class MailTemplateConfig : IEntityTypeConfiguration<MailTemplate>
+{
+    public void Configure(EntityTypeBuilder<MailTemplate> b)
+    {
+        b.ToTable("templates", "mail");
+        b.Property(x => x.Name).HasMaxLength(200);
+        b.Property(x => x.Subject).HasMaxLength(998);
+        b.HasIndex(x => new { x.UserId, x.Name }).IsUnique().HasFilter(Sql.NotDeleted);
+    }
+}
+
+internal sealed class DraftConfig : IEntityTypeConfiguration<Draft>
+{
+    public void Configure(EntityTypeBuilder<Draft> b)
+    {
+        b.ToTable("drafts", "mail");
+        b.Property(x => x.State).HasColumnType("jsonb");
+        b.Property(x => x.Version).IsConcurrencyToken();
+        b.HasIndex(x => new { x.MailboxId, x.UpdatedAt });
+        b.HasIndex(x => x.MessageId);
+        b.HasOne<Mailbox>().WithMany().HasForeignKey(x => x.MailboxId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class OutgoingConfig : IEntityTypeConfiguration<Outgoing>
+{
+    public void Configure(EntityTypeBuilder<Outgoing> b)
+    {
+        b.ToTable("outgoing", "mail");
+        b.Property(x => x.FromAddress).HasMaxLength(320);
+        b.Property(x => x.RfcMessageId).HasMaxLength(998);
+        b.Property(x => x.Error).HasMaxLength(2000);
+        // PROMPT 6.4: a draft is never sent twice - at most one pending send per draft, enforced by the database.
+        b.HasIndex(x => x.DraftId).IsUnique().HasFilter("status IN ('UNDO_WINDOW','SCHEDULED','SUBMITTING') AND deleted_at IS NULL")
+            .HasDatabaseName("ux_outgoing_draft_pending");
+        b.HasIndex(x => new { x.Status, x.SendAt });
+        b.HasIndex(x => new { x.MailboxId, x.Status });
+    }
+}
+
+internal sealed class LargeAttachmentConfig : IEntityTypeConfiguration<LargeAttachment>
+{
+    public void Configure(EntityTypeBuilder<LargeAttachment> b)
+    {
+        b.ToTable("large_attachments", "mail");
+        b.Property(x => x.ObjectKey).HasMaxLength(300);
+        b.Property(x => x.FileName).HasMaxLength(1024);
+        b.Property(x => x.ContentType).HasMaxLength(255);
+        b.Property(x => x.TokenHash).HasMaxLength(64);
+        b.HasIndex(x => x.TokenHash).IsUnique();
+        b.HasIndex(x => x.ExpiresAt);
+    }
+}
+
+internal sealed class UploadConfig : IEntityTypeConfiguration<Upload>
+{
+    public void Configure(EntityTypeBuilder<Upload> b)
+    {
+        b.ToTable("uploads", "mail");
+        b.Property(x => x.FileName).HasMaxLength(1024);
+        b.Property(x => x.ContentType).HasMaxLength(255);
+        b.Property(x => x.ScanStatus).HasMaxLength(32);
+        b.HasIndex(x => x.ExpiresAt);
+    }
+}
+
+internal sealed class OutboundMessageConfig : IEntityTypeConfiguration<OutboundMessage>
+{
+    public void Configure(EntityTypeBuilder<OutboundMessage> b)
+    {
+        b.ToTable("outbound_messages", "mta");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.EnvelopeFrom).HasMaxLength(320);
+        b.Property(x => x.DkimDomain).HasMaxLength(253);
+        b.Property(x => x.RfcMessageId).HasMaxLength(998);
+        b.Property(x => x.SenderLocale).HasMaxLength(35);
+        b.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+        // A submission retried after a crash cannot queue the same message twice.
+        b.HasIndex(x => x.OutgoingId).IsUnique().HasFilter("outgoing_id IS NOT NULL");
+    }
+}
+
+internal sealed class OutboundRecipientConfig : IEntityTypeConfiguration<OutboundRecipient>
+{
+    public void Configure(EntityTypeBuilder<OutboundRecipient> b)
+    {
+        b.ToTable("outbound_recipients", "mta");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.Rcpt).HasMaxLength(320);
+        b.Property(x => x.Domain).HasMaxLength(253);
+        b.Property(x => x.LastMx).HasMaxLength(253);
+        b.Property(x => x.LastIp).HasMaxLength(45);
+        b.Property(x => x.LastResponse).HasMaxLength(1000);
+        b.HasIndex(x => new { x.Status, x.NextAttemptAt });   // the SKIP LOCKED pick-up
+        b.HasIndex(x => new { x.OutboundMessageId, x.Rcpt }).IsUnique();
+        b.HasOne<OutboundMessage>().WithMany().HasForeignKey(x => x.OutboundMessageId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class SuppressionConfig : IEntityTypeConfiguration<Suppression>
+{
+    public void Configure(EntityTypeBuilder<Suppression> b)
+    {
+        b.ToTable("suppressions", "mta");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.Address).HasMaxLength(320);
+        b.Property(x => x.Detail).HasMaxLength(1000);
+        b.HasIndex(x => new { x.TenantId, x.Address }).IsUnique().AreNullsDistinct(false);
+    }
+}
+
+internal sealed class DestinationLimitConfig : IEntityTypeConfiguration<DestinationLimit>
+{
+    public void Configure(EntityTypeBuilder<DestinationLimit> b)
+    {
+        b.ToTable("destination_limits", "mta");
+        b.Property(x => x.DomainPattern).HasMaxLength(253);
+        b.HasIndex(x => x.DomainPattern).IsUnique();
+        b.HasData(
+            new DestinationLimit { Id = 1, DomainPattern = "gmail.com", MaxConnections = 5, MaxMessagesPerMinute = 300 },
+            new DestinationLimit { Id = 2, DomainPattern = "outlook.com", MaxConnections = 3, MaxMessagesPerMinute = 120 },
+            new DestinationLimit { Id = 3, DomainPattern = "hotmail.com", MaxConnections = 3, MaxMessagesPerMinute = 120 },
+            new DestinationLimit { Id = 4, DomainPattern = "yahoo.com", MaxConnections = 3, MaxMessagesPerMinute = 120 },
+            new DestinationLimit { Id = 5, DomainPattern = "*", MaxConnections = 10, MaxMessagesPerMinute = 600 });
+    }
+}

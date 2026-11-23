@@ -37,3 +37,10 @@ Mỗi RFC: phạm vi đã làm, chưa làm, bằng chứng kiểm thử. Cập n
 | RFC 8601 | `BlueMail.Mx` | thêm Authentication-Results (spf, dkim, dmarc, arc) ở đầu bản lưu | xoá A-R giả mạo cùng authserv-id (hiện chỉ không tin, Phase 6) | P3-01 |
 | RFC 7208 SPF | `BlueMail.Auth` | mọi cơ chế và modifier, giới hạn 10 tra cứu DNS / 2 void, macro, exp= | — | `SpfSuiteTests` (bộ thử chính thức rfc7208-tests.yml) |
 | RFC 7489 DMARC | `BlueMail.Auth` | tìm chính sách ở From rồi tên miền tổ chức (PSL), căn chỉnh relaxed/strict, pct, sp= | báo cáo rua/ruf (Phase 7) | `DmarcPslTests`, P3-11 |
+| RFC 5321 (máy khách) | `SmtpClient`, `BlueMail.Outbound` | EHLO/HELO, MAIL/RCPT/DATA với nhân đôi dấu chấm, kết quả theo từng người nhận, thử MX theo ưu tiên, MX ngầm định, thời gian chờ 4.5.3.2 | PIPELINING phía khách (gửi tuần tự) | `SmtpClientTests`, `SendingTests`, P5-01 |
+| RFC 7505 null MX | `MxResolver` | "MX 0 ." → trả lại ngay 5.1.10 | — | `RoutingTests` |
+| RFC 8461 MTA-STS | `MtaStsResolver`, `SmtpClient` | TXT id, tải chính sách HTTPS có kiểm chứng chỉ, đệm theo max_age, giữ chính sách cũ khi tải lỗi, lọc MX, bắt buộc TLS + chứng chỉ khớp | Báo cáo TLS-RPT (RFC 8460, Phase 12) | `RoutingTests`, `Required_tls_fails_closed…` |
+| RFC 3464 / 6522 DSN | `DsnBuilder` | multipart/report, message/delivery-status (Final-Recipient, Action, Status, Remote-MTA, Diagnostic-Code), text/rfc822-headers; lời giải thích tiếng Anh + tiếng người gửi | — | `DsnTests` (đọc lại bằng bộ phân tích DSN của mình) |
+| RFC 3030 / 1870 / 6152 / 6531 (máy khách) | `SmtpClient` | BDAT khi có CHUNKING, SIZE, BODY=8BITMIME, SMTPUTF8 (không có thì báo lỗi vĩnh viễn thay vì hạ cấp làm hỏng địa chỉ) | Hạ cấp địa chỉ quốc tế hoá | `SmtpClientTests` |
+| RFC 5322 3.6.4 trả lời | `ComposeFromMessageHandler` | In-Reply-To, References (giới hạn 20, giữ phần đầu) | — | `Reply_reply_all_and_forward…` |
+| tus 1.0 | `UploadsController` | creation, HEAD, PATCH có kiểm offset, termination | concatenation, checksum | (kiểm qua web) |

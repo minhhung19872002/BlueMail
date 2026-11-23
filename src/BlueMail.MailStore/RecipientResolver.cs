@@ -5,7 +5,7 @@ using BlueMail.Domain.Tenants;
 using BlueMail.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace BlueMail.Mx;
+namespace BlueMail.MailStore;
 
 public enum RecipientStatus { Ok, NotOurDomain, Unknown, TenantSuspended, OverQuota }
 

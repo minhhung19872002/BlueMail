@@ -9,6 +9,8 @@ import { systemViews } from "./labels";
 import { ConversationList } from "./ConversationList";
 import { ThreadView } from "./ThreadView";
 import { mailKeys } from "./mailApi";
+import { composeApi } from "../compose/composeApi";
+import { useCompose } from "../compose/composeStore";
 
 /**
  * A list (system view or user label) with its reading pane. The open conversation is in the URL (?t=), so
@@ -22,6 +24,7 @@ export function MailboxPage() {
   const screens = Grid.useBreakpoint();
   const labels = useQuery({ queryKey: mailKeys.labels, queryFn: () => api.get<Labels>("/api/v1/mail/labels") });
   const threadId = search.get("t");
+  const openCompose = useCompose((s) => s.open);
 
   if (!labels.data) return <Spin className="bm-list-spin" />;
   const all = labels.data.labels;
@@ -33,7 +36,14 @@ export function MailboxPage() {
   if (view && view.systemKey && !systemLabel) return <Typography.Text>{t("mail.labelNotFound")}</Typography.Text>;
 
   const title = view ? t(view.i18nKey) : userLabel!.name;
-  const open = (id: string) => setSearch((s) => { s.set("t", id); return s; });
+  // Drafts open in the editor, everything else in the reading pane.
+  const open = (id: string, latestMessageId: string) => {
+    if (view?.systemKey === "DRAFTS") {
+      void composeApi.byMessage(latestMessageId).then((d) => openCompose({ draftId: d.id }), () => setSearch((s) => { s.set("t", id); return s; }));
+      return;
+    }
+    setSearch((s) => { s.set("t", id); return s; });
+  };
   const close = () => setSearch((s) => { s.delete("t"); return s; });
   // Split panes only where there is room (≥ 1200 px); phones and the "none" setting show one at a time.
   const split = pane !== "none" && screens.xl === true;

@@ -58,3 +58,12 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Hub calls have no ICurrentUser: validate the session from `Context.User` (BUG-022).
 - Sample mail: `scripts/dev-seed-mail.py`; doitac.test senders must go via its Postfix (DMARC p=reject).
 - Check UI at 375 px with screenshots, not only measurements (BUG-023, BUG-024).
+
+## Sending (Phase 5)
+- Send path: draft (mail.drafts + a real message in DRAFTS) -> mail.outgoing (UNDO_WINDOW/SCHEDULED, unique per draft)
+  -> `OutgoingDispatcher` (in BlueMail.Outbound) -> Sent copy + internal delivery + mta.outbound_* -> `DeliveryWorker`.
+  Every dispatcher step is idempotent by the fixed Message-ID; keep it that way.
+- Raw SQL via `SqlQuery<T>`: column aliases must be snake_case (naming convention applies, BUG-030).
+- Outbound runs in the dev compose (`outbound`, 10.77.0.26); rebuild with mx. Dev DKIM keys are imported by
+  `dev-run.sh identity` (BM_DEV_DKIM_DIR). OpenDKIM in the doitac container cannot verify (BUG-027): use dkimpy.
+- Dev keys in git are intentional (docs/00 D12).

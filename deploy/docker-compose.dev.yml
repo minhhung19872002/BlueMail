@@ -110,6 +110,23 @@ services:
     networks: { bmnet: { ipv4_address: 10.77.0.25 } }
     restart: unless-stopped
 
+  # --- BlueMail.Outbound on out1.bluemail.test (Phase 5): submits sends and delivers the outbound queue. ---
+  outbound:
+    image: bluemail/server:dev
+    command: ["outbound"]
+    <<: *dns
+    env_file: [.env.dev]
+    environment:
+      BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_VALKEY: 10.77.0.12:6379
+      BM_S3_ENDPOINT: http://10.77.0.11:3900
+      BM_DNS_SERVERS: 10.77.0.53
+      BM_OUTBOUND_HELO: out1.bluemail.test
+      ASPNETCORE_ENVIRONMENT: Development
+    depends_on: [postgres, valkey, s3, dns, mx]
+    networks: { bmnet: { ipv4_address: 10.77.0.26 } }
+    restart: unless-stopped
+
   # --- test-only, Phase 0: SMTP sink that stood on mx.bluemail.test before BlueMail.Mx existed.
   # Kept for the Phase 0 check only (profile phase0, on another address so it never collides with mx). ---
   sink:

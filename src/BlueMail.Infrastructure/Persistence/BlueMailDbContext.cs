@@ -52,6 +52,16 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<LabelChange> LabelChanges => Set<LabelChange>();
     public DbSet<TrustedImageSender> TrustedImageSenders => Set<TrustedImageSender>();
+    public DbSet<Signature> Signatures => Set<Signature>();
+    public DbSet<MailTemplate> Templates => Set<MailTemplate>();
+    public DbSet<Draft> Drafts => Set<Draft>();
+    public DbSet<Outgoing> Outgoing => Set<Outgoing>();
+    public DbSet<LargeAttachment> LargeAttachments => Set<LargeAttachment>();
+    public DbSet<Upload> Uploads => Set<Upload>();
+    public DbSet<OutboundMessage> OutboundMessages => Set<OutboundMessage>();
+    public DbSet<OutboundRecipient> OutboundRecipients => Set<OutboundRecipient>();
+    public DbSet<Suppression> Suppressions => Set<Suppression>();
+    public DbSet<DestinationLimit> DestinationLimits => Set<DestinationLimit>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

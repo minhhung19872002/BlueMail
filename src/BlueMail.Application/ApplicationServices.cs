@@ -19,6 +19,7 @@ public static class ApplicationServices
     public static IServiceCollection AddBlueMailApplicationCore(this IServiceCollection services)
     {
         services.AddBlueMailMailStore();
+        services.AddBlueMailSendingCore();
         services.AddScoped<UserProvisioning>();
         services.AddScoped<TenantProvisioning>();
         services.AddScoped<SampleDataSeeder>();
@@ -31,6 +32,8 @@ public static class ApplicationServices
         services.AddBlueMailApplicationCore();
         services.AddScoped<Features.Mail.MailboxOpener>();
         services.AddScoped<Features.Mail.SignedContent>();
+        services.AddScoped<Features.Sending.UploadService>();
+        services.AddScoped<Features.Sending.LargeFiles>();
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(typeof(ApplicationServices).Assembly);
@@ -64,4 +67,16 @@ public static class ApplicationServices
             .Services.AddSingleton<ILookupNormalizer, EmailLookupNormalizer>().AddIdentityCoreBuilder();
 
     private static IdentityBuilder AddIdentityCoreBuilder(this IServiceCollection services) => new(typeof(User), typeof(Role), services);
+
+    /// <summary>Drafts, sending and the dispatcher: used by the API and by BlueMail.Outbound (no ICurrentUser needed).</summary>
+    public static IServiceCollection AddBlueMailSendingCore(this IServiceCollection services)
+    {
+        services.AddScoped<Features.Sending.DkimKeyService>();
+        services.AddScoped<Features.Sending.MimeComposer>();
+        services.AddScoped<Features.Sending.SenderPolicy>();
+        services.AddScoped<Features.Sending.DraftService>();
+        services.AddScoped<Features.Sending.SendService>();
+        services.AddSingleton<Features.Sending.OutgoingDispatcher>();
+        return services;
+    }
 }

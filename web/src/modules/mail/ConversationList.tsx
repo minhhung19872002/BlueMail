@@ -21,7 +21,7 @@ interface Props {
   labels: LabelSummary[];
   title: string;
   openThreadId: string | null;
-  onOpen: (threadId: string) => void;
+  onOpen: (threadId: string, latestMessageId: string) => void;
 }
 
 /** Conversation list (PROMPT 6.2): cursor pages, selection, bulk and hover actions, drag to a label. */
@@ -158,7 +158,7 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
               open={c.threadId === openThreadId}
               checked={selected.has(c.threadId)}
               onCheck={(v) => setSelected((s) => { const n = new Set(s); if (v) n.add(c.threadId); else n.delete(c.threadId); return n; })}
-              onOpen={() => onOpen(c.threadId)}
+              onOpen={() => onOpen(c.threadId, c.latestMessageId)}
               onAction={(a) => void run(a, [c.threadId])}
               labels={c.labelIds.map((id) => labelById.get(id)).filter((l): l is LabelSummary => !!l && l.systemKey === null && l.showInMessageList)}
               dragIds={() => (selected.has(c.threadId) ? sel : [c.threadId])}

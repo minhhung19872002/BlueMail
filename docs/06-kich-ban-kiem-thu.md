@@ -144,3 +144,28 @@ Chạy: `dotnet test --filter "MailReadingApi|UnitTests.Mail"`; web `npx vitest 
 Chưa làm trong Phase 4 (đúng phase sau theo mục 13): trả lời/chuyển tiếp và phản hồi lời mời lịch (Phase 5); nút
 hủy đăng ký, tạm ẩn, biểu ngữ "người gửi lần đầu" (cần danh bạ), phím tắt (Phase 8); thao tác hàng loạt > 500 thư
 chạy nền (cần Hangfire, Phase 7/8 khi có việc nền đầu tiên) — hiện API giới hạn 500/lần và giao diện báo rõ.
+
+## Phase 5 — gửi thư (soạn, nháp, BlueMail.Outbound)
+
+Chạy: `dotnet test --filter "SendingTests|RoutingTests|DsnTests|SmtpClientTests"`; web `npx vitest run`. Kiểm thật:
+`docker compose … up -d --build mx outbound` (outbound = out1.bluemail.test, 10.77.0.26), `dev-run.sh identity|api`,
+soạn trên web gửi tới `binh@doitac.test`.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P5-01 | Gửi ra ngoài qua Postfix | Web: lan@ soạn (chữ đậm, tiêu đề tiếng Việt) tới binh@doitac.test + minh@ | Postfix nhận qua TLS, chữ ký DKIM `d=bluemail.test s=bm2026` hợp lệ; minh nhận bản nội bộ; 1 bản trong Đã gửi; nháp biến mất | Như mong đợi; DKIM kiểm bằng dkimpy trên tệp Maildir (`True`) vì OpenDKIM của container đối chứng không phân giải DNS được (BUG-027) | ✅ |
+| P5-02 | Hoàn tác | Gửi (10 s) → Hoàn tác | Thư không đi; nháp mở lại y nguyên | Như mong đợi (API + giao diện) | ✅ |
+| P5-03 | Không gửi hai lần | Bấm gửi hai lần; hai bộ điều phối chạy song song; giả lập chết sau khi nộp | 409 `already_sending`; 1 bản Đã gửi, 1 bản mỗi hộp nội bộ, 1 dòng hàng đợi | Như mong đợi | ✅ |
+| P5-04 | Hẹn giờ | Hẹn 3 giờ sau; huỷ | Nằm ở "Đã lên lịch", chưa gửi; huỷ → về "Thư nháp" | Như mong đợi | ✅ |
+| P5-05 | Kết quả theo người nhận | Máy nhận giả: ok/550 5.1.1/451 | Giao / trả lại (+ danh sách chặn gửi + DSN tiếng Anh + tiếng của người gửi) / hoãn 5 phút | Như mong đợi; thử lại đúng lịch (chưa tới hạn không thử) | ✅ |
+| P5-06 | Báo trễ và hết hạn | Lỗi tạm mãi | Sau 4 giờ: DSN "Delay"; sau 5 ngày: EXPIRED + DSN "Failure" | Như mong đợi | ✅ |
+| P5-07 | Tiến trình bị giết | Máy nhận giữ trả lời cuối, giết bộ giao | Thư chưa tính là đã giao; tiến trình khác không lấy được trong thời hạn thuê; hết hạn → giao đúng 1 lần | Như mong đợi | ✅ |
+| P5-08 | Định tuyến | MX theo ưu tiên, không MX, MX rỗng, NXDOMAIN, lỗi DNS | Thứ tự đúng; MX ngầm định; trả lại ngay; trả lại; hoãn (không trả lại vì DNS chập chờn) | Như mong đợi | ✅ |
+| P5-09 | MTA-STS | Phân tích chính sách; chế độ enforce với chứng chỉ không tin cậy | Ký tự đại diện chỉ một nhãn; không bao giờ rơi về văn bản trần | Như mong đợi | ✅ |
+| P5-10 | Máy khách SMTP | Với máy chủ BlueMail (TLS, BDAT) và máy chủ tối giản (DATA) | Byte nhận khớp từng byte; dấu chấm đầu dòng được nhân đôi | Như mong đợi | ✅ |
+| P5-11 | Từ, trả lời, chuyển tiếp | Gửi từ địa chỉ người khác; trả lời tất cả; chuyển tiếp | 403; Re:/Fwd: một lần, In-Reply-To/References, cc không gồm mình; thư trả lời vào cùng hội thoại | Như mong đợi | ✅ |
+| P5-12 | Soạn trên web | Chip người nhận (ngoài tổ chức đổi màu), gợi ý từ tổ chức, tự lưu nháp, định dạng | Như mong đợi | Kiểm trên trình duyệt | ✅ |
+| P5-13 | Cảnh báo trước khi gửi, hẹn giờ theo múi giờ | `compose.test.ts` | Tiêu đề trống, nhắc đính kèm (bỏ qua phần trích dẫn), gửi nhiều ra ngoài; 8:00 sáng mai đúng múi giờ người dùng, qua DST | Như mong đợi | ✅ |
+
+Chưa làm trong Phase 5 (đúng phase sau): dải IP và làm ấm, bounce/ARF không đồng bộ, VERP, TLS-RPT, DANE (Phase 12);
+SMTP nộp thư 587/465 (Phase 11); chế độ bảo mật (Phase 12).

@@ -11,6 +11,8 @@ interface UiState {
   sidebarCollapsed: boolean;
   readingPane: ReadingPane;
   threaded: boolean;
+  undoSeconds: 5 | 10 | 20 | 30;
+  setUndoSeconds: (s: 5 | 10 | 20 | 30) => void;
   setReadingPane: (p: ReadingPane) => void;
   setTheme: (t: ThemePreference) => void;
   setDensity: (d: Density) => void;
@@ -26,6 +28,8 @@ export const useUi = create<UiState>()(
       sidebarCollapsed: false,
       readingPane: "none",
       threaded: true,
+      undoSeconds: 10,
+      setUndoSeconds: (undoSeconds) => set({ undoSeconds }),
       setReadingPane: (readingPane) => set({ readingPane }),
       setTheme: (theme) => set({ theme }),
       setDensity: (density) => set({ density }),

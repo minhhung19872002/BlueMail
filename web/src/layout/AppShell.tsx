@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
-  BulbOutlined, ClusterOutlined, DeleteOutlined, LayoutOutlined, LogoutOutlined, MenuOutlined, PlusOutlined, SafetyOutlined,
-  TeamOutlined, UserOutlined,
+  BulbOutlined, ClusterOutlined, DeleteOutlined, EditOutlined, LayoutOutlined, LogoutOutlined, MenuOutlined, PlusOutlined, SafetyOutlined,
+  SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,8 @@ import { countFor, labelPalette, systemViews, userLabels } from "../modules/mail
 import { act, createLabel, deleteLabel, mailKeys } from "../modules/mail/mailApi";
 import { dragType } from "../modules/mail/ConversationList";
 import { useMailboxLive } from "../modules/mail/realtime";
+import { ComposeDock } from "../modules/compose/ComposeDock";
+import { useCompose } from "../modules/compose/composeStore";
 import { useCan, useMe } from "../session";
 import { useUi, type Density, type ReadingPane, type ThemePreference } from "../store/ui";
 
@@ -41,6 +43,8 @@ export function AppShell() {
   const setTheme = useUi((s) => s.setTheme);
   const setDensity = useUi((s) => s.setDensity);
   const setReadingPane = useUi((s) => s.setReadingPane);
+  const setUndoSeconds = useUi((s) => s.setUndoSeconds);
+  const openCompose = useCompose((s) => s.open);
   const canUsers = useCan(Permission.AdminUsersView);
   const canTenants = useCan(Permission.PlatformTenantsView);
   const labels = useQuery({ queryKey: mailKeys.labels, queryFn: () => api.get<Labels>("/api/v1/mail/labels") });
@@ -153,6 +157,11 @@ export function AppShell() {
       { key: "who", label: me.email, disabled: true },
       { type: "divider" },
       { key: "/settings/sessions", icon: <SafetyOutlined />, label: t("nav.sessions") },
+      { key: "/settings/signatures", icon: <SignatureFilled />, label: t("nav.signatures") },
+      {
+        key: "undo", icon: <UndoOutlined />, label: t("compose.undoSetting"),
+        children: [5, 10, 20, 30].map((n) => ({ key: `undo:${n}`, label: t("compose.undoSeconds", { n }) })),
+      },
       {
         key: "theme", icon: <BulbOutlined />, label: t("theme.title"),
         children: (["system", "light", "dark"] as ThemePreference[]).map((m) => ({ key: `theme:${m}`, label: t(`theme.${m}`) })),
@@ -175,6 +184,7 @@ export function AppShell() {
       else if (key.startsWith("theme:")) setTheme(key.slice(6) as ThemePreference);
       else if (key.startsWith("density:")) setDensity(key.slice(8) as Density);
       else if (key.startsWith("pane:")) setReadingPane(key.slice(5) as ReadingPane);
+      else if (key.startsWith("undo:")) setUndoSeconds(Number(key.slice(5)) as 5 | 10 | 20 | 30);
       else if (key.startsWith("/")) navigate(key);
     },
   };
@@ -204,6 +214,12 @@ export function AppShell() {
           trigger={null}
           theme="light"
         >
+          <div className="bm-compose-btn-wrap">
+            <Button type="primary" size="large" icon={<EditOutlined />} className="bm-compose-btn" onClick={() => openCompose({})}
+              aria-label={t("compose.compose")}>
+              {!collapsed && t("compose.compose")}
+            </Button>
+          </div>
           <nav aria-label={t("nav.labels")}>
             <Menu
               mode="inline"
@@ -241,6 +257,7 @@ export function AppShell() {
             <Outlet />
           </div>
         </Content>
+        <ComposeDock />
       </Layout>
     </Layout>
   );

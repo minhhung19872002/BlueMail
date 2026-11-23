@@ -74,6 +74,16 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | @microsoft/signalr | 11.0.0 | MIT | Máy khách thời gian thực (PROMPT 1: SignalR) |
 | dompurify | 3.5.0 | MPL-2.0 OR Apache-2.0 (dùng theo Apache-2.0) | Lọc HTML thư lần hai phía trình duyệt (PROMPT 1) |
 | pdfjs-dist | 6.5.438 | Apache-2.0 | Xem trước PDF trong trình duyệt (PROMPT 1, 6.3) |
+| @tiptap/react | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| @tiptap/pm | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| @tiptap/starter-kit | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| @tiptap/extension-text-align | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| @tiptap/extension-text-style | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| @tiptap/extension-image | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| @tiptap/extension-table | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| @tiptap/extensions | 3.35.0 | MIT | Trình soạn thư TipTap (PROMPT 1; chỉ phần mở rộng miễn phí) |
+| tus-js-client | 4.3.1 | MIT | Tải tệp đính kèm tiếp tục được khi đứt mạng (PROMPT 6.4, giao thức tus) |
+| dayjs | 1.11.23 | MIT | Kiểu ngày giờ của bộ chọn ngày Ant Design (đã là phụ thuộc của antd; khai báo trực tiếp vì mã dùng kiểu của nó) |
 | @tanstack/react-query | 5.108.3 | MIT | Gọi API, đệm |
 | antd | 5.29.3 | MIT | Thư viện giao diện |
 | i18next | 27.2.4 | MIT | Đa ngôn ngữ |
