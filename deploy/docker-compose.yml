@@ -24,6 +24,7 @@ x-server-env: &server-env
   BM_OIDC_SIGNING_KEY: ${BM_OIDC_SIGNING_KEY:?BM_OIDC_SIGNING_KEY is required - see .env.example}
   BM_OIDC_ENCRYPTION_KEY: ${BM_OIDC_ENCRYPTION_KEY:?BM_OIDC_ENCRYPTION_KEY is required - see .env.example}
   BM_TRUSTED_PROXIES: ${BM_TRUSTED_PROXIES:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+  BM_DNS_SERVERS: ${BM_DNS_SERVERS:-}
 
 services:
   postgres:
