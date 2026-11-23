@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.ps1 text eol=crlf
+# Mail corpus and binary fixtures must be byte-exact (CRLF, 8-bit, broken encodings)
+tests/BlueMail.Corpus/** -text
+*.eml -text
+*.mbox -text
+*.bin binary
+*.pem text eol=lf
