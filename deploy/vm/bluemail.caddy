@@ -1,0 +1,44 @@
+# Site file for the shared proxy on the BlueStar VM (~/proxy/sites/bluemail.caddy). Same routing as
+# deploy/caddy/Caddyfile, with the full container names of the "bluemail" compose project (the shared Caddy joins
+# many networks; short names could resolve into another project). Host names: platform domain bm.bluestar.com.vn.
+
+bm.bluestar.com.vn {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+	encode zstd gzip
+	handle /api/* {
+		reverse_proxy bluemail-api-1:8080
+	}
+	handle /hubs/* {
+		reverse_proxy bluemail-api-1:8080
+	}
+	handle {
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://id.bm.bluestar.com.vn; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action https://id.bm.bluestar.com.vn"
+		reverse_proxy bluemail-web-1:8080
+	}
+	handle_errors {
+		@api path /api/*
+		header @api Content-Type "application/problem+json; charset=utf-8"
+		respond @api `{"success":false,"type":"https://bluemail.dev/errors/service_unavailable","title":"The service is temporarily unavailable.","status":{err.status_code},"code":"service_unavailable","errors":[]}` {err.status_code}
+	}
+}
+
+id.bm.bluestar.com.vn {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	encode zstd gzip
+	reverse_proxy bluemail-identity-1:8080
+}
+
+# Mail host names: only for the certificates that mx, submission and imap read from the shared data volume.
+mail.bm.bluestar.com.vn, smtp.bm.bluestar.com.vn, imap.bm.bluestar.com.vn {
+	respond "BlueMail mail service: use SMTP or IMAP." 200
+}

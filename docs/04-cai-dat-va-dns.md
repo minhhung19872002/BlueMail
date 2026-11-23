@@ -86,3 +86,17 @@ bảng thư lớn có thể mất nhiều phút và chặn ghi thư trong lúc �
 ## 7. Biến môi trường
 
 Danh sách đầy đủ có chú thích trong `deploy/.env.example`. Thiếu biến bắt buộc thì tiến trình dừng và nói rõ biến nào.
+
+## Máy chủ dùng chung (VM BlueStar 14.225.83.93) — chuẩn bị cho P12-12
+
+- Image không build trên máy chủ: `.github/workflows/images.yml` build `bluemail-server` và `bluemail-web` trên GitHub Actions,
+  đẩy lên `ghcr.io/minhhung19872002/bluemail-<tên>:<sha>` (và `:main`).
+- Chạy: `docker compose --env-file deploy/.env -f deploy/docker-compose.yml -f deploy/vm/docker-compose.vm.yml up -d --no-build`
+  với `BM_IMAGE_REPO=ghcr.io/minhhung19872002`, `BM_VERSION=<sha>`, `BM_PLATFORM_DOMAIN=bm.bluestar.com.vn`,
+  `BM_MAIL_HOSTNAME=mail.bm.bluestar.com.vn`, `BM_WEB_HOST=bm.bluestar.com.vn`, `BM_ID_HOST=id.bm.bluestar.com.vn`.
+- Overlay `deploy/vm/docker-compose.vm.yml`: tắt Caddy riêng; mx/submission/imap đọc chứng chỉ từ volume của Caddy chung
+  (`bluedental_caddy_data`, chỉ đọc); giới hạn RAM tổng ~4 GB, Postgres `shared_buffers=256MB`.
+- Caddy chung: chép `deploy/vm/bluemail.caddy` vào `~/proxy/sites/`, `docker network connect bluemail_default proxy-caddy`,
+  `caddy validate` rồi `caddy reload` (không tạo lại container caddy).
+- Điều kiện trước khi gửi thử: PTR 14.225.83.93 → `mail.bm.bluestar.com.vn` (VNPT) và các bản ghi DNS ở docs/06 P12-12,
+  thêm A cho `bm`, `id.bm`, `smtp.bm`, `imap.bm` → 14.225.83.93.

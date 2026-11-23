@@ -1,0 +1,64 @@
+# BlueMail on a shared server that already runs a Caddy for many apps (BlueStar VM, docs/04 "Shared server").
+#   docker compose --env-file deploy/.env -f deploy/docker-compose.yml -f deploy/vm/docker-compose.vm.yml up -d --no-build
+# - Images come from GHCR (.github/workflows/images.yml): BM_IMAGE_REPO=ghcr.io/minhhung19872002, never built here.
+# - No Caddy of our own: the shared proxy serves the web host names (deploy/vm/bluemail.caddy) and obtains the mail
+#   certificates, which mx/submission/imap read from its data volume (read-only).
+# - Memory limits sized for a 4 vCPU / ~4 GB free host; Postgres buffers reduced accordingly.
+
+services:
+  caddy:
+    profiles: ["own-caddy"]   # off: the shared proxy-caddy takes this role
+
+  postgres:
+    command: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=256MB", "-c", "effective_cache_size=768MB",
+              "-c", "work_mem=8MB", "-c", "maintenance_work_mem=128MB"]
+    shm_size: 256mb
+    deploy: { resources: { limits: { memory: 1g, cpus: "2" } } }
+
+  valkey:
+    command: ["valkey-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    deploy: { resources: { limits: { memory: 192m } } }
+
+  s3:
+    deploy: { resources: { limits: { memory: 384m } } }
+
+  identity:
+    image: ${BM_IMAGE_REPO:?BM_IMAGE_REPO is required}/bluemail-server:${BM_VERSION}
+    deploy: { resources: { limits: { memory: 384m, cpus: "1" } } }
+
+  api:
+    image: ${BM_IMAGE_REPO}/bluemail-server:${BM_VERSION}
+    deploy: { resources: { limits: { memory: 512m, cpus: "2" } } }
+
+  worker:
+    image: ${BM_IMAGE_REPO}/bluemail-server:${BM_VERSION}
+    deploy: { resources: { limits: { memory: 384m, cpus: "1" } } }
+
+  mx:
+    image: ${BM_IMAGE_REPO}/bluemail-server:${BM_VERSION}
+    volumes: !override ["shared_caddy_data:/caddy:ro"]
+    deploy: { resources: { limits: { memory: 384m, cpus: "1" } } }
+
+  submission:
+    image: ${BM_IMAGE_REPO}/bluemail-server:${BM_VERSION}
+    volumes: !override ["shared_caddy_data:/caddy:ro"]
+    deploy: { resources: { limits: { memory: 256m, cpus: "1" } } }
+
+  imap:
+    image: ${BM_IMAGE_REPO}/bluemail-server:${BM_VERSION}
+    volumes: !override ["shared_caddy_data:/caddy:ro"]
+    deploy: { resources: { limits: { memory: 384m, cpus: "1" } } }
+
+  outbound:
+    image: ${BM_IMAGE_REPO}/bluemail-server:${BM_VERSION}
+    deploy: { resources: { limits: { memory: 256m, cpus: "1" } } }
+
+  web:
+    image: ${BM_IMAGE_REPO}/bluemail-web:${BM_VERSION}
+    deploy: { resources: { limits: { memory: 64m } } }
+
+volumes:
+  # The shared proxy's certificate volume (name on the BlueStar VM). Read-only here; never recreated by this stack.
+  shared_caddy_data:
+    external: true
+    name: ${BM_SHARED_CADDY_VOLUME:-bluedental_caddy_data}
