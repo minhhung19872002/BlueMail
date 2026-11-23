@@ -30,3 +30,4 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Stop host-run dev processes before `dotnet build/test` (they lock bin/). Integration tests need Docker.
 - Server strings: `src/BlueMail.Infrastructure/Localization/Resources/{en,vi}.json`; web: `web/src/i18n/locales`.
 - New endpoint: add `[RequirePermission]` or `[SelfGuarded("why")]`; new package: list it in docs/09.
+- Python heredocs: never put `\r\n` / `\n` escapes for C# strings inside them (they become real newlines); use the Edit tool.

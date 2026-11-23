@@ -3,6 +3,9 @@
     <IsPackable>true</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BlueMail.Dns\BlueMail.Dns.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="BlueMail.UnitTests" />
     <InternalsVisibleTo Include="BlueMail.InteropTests" />
     <InternalsVisibleTo Include="BlueMail.FuzzTests" />
