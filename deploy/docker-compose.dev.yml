@@ -158,6 +158,8 @@ services:
       BM_TLS_KEY: /tls/key.pem
       # Load tests (tests/perf/imap_idle_load.py) open thousands of connections from the tools container alone.
       BM_IMAP_MAX_CONNECTIONS_PER_IP: "2500"
+      # Protocol trace for diagnosing a mail program (docs/06 P11-11): BM_IMAP_TRACE=1 docker compose ... up -d imap
+      BM_IMAP_TRACE: "${BM_IMAP_TRACE:-0}"
       ASPNETCORE_ENVIRONMENT: Development
     volumes:
       - ./dev/tls:/tls:ro

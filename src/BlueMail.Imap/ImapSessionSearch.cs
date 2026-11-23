@@ -312,8 +312,22 @@ internal sealed partial class ImapSession
             if (!_messages.TryGetValue(id, out var e))
             {
                 using var ms = new MemoryStream();
-                await s.WithStoreAsync(st => st.CopyRawAsync(s._access!, id, ms, ct));
-                var raw = ms.ToArray();
+                byte[] raw;
+                try
+                {
+                    await s.WithStoreAsync(st => st.CopyRawAsync(s._access!, id, ms, ct));
+                    raw = ms.ToArray();
+                }
+                catch (Exception x) when (IsStorageFailure(x))
+                {
+                    // Content lost in storage (BUG-078): search what the database keeps of it, as for large folders.
+                    s.Log.LogError(x, "IMAP {User}: content of message {MessageId} could not be read", s._login?.Email ?? "-", id);
+                    var meta = (await MetaAsync()).GetValueOrDefault(id);
+                    raw = Encoding.UTF8.GetBytes(meta is null ? "\r\n" :
+                        $"From: {meta.From}\r\nTo: {meta.To}\r\nCc: {meta.Cc}\r\nBcc: {meta.Bcc}\r\nSubject: {meta.Subject}\r\n"
+                        + (meta.SentAt is { } sent ? "Date: " + sent.ToString("r", CultureInfo.InvariantCulture) + "\r\n" : "") + "\r\n");
+                }
+
                 var m = MimeMessage.Parse(raw);
                 var source = new MemoryStream(raw, writable: false);
                 var body = new StringBuilder();

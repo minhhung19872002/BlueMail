@@ -185,13 +185,40 @@ internal sealed partial class ImapSession
         }
 
         AnnounceKeywords(targets.Select(t => t.Row));
+        var unreadable = 0;
+        var lastSent = System.Diagnostics.Stopwatch.GetTimestamp();
         foreach (var (seq, row) in targets)
         {
+            // A long FETCH must not look like a dead server: Outlook gives up after a minute without a byte (BUG-078).
+            var quiet = System.Diagnostics.Stopwatch.GetElapsedTime(lastSent);
+            if (quiet > KeepAliveAfter || (_w.Pending > 0 && quiet > FlushAfter))
+            {
+                if (_w.Pending == 0)
+                {
+                    _w.Line("* OK Still here");
+                }
+
+                await _w.FlushAsync(ct);
+                lastSent = System.Diagnostics.Stopwatch.GetTimestamp();
+            }
+
             ImapMessageFormat? msg = null;
             if (needsBody)
             {
                 using var ms = new MemoryStream();
-                await WithStoreAsync(s => s.CopyRawAsync(_access!, row.MessageId, ms, ct));
+                try
+                {
+                    await WithStoreAsync(s => s.CopyRawAsync(_access!, row.MessageId, ms, ct));
+                }
+                catch (Exception e) when (IsStorageFailure(e))
+                {
+                    // The content of this message cannot be read from storage (BUG-078). Nothing of it has been written
+                    // yet: leave it out, answer the others, and end with NO so the client knows and asks again later.
+                    unreadable++;
+                    log.LogError(e, "IMAP {User}: content of message {MessageId} could not be read", _login?.Email ?? "-", row.MessageId);
+                    continue;
+                }
+
                 msg = new ImapMessageFormat(ms.ToArray());
             }
 
@@ -208,6 +235,7 @@ internal sealed partial class ImapSession
             if (_w.Pending > 1024 * 1024)
             {
                 await _w.FlushAsync(ct);
+                lastSent = System.Diagnostics.Stopwatch.GetTimestamp();
             }
         }
 
@@ -221,8 +249,17 @@ internal sealed partial class ImapSession
             await RefreshAsync(allowExpunge: true, ct);
         }
 
+        if (unreadable > 0)
+        {
+            _w.Line(tag + " NO [UNAVAILABLE] " + unreadable.ToString(CultureInfo.InvariantCulture) + " message(s) could not be read from storage");
+            return;
+        }
+
         Ok(tag, (uid ? "UID " : "") + "FETCH completed");
     }
+
+    private static readonly TimeSpan FlushAfter = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan KeepAliveAfter = TimeSpan.FromSeconds(10);
 
     private void WriteItem(FetchItem item, ImapMessageRow row, ImapMessageFormat? msg)
     {

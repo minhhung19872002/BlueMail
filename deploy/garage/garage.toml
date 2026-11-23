@@ -2,6 +2,10 @@
 metadata_dir = "/var/lib/garage/meta"
 data_dir = "/var/lib/garage/data"
 db_engine = "sqlite"
+# A delivery is acknowledged ("250 OK") only after S3 has the content (PgMailStore.DeliverAsync), so S3 must have
+# it on disk: without fsync a host crash lost written blocks while their metadata survived (docs/08 BUG-078).
+metadata_fsync = true
+data_fsync = true
 replication_factor = 1
 rpc_bind_addr = "[::]:3901"
 rpc_public_addr = "127.0.0.1:3901"

@@ -30,6 +30,7 @@ builder.Services.AddSingleton(new ImapServerOptions
 {
     Hostname = hostname,
     MaxAppendBytes = Int("BM_MAX_MESSAGE_MB", 50) * 1024L * 1024,
+    Trace = cfg["BM_IMAP_TRACE"] is "1" or "true",
 });
 builder.Services.AddSingleton(new ImapLimits(Int("BM_IMAP_MAX_CONNECTIONS", 5000), Int("BM_IMAP_MAX_CONNECTIONS_PER_IP", 50)));
 

@@ -675,6 +675,9 @@ internal sealed partial class ImapSession
         await _w.FlushAsync(ct);
         using var idleEnd = CancellationTokenSource.CreateLinkedTokenSource(ct);
         idleEnd.CancelAfter(options.IdleTimeout);
+        // Cancelled (not only disposed) on the way out: a still-pending wait on _mailboxChanged would otherwise stay
+        // queued on the semaphore and swallow the next change signal, so the next IDLE would miss new mail.
+        using var stopWaiting = new CancelOnExit(idleEnd);
         var done = _reader.ReadLineAsync(null, idleEnd.Token);
         while (true)
         {
@@ -714,4 +717,9 @@ internal sealed partial class ImapSession
             await _w.FlushAsync(ct);
         }
     }
+}
+
+internal readonly struct CancelOnExit(CancellationTokenSource source) : IDisposable
+{
+    public void Dispose() => source.Cancel();
 }

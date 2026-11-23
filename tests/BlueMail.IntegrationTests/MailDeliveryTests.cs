@@ -87,6 +87,124 @@ public class MailDeliveryTests(StackFixture stack)
     }
 
     [Fact]
+    public async Task A_storage_response_that_breaks_off_is_read_again_from_where_it_stopped()
+    {
+        // BUG-078: Garage closed a connection in the middle of a response while Outlook fetched 1,244 messages; the
+        // IMAP session died. Reads go again, from the first byte not yet written, so nothing is lost or doubled.
+        var (tenant, mailbox) = await MailboxOf("hoa@bluemail.test");
+        var big = new string('c', 70_000) + "MIDDLE" + new string('d', 70_000);
+        var raw = Raw($"From: x@doitac.test\nTo: hoa@bluemail.test\nSubject: s3 break {Guid.NewGuid()}\nMessage-ID: <{Guid.NewGuid()}@t>\n\n{big}\n");
+        var plain = raw.ToArray();
+        await Deliver(tenant, raw, new MailboxDelivery(mailbox, [SystemLabels.Inbox]));
+        var sha = System.Security.Cryptography.SHA256.HashData(plain);
+
+        await using var scope = stack.ApiScope();
+        var s3 = scope.ServiceProvider.GetRequiredService<Amazon.S3.IAmazonS3>();
+        var keys = scope.ServiceProvider.GetRequiredService<BlueMail.Infrastructure.Security.TenantKeyProvider>();
+
+        // The header read breaks before any byte, the body read after 70,000 bytes (inside the second chunk).
+        var flaky = BreakingS3.Wrap(s3, 0, 70_000);
+        var whole = new MemoryStream();
+        await new BlobStore(flaky, keys).ReadAsync(tenant, sha, whole);
+        whole.ToArray().Should().Equal(plain);
+
+        var offset = Encoding.ASCII.GetString(plain).IndexOf("MIDDLE", StringComparison.Ordinal);
+        var part = new MemoryStream();
+        await new BlobStore(BreakingS3.Wrap(s3, 100_000, 3), keys).ReadAsync(tenant, sha, part, offset - 2, 10);
+        Encoding.ASCII.GetString(part.ToArray()).Should().Be("ccMIDDLEdd");
+
+        // A store that keeps failing is reported, not retried for ever.
+        var broken = BreakingS3.Wrap(s3, Enumerable.Repeat(0, BlobStore.ReadAttempts).ToArray());
+        var act = () => new BlobStore(broken, keys).ReadAsync(tenant, sha, new MemoryStream());
+        await act.Should().ThrowAsync<HttpIOException>();
+    }
+
+    /// <summary>S3 client whose n-th GetObject response stream ends after the given number of bytes.</summary>
+    public class BreakingS3 : System.Reflection.DispatchProxy
+    {
+        private Amazon.S3.IAmazonS3 _inner = null!;
+        private Queue<int> _breakAfter = new();
+
+        public static Amazon.S3.IAmazonS3 Wrap(Amazon.S3.IAmazonS3 inner, params int[] breakAfter)
+        {
+            var proxy = Create<Amazon.S3.IAmazonS3, BreakingS3>();
+            var self = (BreakingS3)(object)proxy;
+            self._inner = inner;
+            self._breakAfter = new Queue<int>(breakAfter);
+            return proxy;
+        }
+
+        protected override object? Invoke(System.Reflection.MethodInfo? method, object?[]? args)
+        {
+            var result = method!.Invoke(_inner, args);
+            if (method.Name == nameof(Amazon.S3.IAmazonS3.GetObjectAsync) && result is Task<Amazon.S3.Model.GetObjectResponse> task
+                && _breakAfter.TryDequeue(out var limit))
+            {
+                return Break(task, limit);
+            }
+
+            return result;
+        }
+
+        private static async Task<Amazon.S3.Model.GetObjectResponse> Break(Task<Amazon.S3.Model.GetObjectResponse> task, int limit)
+        {
+            var response = await task;
+            response.ResponseStream = new EndsEarly(response.ResponseStream, limit);
+            return response;
+        }
+
+        private sealed class EndsEarly(Stream inner, int limit) : Stream
+        {
+            private int _left = limit;
+
+            public override bool CanRead => true;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => false;
+
+            public override long Length => throw new NotSupportedException();
+
+            public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                if (_left == 0)
+                {
+                    throw new HttpIOException(HttpRequestError.ResponseEnded, "The response ended prematurely (test).");
+                }
+
+                var n = await inner.ReadAsync(buffer[..Math.Min(buffer.Length, _left)], cancellationToken);
+                _left -= n;
+                return n;
+            }
+
+            public override int Read(byte[] buffer, int offset, int count) =>
+                ReadAsync(buffer.AsMemory(offset, count)).AsTask().GetAwaiter().GetResult();
+
+            public override void Flush()
+            {
+            }
+
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+            public override void SetLength(long value) => throw new NotSupportedException();
+
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    inner.Dispose();
+                }
+
+                base.Dispose(disposing);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Same_message_to_many_mailboxes_is_stored_once_and_threads_by_references()
     {
         var (tenant, minh) = await MailboxOf("minh@bluemail.test");

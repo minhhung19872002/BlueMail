@@ -22,6 +22,12 @@ public sealed record ImapServerOptions
     public TimeSpan AuthTimeout { get; init; } = TimeSpan.FromMinutes(1);
     public TimeSpan CommandTimeout { get; init; } = TimeSpan.FromMinutes(30);
     public int MaxBadCommands { get; init; } = 20;
+
+    /// <summary>
+    /// Protocol trace (BM_IMAP_TRACE=1): logs every command (credentials of LOGIN/AUTHENTICATE replaced) and every
+    /// BAD/NO answer, to diagnose a mail program. Off in normal operation: it shows what users do.
+    /// </summary>
+    public bool Trace { get; init; }
 }
 
 /// <summary>An IMAP folder: a label of the mailbox (Gmail-like: one message can be in many folders).</summary>
@@ -75,6 +81,8 @@ internal sealed partial class ImapSession(
     private int _bad;
     private volatile bool _revoked;
     private readonly SemaphoreSlim _mailboxChanged = new(0);
+    private readonly string _traceId = Guid.NewGuid().ToString("N")[..6];
+    private string _endReason = "client closed the connection";
 
     /// <summary>Per folder, the highest UID some session has already seen (\Recent belongs to the first one, process-wide).</summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, long> RecentSeen = new();
@@ -141,24 +149,44 @@ internal sealed partial class ImapSession(
 
                 if (!await HandleAsync(line, ct))
                 {
+                    _endReason = "server ended the session (LOGOUT or too many bad commands)";
                     return;
                 }
             }
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
+            _endReason = "autologout";
             await TrySayAsync("* BYE Autologout; idle for too long");
         }
         catch (ImapProtocolException e)
         {
+            // The connection cannot go on (e.g. a line over the limit): say why, and keep a trace of it.
+            _endReason = "protocol error: " + e.Message;
+            log.LogWarning("IMAP {Ip} {User}: closing after protocol error: {Error}", ip, _login?.Email ?? "-", e.Message);
             await TrySayAsync("* BYE " + e.Message);
         }
-        catch (Exception e) when (e is IOException or AuthenticationException or ObjectDisposedException)
+        catch (Exception e) when (IsStorageFailure(e))
         {
+            // Message storage failed (after BlobStore's retries): a server fault, not the client leaving (BUG-078).
+            _endReason = "storage error: " + e.Message;
+            log.LogError(e, "IMAP {Ip} {User}: message storage failed", ip, _login?.Email ?? "-");
+            await TrySayAsync("* BYE [UNAVAILABLE] Message storage is not available, try again later");
+        }
+        catch (Exception e) when (e is IOException or AuthenticationException or ObjectDisposedException
+                                      || (e is OperationCanceledException && ct.IsCancellationRequested))
+        {
+            // The client went away (also in the middle of IDLE or a long FETCH): normal end, not an error.
+            _endReason = "connection lost: " + e.GetType().Name + " " + e.Message;
             log.LogDebug(e, "IMAP connection from {Ip} ended", ip);
         }
         finally
         {
+            if (options.Trace)
+            {
+                log.LogInformation("IMAP {Session} {Ip} {User} end: {Reason}", _traceId, ip, _login?.Email ?? "-", _endReason);
+            }
+
             registry.Remove(this);
             Dispose();
         }
@@ -230,26 +258,38 @@ internal sealed partial class ImapSession(
             command = p.ReadAtom(stopAtBracket: false).ToUpperInvariant();
         }
 
+        if (options.Trace)
+        {
+            var text = Encoding.UTF8.GetString(line.Text[0]);
+            log.LogInformation("IMAP {Session} {Ip} {User} C: {Line}", _traceId, ip, _login?.Email ?? "-",
+                command is "LOGIN" or "AUTHENTICATE" ? tag + " " + command + " ***" : text.Length > 300 ? text[..300] + "..." : text);
+        }
+
         try
         {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
             var keepOpen = await DispatchAsync(tag, command, uid, p, ct);
             await _w.FlushAsync(ct);
+            Traced(tag, "done in " + (int)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds + " ms");
             return keepOpen;
         }
         catch (ImapBadException e)
         {
+            Traced(tag, "BAD " + e.Message);
             _w.Line(tag + " BAD " + e.Message);
             await _w.FlushAsync(ct);
             return ++_bad < options.MaxBadCommands;
         }
         catch (ImapProtocolException e)
         {
+            Traced(tag, "BAD " + e.Message);
             _w.Line(tag + " BAD " + e.Message);
             await _w.FlushAsync(ct);
             return ++_bad < options.MaxBadCommands;
         }
         catch (ImapNoException e)
         {
+            Traced(tag, "NO " + e.Message);
             _w.Line(tag + " NO " + (e.Code is null ? "" : "[" + e.Code + "] ") + e.Message);
             await _w.FlushAsync(ct);
             return true;
@@ -489,6 +529,21 @@ internal sealed partial class ImapSession(
     // ---- helpers ----
 
     private void Ok(string tag, string text) => _w.Line(tag + " OK " + text);
+
+    private ILogger Log => log;
+
+    /// <summary>The content of a message could not be read from S3 even after BlobStore's retries (BUG-078).</summary>
+    internal static bool IsStorageFailure(Exception e) =>
+        e is HttpIOException or HttpRequestException or EndOfStreamException or Amazon.S3.AmazonS3Exception
+            or System.Security.Cryptography.CryptographicException;
+
+    private void Traced(string tag, string answer)
+    {
+        if (options.Trace)
+        {
+            log.LogInformation("IMAP {Session} {Ip} {User} S: {Tag} {Answer}", _traceId, ip, _login?.Email ?? "-", tag, answer);
+        }
+    }
 
     private static void End(ImapParser p)
     {

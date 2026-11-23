@@ -88,6 +88,14 @@ time.sleep(1.5)
 b.append(box, None, None, b"From: a@bluemail.test\r\nSubject: idle test\r\n\r\nx\r\n")
 t.join()
 check("IDLE reports new mail", any(b"EXISTS" in e for e in events), events)
+# A second IDLE on the same connection must hear the next change too (the first IDLE's wait must not linger).
+events.clear()
+t = threading.Thread(target=idle)
+t.start()
+time.sleep(1.5)
+b.append(box, None, None, b"From: a@bluemail.test\r\nSubject: idle test 2\r\n\r\nx\r\n")
+t.join()
+check("second IDLE reports new mail", any(b"EXISTS" in e for e in events), events)
 a.sock.settimeout(None)
 
 # 4. QRESYNC: expunge in one session, the other resyncs with VANISHED (EARLIER).

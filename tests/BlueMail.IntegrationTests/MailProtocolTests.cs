@@ -122,4 +122,66 @@ public class MailProtocolTests(StackFixture stack)
         await act.Should().ThrowAsync<Exception>("the connection is closed");
         listener.Stop();
     }
+
+    [Fact]
+    public async Task A_message_whose_content_is_lost_does_not_end_the_fetch_or_the_session()
+    {
+        // BUG-078: storage lost the content of some messages; Outlook's FETCH of the whole Inbox closed the connection
+        // every time, so nothing after the first lost message ever synced.
+        var (user, tenant) = await UserAsync("hoa@bluemail.test");
+        var mailbox = await Db(db => db.Mailboxes.IgnoreQueryFilters().Where(m => m.OwnerId == user).Select(m => m.Id).SingleAsync());
+        var token = "lost" + Guid.NewGuid().ToString("N")[..10];
+        var shas = new List<byte[]>();
+        for (var i = 0; i < 3; i++)
+        {
+            var raw = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+                $"From: x@doitac.test\r\nTo: hoa@bluemail.test\r\nSubject: {token} {i}\r\nMessage-ID: <{Guid.NewGuid()}@t>\r\n\r\nbody {i} {token}\r\n"));
+            shas.Add(SHA256.HashData(raw.ToArray()));
+            await using var scope = stack.ApiScope();
+            var facts = BlueMail.MailStore.MessageFacts.Extract(BlueMail.Mime.MimeMessage.Parse(raw), raw);
+            raw.Position = 0;
+            await scope.ServiceProvider.GetRequiredService<BlueMail.MailStore.PgMailStore>().DeliverAsync(new BlueMail.MailStore.DeliveryRequest(
+                tenant, raw, facts, [new BlueMail.MailStore.MailboxDelivery(mailbox, [BlueMail.Domain.Mail.SystemLabels.Inbox])], DateTimeOffset.UtcNow));
+        }
+
+        await stack.Api.Services.GetRequiredService<Amazon.S3.IAmazonS3>().DeleteObjectAsync(
+            BlueMail.MailStore.BlobStore.Bucket, BlueMail.MailStore.BlobStore.ObjectKey(tenant, shas[1]));
+
+        var logins = Logins();
+        var registry = new ImapSessionRegistry(logins, stack.Api.Services.GetRequiredService<IConnectionMultiplexer>());
+        using var rsa = RSA.Create(2048);
+        using var self = new CertificateRequest("CN=imap.test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1).CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        var cert = X509CertificateLoader.LoadPkcs12(self.Export(X509ContentType.Pkcs12), null);
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        var server = Task.Run(async () =>
+        {
+            using var tcp = await listener.AcceptTcpClientAsync();
+            var session = new ImapSession(tcp.GetStream(), implicitTls: true, IPAddress.Loopback, stack.Api.Services,
+                new ImapServerOptions { Hostname = "imap.test" }, () => cert, logins, registry, NullLogger.Instance);
+            await session.RunAsync(default);
+        });
+
+        await using var client = new ImapClient(new ImapClientOptions { CertificateValidation = ImapCertificates.WithPinned([cert]) });
+        await client.ConnectAsync("127.0.0.1", port, default);
+        await client.LoginAsync("hoa@bluemail.test", StackFixture.UserPassword, default);
+        await client.ExamineAsync((await client.ListAsync(default)).Single(f => f.Name == "INBOX"), default);
+        var uids = await client.UidSearchAsync("SUBJECT " + token, default);
+        uids.Should().HaveCount(3);
+
+        var got = new List<uint>();
+        var fetch = () => client.UidFetchAsync(uids, withBody: true, m =>
+        {
+            got.Add(m.Uid);
+            return Task.CompletedTask;
+        }, default);
+        (await fetch.Should().ThrowAsync<Exception>()).Which.Message.Should().Contain("UNAVAILABLE");
+        got.Should().Equal(uids[0], uids[2]);
+
+        await client.CapabilityAsync(default); // the session goes on
+        await client.LogoutAsync(default);
+        await server;
+        listener.Stop();
+    }
 }
