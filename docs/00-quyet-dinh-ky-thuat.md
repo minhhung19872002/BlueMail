@@ -128,6 +128,8 @@ Việc chủ sản phẩm cần làm trước Phase 5 (gửi ra ngoài): chọn 
 gửi khớp tên `HELO` (ví dụ `out1.<tên miền dịch vụ>`). Trong lúc chờ, BlueMail.Outbound hỗ trợ **smarthost**
 (PROMPT 2.4) để gửi qua dịch vụ chuyển tiếp có sẵn.
 
+**Đo ngày 2026-11-24 (mạng dev, VNPT):** cổng 25 ra ngoài mở; IP 14.169.234.77 có PTR chung `static.vnpt.vn` (không FCrDNS) → chưa đủ để gửi tới Gmail/Outlook. Cần IP có PTR đặt được và một tên miền thật.
+
 ## Z7. Danh sách băm mã độc cho `BlueMail.Scanner` (lớp 7)
 
 | Nguồn | Giấy phép | Cập nhật | Cách tải |

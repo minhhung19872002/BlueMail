@@ -334,7 +334,7 @@ cho phần thật; `BM_OFFLINE=1` để bỏ qua); `dotnet test tests/BlueMail.I
 | P12-09 | Làm ấm | IP duy nhất của dải đã chạm trần hôm nay | Thư chờ, không tính lần thử, thử lại sau 30 phút | Như mong đợi | ✅ |
 | P12-10 | TLS-RPT | Kết quả hôm qua của doitac.test | Báo cáo gzip JSON ký DKIM tới `rua`, đúng RFC 8460 (tên tệp, tiêu đề, trường) | Như mong đợi | ✅ |
 | P12-11 | Chế độ bảo mật | Gửi bảo mật có mã; mở bằng mã sai/đúng; gửi lại; thu hồi | Bên ngoài chỉ nhận liên kết; mã sai 403; gửi lại không trùng; thu hồi → 403; người khác không thu hồi được | Như mong đợi | ✅ |
-| P12-12 | IP thật, Gmail/Outlook thật | Gửi từ IP công khai có PTR tới Gmail, Outlook.com; đăng ký Postmaster/SNDS/JMRP | Vào Hộp thư đến, `dkim=pass spf=pass dmarc=pass` | **Chưa chạy**: cần IP công khai và tên miền thật | ⏳ |
+| P12-12 | IP thật, Gmail/Outlook thật | Gửi từ IP công khai có PTR tới Gmail, Outlook.com; đăng ký Postmaster/SNDS/JMRP | Vào Hộp thư đến, `dkim=pass spf=pass dmarc=pass` | **Chưa chạy được.** Khảo sát 2026-11-24 trên mạng dev: cổng 25 ra ngoài **mở** (EHLO tới gmail-smtp-in.l.google.com và outlook-com.olc.protection.outlook.com đều 250); IP công khai 14.169.234.77 (VNPT, động) có PTR chung `static.vnpt.vn` không trỏ ngược về IP — Gmail yêu cầu PTR khớp (FCrDNS) với IPv4. Điều kiện để chạy: một tên miền thật do chủ sản phẩm quản lý (MX/SPF/DKIM/DMARC theo docs/04) + IP có PTR riêng (VPS, hoặc phiếu hỗ trợ VNPT) — xem docs/00 Z6 | ⏳ |
 
 ## Phase 13 — Hiệu năng, truy cập, PWA, bản chạy thật, sao lưu, fuzz dài
 
