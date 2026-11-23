@@ -145,5 +145,17 @@
   "error.code_expired": "Mã đã hết hạn hoặc nhập sai quá nhiều lần. Hãy yêu cầu mã mới.",
   "error.code_invalid": "Mã không đúng.",
   "forwarding.verify.subject": "Xác nhận chuyển tiếp thư BlueMail – {user}",
-  "forwarding.verify.body": "{user} muốn tự động chuyển tiếp thư của họ tới địa chỉ này.\r\n\r\nMã xác nhận: {code}\r\n\r\nNếu đồng ý, hãy đưa mã này cho {user}. Nếu bạn không biết người này, hãy bỏ qua thư: sẽ không có thư nào được chuyển tiếp.\r\nMã có hiệu lực 24 giờ.\r\n"
+  "forwarding.verify.body": "{user} muốn tự động chuyển tiếp thư của họ tới địa chỉ này.\r\n\r\nMã xác nhận: {code}\r\n\r\nNếu đồng ý, hãy đưa mã này cho {user}. Nếu bạn không biết người này, hãy bỏ qua thư: sẽ không có thư nào được chuyển tiếp.\r\nMã có hiệu lực 24 giờ.\r\n",
+  "error.snooze_time_required": "Hãy chọn thời điểm hội thoại quay lại.",
+  "error.snooze_time_invalid": "Thời điểm tạm ẩn phải ở tương lai.",
+  "error.no_unsubscribe": "Người gửi này không cung cấp cách hủy đăng ký.",
+  "error.contact_empty": "Hãy nhập tên hoặc địa chỉ thư.",
+  "error.contact_not_found": "Không tìm thấy liên hệ.",
+  "error.too_many_contacts": "Bạn đã đạt số liên hệ tối đa.",
+  "error.photo_not_image": "Ảnh phải là JPEG hoặc PNG.",
+  "error.photo_too_large": "Ảnh tối đa 1 MB.",
+  "error.group_exists": "Đã có nhóm trùng tên.",
+  "error.group_not_found": "Không tìm thấy nhóm.",
+  "error.no_contacts_in_file": "Không tìm thấy liên hệ nào trong tệp (vCard hoặc CSV).",
+  "error.rule_no_condition": "Hãy nhập tên miền người gửi hoặc mã danh sách thư."
 }

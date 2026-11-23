@@ -10,7 +10,10 @@ import { useTranslation } from "react-i18next";
 import type { Attachment, AuthResultsSummary, LabelSummary, ThreadMessage } from "../../api/types";
 import { bytes, dateTime } from "../../format";
 import { useMe, useUserFormat } from "../../session";
-import { act, getBody, getOriginal, getThread, mailKeys, trustImages, type MailAction } from "./mailApi";
+import { act, getBody, getOriginal, getThread, mailKeys, trustImages, unsubscribe, type MailAction } from "./mailApi";
+import { SnoozeMenu } from "./SnoozeMenu";
+import { useShortcuts } from "./ShortcutHost";
+import { ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
 import { PdfPreview } from "./PdfPreview";
 import { SpamReasons } from "./SpamReasons";
@@ -50,8 +53,9 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
     }
   }, [thread.data, threadId, qc]);
 
-  const run = async (action: MailAction, close = true) => {
-    await act({ action, threadIds: [threadId] });
+  const run = async (action: MailAction, close = true, snoozeUntil?: Date) => {
+    await act({ action, threadIds: [threadId], snoozeUntil: snoozeUntil?.toISOString() });
+    if (action === "snooze" || action === "unsnooze") await qc.invalidateQueries({ queryKey: ["snoozed"] });
     await qc.invalidateQueries({ queryKey: mailKeys.lists });
     await qc.invalidateQueries({ queryKey: mailKeys.labels });
     await qc.invalidateQueries({ queryKey: mailKeys.thread(threadId) });
@@ -59,10 +63,46 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
     else message.success(t("mail.done.saved"));
   };
 
+  const lastId = msgs[msgs.length - 1]?.message.id;
+  const openCompose = useCompose((s) => s.open);
+  const replyWith = (mode: "reply" | "replyAll" | "forward") => {
+    if (lastId) void composeApi.fromMessage(lastId, mode).then((initial) => openCompose({ initial }), () => message.error(t("errors.actionFailed")));
+  };
+  useShortcuts({
+    back: onClose,
+    close: onClose,
+    reply: () => replyWith("reply"),
+    replyAll: () => replyWith("replyAll"),
+    forward: () => replyWith("forward"),
+    archive: () => void run("archive"),
+    trash: () => void run("trash"),
+    spam: () => void run("spam"),
+    star: () => void run(msgs.some((m) => m.message.starred) ? "unstar" : "star", false),
+    important: () => void run("important", false),
+    notImportant: () => void run("notImportant", false),
+    markRead: () => void run("markRead", false),
+    markUnread: () => void run("markUnread"),
+    mute: () => void run("mute"),
+    snooze: () => document.querySelector<HTMLElement>(".bm-thread [data-shortcut=snooze]")?.click(),
+    nextMessage: () => setExpanded((s) => { const last = [...msgs].reverse().find((m) => !s.has(m.message.id) && !defaultOpen.has(m.message.id)); const n = new Set(s); if (last) n.add(last.message.id); return n; }),
+    prevMessage: () => setExpanded(new Set()),
+  });
+
   if (thread.isPending) return <Spin className="bm-list-spin" />;
   if (thread.isError || !thread.data) return <Alert type="warning" showIcon message={t("errors.loadThread")} action={<Button onClick={onClose}>{t("mail.back")}</Button>} />;
 
   const starred = msgs.some((m) => m.message.starred);
+  // Unsubscribe from the newest message that offers it (List-Unsubscribe, RFC 2369 / 8058).
+  const unsubscribable = [...msgs].reverse().find((m) => m.message.listUnsubscribe)?.message.id;
+  const doUnsubscribe = async (messageId: string) => {
+    try {
+      const r = await unsubscribe(messageId);
+      if (r.outcome === "OPEN_URL" && r.url) window.open(r.url, "_blank", "noopener,noreferrer");
+      else message.success(t("mail.unsubscribed"));
+    } catch (e) {
+      message.error(e instanceof ApiError ? e.title : t("errors.actionFailed"));
+    }
+  };
   const userLabelIds = new Set(msgs.flatMap((m) => m.message.labelIds));
   const chips = labels.filter((l) => l.systemKey === null && userLabelIds.has(l.id));
   const hidden = !showOlder && msgs.length > 4 ? msgs.slice(1, -2).filter((m) => !defaultOpen.has(m.message.id)) : [];
@@ -76,6 +116,13 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
         {systemKey !== "SPAM" && <Tooltip title={t("mail.reportSpam")}><Button type="text" icon={<ExclamationCircleOutlined />} aria-label={t("mail.reportSpam")} onClick={() => void run("spam")} /></Tooltip>}
         {systemKey === "SPAM" && <Button type="text" onClick={() => void run("notSpam")}>{t("mail.notSpam")}</Button>}
         {systemKey !== "TRASH" && <Tooltip title={t("mail.delete")}><Button type="text" icon={<DeleteOutlined />} aria-label={t("mail.delete")} onClick={() => void run("trash")} /></Tooltip>}
+        {systemKey !== "SNOOZED" && systemKey !== "TRASH" && systemKey !== "SPAM" && (
+          <SnoozeMenu onSnooze={(until) => void run("snooze", true, until).then(() => message.success(t("mail.done.snoozed", { count: 1 })))} />
+        )}
+        {systemKey === "SNOOZED" && <Button type="text" onClick={() => void run("unsnooze")}>{t("snooze.unsnooze")}</Button>}
+        {unsubscribable && (
+          <Button type="text" onClick={() => void doUnsubscribe(unsubscribable)}>{t("mail.unsubscribe")}</Button>
+        )}
         <Tooltip title={t("mail.markUnread")}><Button type="text" icon={<MailOutlined />} aria-label={t("mail.markUnread")} onClick={() => void run("markUnread")} /></Tooltip>
         <Tooltip title={t("mail.print")}><Button type="text" icon={<PrinterOutlined />} aria-label={t("mail.print")} onClick={() => window.print()} /></Tooltip>
         <Dropdown trigger={["click"]} menu={{

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { App, Button, Checkbox, Dropdown, Empty, Space, Spin, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
   DeleteOutlined, ExclamationCircleOutlined, FolderOpenOutlined, InboxOutlined, LeftOutlined, MailOutlined,
@@ -8,9 +8,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { ConversationSummary, LabelSummary } from "../../api/types";
 import { ApiError } from "../../api/client";
-import { listTime } from "../../format";
+import { dateTime, listTime } from "../../format";
 import { useMe, useUserFormat } from "../../session";
-import { act, listConversations, mailKeys, maxSelection, scopeKey, type ListScope, type MailAction } from "./mailApi";
+import { act, getSnoozed, listConversations, mailKeys, maxSelection, scopeKey, type ListScope, type MailAction } from "./mailApi";
+import { SnoozeMenu } from "./SnoozeMenu";
+import { useShortcuts } from "./ShortcutHost";
+import { inverse } from "./shortcuts";
+import { useSettings } from "../settings/settingsApi";
 import { senderParts } from "./mailView";
 
 export const dragType = "application/x-bluemail-threads";
@@ -36,31 +40,38 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
   const cursor = cursors[cursors.length - 1] ?? null;
   const key = scopeKey(scope);
 
+  const settings = useSettings();
+  const pageSize = settings?.pageSize ?? 50;
+  const threads = settings?.conversationView ?? true;
   const page = useQuery({
-    queryKey: mailKeys.list(key, cursor),
-    queryFn: () => listConversations(scope, cursor),
+    queryKey: [...mailKeys.list(key, cursor), pageSize, threads],
+    queryFn: () => listConversations(scope, cursor, pageSize, threads),
     placeholderData: (prev) => prev,
   });
   const items = page.data?.items ?? [];
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const userLabels = labels.filter((l) => l.systemKey === null);
-  const start = (cursors.length - 1) * 50;
+  const start = (cursors.length - 1) * pageSize;
 
-  const run = async (action: MailAction, threadIds: string[], labelId?: string) => {
+  const snoozed = useQuery({ queryKey: ["snoozed"], queryFn: getSnoozed, enabled: systemKey === "SNOOZED" });
+  const snoozedUntil = useMemo(() => new Map((snoozed.data ?? []).map((s) => [s.threadId, s.untilAt])), [snoozed.data]);
+
+  const run = async (action: MailAction, threadIds: string[], labelId?: string, snoozeUntil?: Date) => {
     if (threadIds.length === 0) return;
     if (threadIds.length > maxSelection) {
       message.warning(t("mail.selectionTooLarge", { max: maxSelection }));
       return;
     }
     try {
-      await act({ action, threadIds, labelId, fromLabelId: action === "moveTo" ? scope.labelId ?? undefined : undefined });
+      await act({ action, threadIds, labelId, fromLabelId: action === "moveTo" ? scope.labelId ?? undefined : undefined, snoozeUntil: snoozeUntil?.toISOString() });
+      if (action === "snooze" || action === "unsnooze") await qc.invalidateQueries({ queryKey: ["snoozed"] });
       setSelected(new Set());
       await qc.invalidateQueries({ queryKey: mailKeys.lists });
       await qc.invalidateQueries({ queryKey: mailKeys.labels });
       for (const id of threadIds) await qc.invalidateQueries({ queryKey: mailKeys.thread(id) });
       const done: Partial<Record<MailAction, string>> = {
         archive: "mail.done.archived", trash: "mail.done.trashed", spam: "mail.done.spam", deleteForever: "mail.done.deleted",
-        moveTo: "mail.done.moved", untrash: "mail.done.restored", notSpam: "mail.done.restored",
+        moveTo: "mail.done.moved", untrash: "mail.done.restored", notSpam: "mail.done.restored", snooze: "mail.done.snoozed", unsnooze: "mail.done.unsnoozed",
       };
       const k = done[action];
       if (k) message.success(t(k, { count: threadIds.length }));
@@ -70,6 +81,42 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
   };
 
   const sel = [...selected];
+  // Keyboard (PROMPT 6.12): a focused row moves with j/k; actions go to the selection, or to the focused row.
+  const [focused, setFocused] = useState(0);
+  const [lastAction, setLastAction] = useState<{ action: MailAction; threadIds: string[] } | null>(null);
+  const target = () => (sel.length > 0 ? sel : items[focused] ? [items[focused]!.threadId] : []);
+  const act1 = (action: MailAction) => {
+    const ids = target();
+    setLastAction({ action, threadIds: ids });
+    void run(action, ids);
+  };
+  useShortcuts({
+    next: () => setFocused((f) => Math.max(0, Math.min(f + 1, items.length - 1))),
+    prev: () => setFocused((f) => Math.max(f - 1, 0)),
+    open: () => { const c = items[focused]; if (c) onOpen(c.threadId, c.latestMessageId); },
+    select: () => { const c = items[focused]; if (c) setSelected((s) => { const n = new Set(s); if (n.has(c.threadId)) n.delete(c.threadId); else n.add(c.threadId); return n; }); },
+    selectAll: () => setSelected(new Set(items.map((c) => c.threadId))),
+    selectNone: () => setSelected(new Set()),
+    archive: () => act1("archive"),
+    trash: () => act1("trash"),
+    spam: () => act1("spam"),
+    star: () => act1(items[focused]?.starred && sel.length === 0 ? "unstar" : "star"),
+    important: () => act1("important"),
+    notImportant: () => act1("notImportant"),
+    markRead: () => act1("markRead"),
+    markUnread: () => act1("markUnread"),
+    mute: () => act1("mute"),
+    label: () => document.querySelector<HTMLElement>("[data-shortcut=label]")?.click(),
+    move: () => document.querySelector<HTMLElement>("[data-shortcut=move]")?.click(),
+    snooze: () => document.querySelector<HTMLElement>("[data-shortcut=snooze]")?.click(),
+    undo: () => {
+      const back = lastAction && inverse[lastAction.action];
+      if (lastAction && back) {
+        void run(back as MailAction, lastAction.threadIds);
+        setLastAction(null);
+      }
+    },
+  }, openThreadId === null);
   const allOnPage = items.length > 0 && items.every((c) => selected.has(c.threadId));
   const inTrash = systemKey === "TRASH";
   const inSpam = systemKey === "SPAM";
@@ -110,13 +157,15 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
             <Tooltip title={t("mail.delete")}><Button type="text" icon={<DeleteOutlined />} aria-label={t("mail.delete")} onClick={() => void run("trash", sel)} /></Tooltip>
           )}
           {inSpam && <Button type="text" danger icon={<StopOutlined />} onClick={() => void run("deleteForever", sel)}>{t("mail.deleteForever")}</Button>}
+          {!inTrash && !inSpam && systemKey !== "SNOOZED" && <SnoozeMenu onSnooze={(until) => void run("snooze", sel, undefined, until)} />}
+          {systemKey === "SNOOZED" && <Button type="text" onClick={() => void run("unsnooze", sel)}>{t("snooze.unsnooze")}</Button>}
           <Tooltip title={t("mail.markRead")}><Button type="text" icon={<MailOutlined />} aria-label={t("mail.markRead")} onClick={() => void run("markRead", sel)} /></Tooltip>
           <Button type="text" onClick={() => void run("markUnread", sel)}>{t("mail.markUnread")}</Button>
           <Dropdown menu={labelMenu("moveTo")} trigger={["click"]}>
-            <Button type="text" icon={<FolderOpenOutlined />} aria-label={t("mail.moveTo")}>{t("mail.moveTo")}</Button>
+            <Button type="text" icon={<FolderOpenOutlined />} aria-label={t("mail.moveTo")} data-shortcut="move">{t("mail.moveTo")}</Button>
           </Dropdown>
           <Dropdown menu={labelMenu("addLabel")} trigger={["click"]}>
-            <Button type="text" icon={<TagOutlined />} aria-label={t("mail.labelAs")}>{t("mail.labelAs")}</Button>
+            <Button type="text" icon={<TagOutlined />} aria-label={t("mail.labelAs")} data-shortcut="label">{t("mail.labelAs")}</Button>
           </Dropdown>
         </Space>
       )}
@@ -155,10 +204,11 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
         <Empty className="bm-empty" description={t("mail.emptyLabel", { label: title })} />
       ) : (
         <ul className="bm-conv-list" aria-label={title}>
-          {items.map((c) => (
+          {items.map((c, i) => (
             <Row
               key={c.threadId}
               c={c}
+              focused={i === focused && (settings?.keyboardShortcuts ?? false)}
               open={c.threadId === openThreadId}
               checked={selected.has(c.threadId)}
               onCheck={(v) => setSelected((s) => { const n = new Set(s); if (v) n.add(c.threadId); else n.delete(c.threadId); return n; })}
@@ -167,7 +217,7 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
               labels={c.labelIds.map((id) => labelById.get(id)).filter((l): l is LabelSummary => !!l && l.systemKey === null && l.showInMessageList)}
               dragIds={() => (selected.has(c.threadId) ? sel : [c.threadId])}
               myAddress={me.email}
-              time={listTime(c.lastMessageAt, fmt)}
+              time={snoozedUntil.has(c.threadId) ? t("snooze.until", { time: dateTime(snoozedUntil.get(c.threadId)!, fmt) }) : listTime(c.lastMessageAt, fmt)}
               systemKey={systemKey}
             />
           ))}
@@ -200,15 +250,20 @@ interface RowProps {
   myAddress: string;
   time: string;
   systemKey: string | null;
+  focused: boolean;
 }
 
-function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myAddress, time, systemKey }: RowProps) {
+function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myAddress, time, systemKey, focused }: RowProps) {
   const { t } = useTranslation();
+  const ref = useRef<HTMLLIElement>(null);
+  // The keyboard cursor (j/k) is visible and keeps the row on screen.
+  useEffect(() => { if (focused) ref.current?.scrollIntoView({ block: "nearest" }); }, [focused]);
   const unread = c.unreadCount > 0;
   const senders = senderParts(c.participants, myAddress);
   return (
     <li
-      className={`bm-conv${unread ? " bm-unread" : ""}${open ? " bm-open" : ""}${checked ? " bm-checked" : ""}`}
+      ref={ref}
+      className={`bm-conv${unread ? " bm-unread" : ""}${open ? " bm-open" : ""}${checked ? " bm-checked" : ""}${focused ? " bm-kbd-focus" : ""}`}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData(dragType, JSON.stringify(dragIds()));

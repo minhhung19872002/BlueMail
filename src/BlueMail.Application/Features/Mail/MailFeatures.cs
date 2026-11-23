@@ -1,10 +1,12 @@
 using BlueMail.Application.Common;
 using BlueMail.Domain.Mail;
 using BlueMail.Infrastructure.Configuration;
+using BlueMail.Infrastructure.Persistence;
 using BlueMail.Infrastructure.Security;
 using BlueMail.MailStore;
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace BlueMail.Application.Features.Mail;
 
@@ -111,7 +113,8 @@ public sealed record MessageBodyDto(string? HtmlDocument, string? Text, bool Has
 
 public sealed record GetMessageBodyQuery(Guid? MailboxId, Guid MessageId, bool ShowImages) : IRequest<MessageBodyDto>;
 
-public sealed class GetMessageBodyHandler(MailboxOpener opener, PgMailStore store, SignedUrls signer, BmSettings settings) : IRequestHandler<GetMessageBodyQuery, MessageBodyDto>
+public sealed class GetMessageBodyHandler(MailboxOpener opener, PgMailStore store, SignedUrls signer, BmSettings settings, BlueMailDbContext db)
+    : IRequestHandler<GetMessageBodyQuery, MessageBodyDto>
 {
     public async Task<MessageBodyDto> Handle(GetMessageBodyQuery q, CancellationToken ct)
     {
@@ -124,6 +127,12 @@ public sealed class GetMessageBodyHandler(MailboxOpener opener, PgMailStore stor
         }
 
         var trusted = message.From is { } f && await store.IsImageSenderTrustedAsync(access, f.Address, ct);
+        // Setting "external images: always show" (PROMPT 6.11), never for mail the filter considered spam.
+        if (!trusted && message.SpamScore is null or < 5)
+        {
+            var json = await db.UserSettings.AsNoTracking().Where(s => s.UserId == access.ActorUserId).Select(s => s.Settings).FirstOrDefaultAsync(ct);
+            trusted = Me.MailSettings.Parse(json).ExternalImages == "ALWAYS";
+        }
         string Sign(SignedGrant g) => signer.Sign(g);
         string? html = null;
         bool hasRemote = false, shown = false;
@@ -156,18 +165,18 @@ public static class MailActionNames
     public const string MarkRead = "markRead", MarkUnread = "markUnread", Star = "star", Unstar = "unstar", Important = "important",
         NotImportant = "notImportant", Archive = "archive", MoveToInbox = "moveToInbox", Trash = "trash", Untrash = "untrash", Spam = "spam",
         NotSpam = "notSpam", AddLabel = "addLabel", RemoveLabel = "removeLabel", MoveTo = "moveTo", DeleteForever = "deleteForever",
-        Mute = "mute", Unmute = "unmute", ReportPhishing = "reportPhishing";
+        Mute = "mute", Unmute = "unmute", ReportPhishing = "reportPhishing", Snooze = "snooze", Unsnooze = "unsnooze";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal)
     {
         MarkRead, MarkUnread, Star, Unstar, Important, NotImportant, Archive, MoveToInbox, Trash, Untrash, Spam, NotSpam, AddLabel, RemoveLabel,
-        MoveTo, DeleteForever, Mute, Unmute, ReportPhishing,
+        MoveTo, DeleteForever, Mute, Unmute, ReportPhishing, Snooze, Unsnooze,
     };
 }
 
 /// <summary>One action on threads and/or messages. <see cref="FromLabelId"/> is the list the user acts from (for "move").</summary>
-public sealed record MailActionCommand(Guid? MailboxId, string Action, IReadOnlyList<Guid> ThreadIds, IReadOnlyList<Guid> MessageIds, Guid? LabelId, Guid? FromLabelId)
-    : IRequest<ChangeResult>;
+public sealed record MailActionCommand(Guid? MailboxId, string Action, IReadOnlyList<Guid> ThreadIds, IReadOnlyList<Guid> MessageIds, Guid? LabelId, Guid? FromLabelId,
+    DateTimeOffset? SnoozeUntil = null) : IRequest<ChangeResult>;
 
 public sealed class MailActionValidator : AbstractValidator<MailActionCommand>
 {
@@ -178,11 +187,14 @@ public sealed class MailActionValidator : AbstractValidator<MailActionCommand>
         RuleFor(x => x.Action).Must(MailActionNames.All.Contains).WithErrorCode("invalid_action");
         RuleFor(x => x.ThreadIds.Count + x.MessageIds.Count).InclusiveBetween(1, MaxItems).WithErrorCode("selection_size");
         RuleFor(x => x.LabelId).NotNull().When(x => x.Action is MailActionNames.AddLabel or MailActionNames.RemoveLabel or MailActionNames.MoveTo);
+        RuleFor(x => x.SnoozeUntil).NotNull().WithErrorCode("snooze_time_required")
+            .Must(t => t > DateTimeOffset.UtcNow && t < DateTimeOffset.UtcNow.AddYears(5)).WithErrorCode("snooze_time_invalid")
+            .When(x => x.Action == MailActionNames.Snooze);
     }
 }
 
-public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store, Antispam.SpamLearning learning, Antispam.PhishingReports phishing)
-    : IRequestHandler<MailActionCommand, ChangeResult>
+public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store, Antispam.SpamLearning learning, Antispam.PhishingReports phishing,
+    SnoozeService snoozes) : IRequestHandler<MailActionCommand, ChangeResult>
 {
     public async Task<ChangeResult> Handle(MailActionCommand c, CancellationToken ct)
     {
@@ -192,7 +204,7 @@ public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store, A
             throw AppException.Forbidden("mailbox_read_only");
         }
 
-        if (c.Action is MailActionNames.Mute or MailActionNames.Unmute)
+        if (c.Action is MailActionNames.Mute or MailActionNames.Unmute or MailActionNames.Snooze or MailActionNames.Unsnooze)
         {
             var threads = c.ThreadIds.ToList();
             if (c.MessageIds.Count > 0)
@@ -200,7 +212,26 @@ public sealed class MailActionHandler(MailboxOpener opener, PgMailStore store, A
                 threads.AddRange(await store.GetMessagesThreadsAsync(access, c.MessageIds, ct));
             }
 
-            await store.SetThreadMutedAsync(access, threads, c.Action == MailActionNames.Mute, ct);
+            switch (c.Action)
+            {
+                case MailActionNames.Snooze:
+                    await snoozes.SnoozeAsync(access, threads, c.SnoozeUntil!.Value, ct);
+                    break;
+                case MailActionNames.Unsnooze:
+                    await snoozes.WakeAsync(access, threads, Domain.Mail.SnoozeStatus.Cancelled, ct);
+                    break;
+                default:
+                    await store.SetThreadMutedAsync(access, threads, c.Action == MailActionNames.Mute, ct);
+                    if (c.Action == MailActionNames.Mute)
+                    {
+                        // Muting archives the conversation now; later replies stay out of the Inbox (MailboxRules).
+                        await store.ApplyAsync(access, await store.ResolveMessagesAsync(access, threads, [], ct),
+                            new MessageChange { RemoveSystem = [SystemLabels.Inbox] }, ct);
+                    }
+
+                    break;
+            }
+
             return new ChangeResult(threads.Count, 0);
         }
 
@@ -281,7 +312,8 @@ public sealed class GetChangesHandler(MailboxOpener opener, PgMailStore store) :
         await store.GetChangesAsync(await opener.OpenAsync(q.MailboxId, ct), Math.Max(0, q.SinceModseq), ct);
 }
 
-public sealed record SaveLabelCommand(Guid? MailboxId, Guid? LabelId, string Name, Guid? ParentId, string? ColorBg, string? ColorText) : IRequest<Guid>;
+public sealed record SaveLabelCommand(Guid? MailboxId, Guid? LabelId, string Name, Guid? ParentId, string? ColorBg, string? ColorText,
+    string? ShowInList = null, bool? ShowInMessageList = null) : IRequest<Guid>;
 
 public sealed class SaveLabelValidator : AbstractValidator<SaveLabelCommand>
 {
@@ -290,6 +322,7 @@ public sealed class SaveLabelValidator : AbstractValidator<SaveLabelCommand>
         RuleFor(x => x.Name).NotEmpty().MaximumLength(225).Must(n => !n.Contains('/', StringComparison.Ordinal)).WithErrorCode("label_name_slash");
         RuleFor(x => x.ColorBg).Matches("^#[0-9a-fA-F]{6}$").When(x => x.ColorBg is not null);
         RuleFor(x => x.ColorText).Matches("^#[0-9a-fA-F]{6}$").When(x => x.ColorText is not null);
+        RuleFor(x => x.ShowInList).Must(v => v is null or "SHOW" or "HIDE" or "IF_UNREAD").WithErrorCode("invalid_option");
     }
 }
 
@@ -302,7 +335,8 @@ public sealed class SaveLabelHandler(MailboxOpener opener, PgMailStore store) : 
         {
             if (c.LabelId is { } id)
             {
-                await store.UpdateLabelAsync(access, id, c.Name, c.ColorBg, c.ColorText, ct);
+                await store.UpdateLabelAsync(access, id, c.Name, c.ColorBg, c.ColorText,
+                    c.ShowInList is null ? null : Enum.Parse<LabelVisibility>(EnumNames.FromUpperSnake(c.ShowInList), true), c.ShowInMessageList, ct);
                 return id;
             }
 

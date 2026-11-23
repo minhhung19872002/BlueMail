@@ -68,9 +68,9 @@ async function blob(path: string): Promise<Blob> {
 }
 
 /** multipart/form-data upload (e.g. a Gmail filter export); same envelope and errors as JSON calls. */
-async function form<T>(path: string, data: FormData): Promise<T> {
+async function form<T>(path: string, data: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
   const token = await accessToken();
-  const res = await fetch(config().apiBase + path, { method: "POST", body: data, headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  const res = await fetch(config().apiBase + path, { method, body: data, headers: token ? { Authorization: `Bearer ${token}` } : {} });
   const text = await res.text();
   const json: unknown = text ? JSON.parse(text) : null;
   if (!res.ok) {

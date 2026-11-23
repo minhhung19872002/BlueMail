@@ -270,7 +270,13 @@ public sealed class SuggestRecipientsHandler(MailboxOpener opener, BlueMailDbCon
         }
 
         var like = "%" + term.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal) + "%";
-        var users = await db.Users.AsNoTracking().Where(u => u.TenantId == access.TenantId && u.DeletedAt == null &&
+        var hidden = db.DirectoryOverrides.AsNoTracking().Where(o => o.HideFromDirectory).Select(o => o.UserId);
+        var contacts = await db.Contacts.AsNoTracking().Where(c => c.UserId == access.ActorUserId && c.DeletedAt == null &&
+                (EF.Functions.ILike(EF.Functions.Unaccent(c.DisplayName), EF.Functions.Unaccent(like)) || c.EmailKeys.Any(e => EF.Functions.ILike(e, like))))
+            .OrderBy(c => c.IsAutoSaved).ThenByDescending(c => c.ContactCount).Take(8).Select(c => new { c.DisplayName, c.EmailKeys }).ToListAsync(ct);
+        var fromContacts = contacts.SelectMany(c => c.EmailKeys.Where(e => e.Contains(term, StringComparison.Ordinal) || c.DisplayName.Contains(q.Q.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Select(e => new SuggestedAddress(c.DisplayName, e, "contact"))).ToList();
+        var users = await db.Users.AsNoTracking().Where(u => u.TenantId == access.TenantId && u.DeletedAt == null && !hidden.Contains(u.Id) &&
                 (EF.Functions.ILike(u.PrimaryEmail, like) || EF.Functions.ILike(EF.Functions.Unaccent(u.DisplayName), EF.Functions.Unaccent(like))))
             .OrderBy(u => u.DisplayName).Take(8).Select(u => new SuggestedAddress(u.DisplayName, u.PrimaryEmail, "user")).ToListAsync(ct);
         var groups = await db.Groups.AsNoTracking().Where(g => g.TenantId == access.TenantId && g.DeletedAt == null &&
@@ -285,7 +291,7 @@ public sealed class SuggestRecipientsHandler(MailboxOpener opener, BlueMailDbCon
             .GroupBy(m => m.FromAddr!)
             .OrderByDescending(g => g.Max(m => m.ReceivedAt)).Take(8)
             .Select(g => new SuggestedAddress(g.Max(m => m.FromName), g.Key, "recent")).ToListAsync(ct);
-        return users.Concat(groups).Concat(shared).Concat(people)
+        return fromContacts.Concat(users).Concat(groups).Concat(shared).Concat(people)
             .DistinctBy(a => a.Address, StringComparer.OrdinalIgnoreCase).Take(12).ToList();
     }
 }

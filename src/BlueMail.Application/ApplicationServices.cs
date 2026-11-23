@@ -81,6 +81,9 @@ public static class ApplicationServices
         services.AddSingleton<Features.Rules.Srs>();
         services.AddScoped<Features.Rules.SystemMail>();
         services.AddScoped<Features.Rules.MailboxRules>();
+        services.AddScoped<Features.Rules.InboxOrganizer>();
+        services.AddScoped<Features.Mail.SnoozeService>();
+        services.AddScoped<Features.Contacts.ContactRecorder>();
         services.AddScoped<Features.Rules.FilterRules>();
         services.AddScoped<Features.Antispam.BayesStore>();
         services.AddScoped<Features.Antispam.SpamLearning>();

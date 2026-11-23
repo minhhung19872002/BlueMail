@@ -145,5 +145,17 @@
   "error.code_expired": "The code has expired or was tried too often. Request a new one.",
   "error.code_invalid": "The code is not correct.",
   "forwarding.verify.subject": "BlueMail forwarding confirmation – {user}",
-  "forwarding.verify.body": "{user} wants to forward their mail automatically to this address.\r\n\r\nConfirmation code: {code}\r\n\r\nTo allow it, give this code to {user}. If you do not know this person, ignore this message: nothing will be forwarded.\r\nThe code is valid for 24 hours.\r\n"
+  "forwarding.verify.body": "{user} wants to forward their mail automatically to this address.\r\n\r\nConfirmation code: {code}\r\n\r\nTo allow it, give this code to {user}. If you do not know this person, ignore this message: nothing will be forwarded.\r\nThe code is valid for 24 hours.\r\n",
+  "error.snooze_time_required": "Choose when the conversation should come back.",
+  "error.snooze_time_invalid": "The snooze time must be in the future.",
+  "error.no_unsubscribe": "This sender offers no way to unsubscribe.",
+  "error.contact_empty": "Enter a name or an email address.",
+  "error.contact_not_found": "Contact not found.",
+  "error.too_many_contacts": "You have reached the maximum number of contacts.",
+  "error.photo_not_image": "The photo must be a JPEG or PNG image.",
+  "error.photo_too_large": "The photo must be at most 1 MB.",
+  "error.group_exists": "A group with this name already exists.",
+  "error.group_not_found": "Group not found.",
+  "error.no_contacts_in_file": "No contacts were found in this file (vCard or CSV).",
+  "error.rule_no_condition": "Give a sender domain or a list id."
 }

@@ -209,3 +209,12 @@ body { background: var(--bm-bg); color: var(--bm-text); }
   .bm-search { margin-inline: 4px; min-width: 0; }
   .bm-brand { display: none; }
 }
+.bm-snooze-item { display: flex; gap: 16px; justify-content: space-between; min-width: 240px; }
+.bm-inbox-tabs { margin-block-end: 4px; }
+.bm-contacts-bar { margin-block-end: 12px; }
+.bm-label-select { min-width: 120px; }
+.bm-label-name { flex: 1 1 auto; }
+kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; border: 1px solid var(--ant-color-border, #d9d9d9); border-radius: 4px; padding: 0 6px; }
+.bm-kbd-focus { box-shadow: inset 4px 0 0 var(--ant-color-primary, #1a56db); }
+/* Pages with .bm-settings-list show their own, specific empty message. */
+.bm-settings-list .ant-list-empty-text { display: none; }

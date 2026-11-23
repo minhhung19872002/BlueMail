@@ -76,6 +76,13 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<VacationReply> VacationReplies => Set<VacationReply>();
     public DbSet<ForwardingAddress> ForwardingAddresses => Set<ForwardingAddress>();
     public DbSet<TenantMailPolicy> MailPolicies => Set<TenantMailPolicy>();
+    public DbSet<Snooze> Snoozes => Set<Snooze>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+    public DbSet<CategoryRule> CategoryRules => Set<CategoryRule>();
+    public DbSet<BlueMail.Domain.Contacts.Contact> Contacts => Set<BlueMail.Domain.Contacts.Contact>();
+    public DbSet<BlueMail.Domain.Contacts.ContactGroup> ContactGroups => Set<BlueMail.Domain.Contacts.ContactGroup>();
+    public DbSet<BlueMail.Domain.Contacts.ContactGroupMember> ContactGroupMembers => Set<BlueMail.Domain.Contacts.ContactGroupMember>();
+    public DbSet<BlueMail.Domain.Contacts.DirectoryOverride> DirectoryOverrides => Set<BlueMail.Domain.Contacts.DirectoryOverride>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

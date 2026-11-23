@@ -219,3 +219,29 @@ web `npx vitest run`. Kiểm thật qua SMTP: `docker compose … up -d --build 
 
 Chưa làm trong Phase 7 (đúng phase sau): gợi ý khi gõ ở ô tìm kiếm (danh bạ ở Phase 8), "chỉ trả lời danh bạ" dùng
 danh bạ thật (Phase 8), giao diện quản trị chính sách chuyển tiếp (Phase 9 — API đã có).
+
+## Phase 8 — sắp xếp, danh bạ, cài đặt, phím tắt
+
+Chạy: `dotnet test --filter "Contacts|Rules"` (đơn vị), `dotnet test tests/BlueMail.IntegrationTests --filter OrganizeTests`,
+web `npx vitest run`; kiểm trên trình duyệt (desktop và 375 px).
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P8-01 | Tab Hộp thư đến | Thư từ facebookmail.com, thư có List-Unsubscribe, có List-Id, từ no-reply@ | Mạng xã hội, Quảng cáo, Diễn đàn, Cập nhật | Như mong đợi | ✅ |
+| P8-02 | Danh bạ thắng | Người trong danh bạ gửi thư có List-Unsubscribe | Vào Chính | Như mong đợi | ✅ |
+| P8-03 | Quan trọng tự động | Đồng nghiệp gửi thẳng; người mình gửi ≥ 3 lần; thư hàng loạt của người đó | Quan trọng, quan trọng, không quan trọng | Như mong đợi | ✅ |
+| P8-04 | Kéo sang tab khác | Kéo hội thoại sang "Quảng cáo" | Chuyển tab; hỏi tạo quy tắc → bộ lọc `from:(…)` → tab | Như mong đợi (trình duyệt) | ✅ |
+| P8-05 | Tắt tiếng | Tắt tiếng; trả lời gửi cho nhóm; trả lời gửi thẳng cho mình | Rời Hộp thư đến; ở ngoài; vào Hộp thư đến | Như mong đợi | ✅ |
+| P8-06 | Tạm ẩn | Tạm ẩn 3 giờ; tới giờ (worker); thư mới trong hội thoại đang tạm ẩn | Vào "Đã tạm ẩn" với giờ quay lại; về Hộp thư đến chưa đọc; về ngay | Như mong đợi; giờ đặt sẵn theo múi giờ người dùng (`snooze.test.ts`) | ✅ |
+| P8-07 | Hủy đăng ký | mailto:; https + List-Unsubscribe-Post (RFC 8058) có DKIM pass; không có tiêu đề | Gửi thư hủy; POST một chạm; 400 rõ lý do | mailto và lỗi kiểm tích hợp; POST một chạm kiểm đơn vị phần phân tích, đi qua cùng lớp chống SSRF của proxy ảnh | ✅ |
+| P8-08 | Danh bạ | Tạo, sửa, ảnh (chỉ JPEG/PNG ≤ 1 MB, kiểm bằng byte đầu), nhóm, xoá | Như mong đợi | Như mong đợi | ✅ |
+| P8-09 | vCard / CSV | Nhập vCard 4.0/3.0/2.1 (QP), CSV Google và Outlook; xuất rồi nhập lại | Đọc đúng tên, nhiều thư/số, tổ chức, ghi chú, ảnh; dòng gấp ≤ 75 octet; CSV chặn công thức bảng tính | Như mong đợi | ✅ |
+| P8-10 | Gộp trùng | Nhập thẻ trùng địa chỉ; tạo tay trùng rồi "Gộp" | Gộp vào liên hệ có sẵn; còn một liên hệ | Như mong đợi | ✅ |
+| P8-11 | Liên hệ khác | Gửi 2 thư tới một người | Một liên hệ tự lưu, đếm 2 (không đếm lại khi bộ điều phối chạy lại) | Như mong đợi | ✅ |
+| P8-12 | Danh bạ tổ chức | Tìm; quản trị viên ẩn một người | Người dùng, nhóm, hộp thư dùng chung; người bị ẩn biến mất (cả ở gợi ý người nhận) | Như mong đợi | ✅ |
+| P8-13 | Cài đặt | Lưu giá trị sai; "luôn hiện ảnh"; hồ sơ (ngôn ngữ, múi giờ) | Về mặc định; ảnh hiện (trừ thư rác); ngôn ngữ lạ bị từ chối | Như mong đợi | ✅ |
+| P8-14 | Phím tắt | Bật trong Cài đặt; `?`, `g i`, `j`, `x`, `z` | Bảng 35 phím; điều hướng; con trỏ thấy được; hoàn tác thao tác vừa làm | Như mong đợi (trình duyệt, `shortcuts.test.ts`) sau BUG-043 | ✅ |
+| P8-15 | Dọn Thùng rác/Thư rác | Thư trong Thùng rác > 30 ngày, một thư bị giữ pháp lý, một thư mới | Xoá hẳn thư cũ; giữ thư bị giữ và thư mới | Như mong đợi | ✅ |
+
+Chưa làm trong Phase 8 (đúng phase sau): giao diện quản trị cho quy tắc phân loại và ẩn khỏi danh bạ tổ chức (Phase 9, API đã có);
+mật khẩu ứng dụng và hướng dẫn IMAP trong tab "Chuyển tiếp và IMAP" (Phase 11).

@@ -98,6 +98,9 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
         if (!await HasMessageAsync(db, o.TenantId, o.MailboxId, rfcId, ct))
         {
             await DeliverRawAsync(store, o.TenantId, forSent, new MailboxDelivery(o.MailboxId, [SystemLabels.Sent], Seen: true), ct);
+            // Recipients go to "Other contacts" once per send (inside the Sent-copy step, so a retried dispatch does not count twice).
+            await sp.GetRequiredService<Contacts.ContactRecorder>().RecordSentAsync(o.TenantId, o.UserId,
+                state.AllRecipients.Select(r => new MailboxAddress(r.Name, r.Address.Trim())), ct);
             if (o.ArchiveThread && state.ReplyToMessageId is { } replied)
             {
                 var threads = await store.GetMessagesThreadsAsync(access, [replied], ct);
@@ -135,8 +138,8 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
                             var incoming = new Rules.IncomingMessage(facts, forRecipients, o.FromAddress, DateTimeOffset.UtcNow, IsSpam: false, SpamIsFinal: false);
                             var plan = await rules.PlanAsync(r.TenantId, mb, [rcpt], incoming, ct);
                             s.Position = 0;
-                            await store.DeliverAsync(new DeliveryRequest(r.TenantId, s, facts, [plan.Delivery], incoming.ReceivedAt), ct);
-                            await rules.AfterDeliveryAsync(r.TenantId, mb, plan, incoming, ct);
+                            var stored = await store.DeliverAsync(new DeliveryRequest(r.TenantId, s, facts, [plan.Delivery], incoming.ReceivedAt), ct);
+                            await rules.AfterDeliveryAsync(r.TenantId, mb, plan, incoming, ct, stored[0].ThreadId);
                         }
                     }
 

@@ -84,3 +84,9 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Acceptance: `sh scripts/dev-phase7-check.sh` (rebuild mx + outbound first).
 - A vite dev server may already be running on 5173 (BM_WEB_URL); reuse it instead of starting a second one on another port.
 
+## Organising (Phase 8)
+- Tabs/importance: `InboxOrganizer` (rules only, docs/00 D17), called from `MailboxRules.PlanAsync`; filters run after and win.
+- Snooze: `SnoozeService` + `MailMaintenanceWorker` (API process; also empties Trash/Spam after 30 days via `PgMailStore.PurgeTrashAndSpamAsync`).
+- User settings: `mail.user_settings` JSON normalised by `MailSettings.Normalize`; web reads them via `useSettings()` (settingsApi.ts).
+- Keyboard shortcuts: `shortcuts.ts` (keys) + `ShortcutHost`/`useShortcuts` (components register the commands they own).
+

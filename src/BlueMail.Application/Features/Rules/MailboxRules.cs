@@ -53,14 +53,16 @@ public sealed record IncomingMessage(
     ArcStatus ArcChain = ArcStatus.None);
 
 /// <summary>Where one copy goes and what happens after it is stored.</summary>
-public sealed record MailboxPlan(MailboxDelivery Delivery, IReadOnlyList<string> ForwardTo, bool Vacation, IReadOnlyList<Guid> MatchedFilters, bool Blocked);
+public sealed record MailboxPlan(MailboxDelivery Delivery, IReadOnlyList<string> ForwardTo, bool Vacation, IReadOnlyList<Guid> MatchedFilters, bool Blocked,
+    Organization? Organization = null);
 
 /// <summary>
 /// Server-side mailbox rules, run in the delivery path (PROMPT 2.1 step 8, 6.8) for mail from the Internet and
 /// internal mail alike: blocked senders, filters (same query tree as search), automatic forwarding (verified
 /// addresses only, SRS + ARC, loop-safe) and vacation replies (RFC 3834).
 /// </summary>
-public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs, BmSettings settings, ILogger<MailboxRules> log)
+public sealed class MailboxRules(BlueMailDbContext db, PgMailStore store, SystemMail mail, Srs srs, BmSettings settings, InboxOrganizer organizer,
+    ILogger<MailboxRules> log)
 {
     public const int MaxReceivedForForwarding = 25;
     public static readonly TimeSpan VacationInterval = TimeSpan.FromDays(4);
@@ -85,7 +87,22 @@ public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs,
             return new MailboxPlan(new MailboxDelivery(mailboxId, [SystemLabels.Spam], DeliveredTo: deliveredTo), [], false, [], true);
         }
 
-        // 2. Filters, in order; every matching filter applies (as Gmail).
+        // 2. Tab, automatic importance, muted conversations (explainable rules, PROMPT 6.5/6.6). Filters may override.
+        var owner = await new Mail.SearchContexts(db).ForMailboxAsync(tenant, mailboxId, null, ct);
+        var me = owner.Addresses.Concat(deliveredTo.Select(d => d.ToLowerInvariant())).ToHashSet();
+        Organization? org = null;
+        if (!m.IsSpam)
+        {
+            org = await organizer.OrganizeAsync(tenant, mailboxId, userId, me, m.Facts, ct);
+            labels.Remove(SystemLabels.CategoryPrimary);
+            labels.Add(org.Category);
+            if (org.MutedThread && !org.Personal)
+            {
+                labels.Remove(SystemLabels.Inbox); // muted: archived unless addressed to you personally
+            }
+        }
+
+        // 3. Filters, in order; every matching filter applies (as Gmail).
         var filters = await db.Filters.IgnoreQueryFilters().AsNoTracking()
             .Where(f => f.TenantId == tenant && f.MailboxId == mailboxId && f.IsEnabled && f.DeletedAt == null).OrderBy(f => f.SortOrder).ThenBy(f => f.CreatedAt)
             .ToListAsync(ct);
@@ -96,7 +113,6 @@ public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs,
         var matched = new List<Guid>();
         if (filters.Count > 0)
         {
-            var owner = await new Mail.SearchContexts(db).ForMailboxAsync(tenant, mailboxId, null, ct);
             var parsed = new List<(MailFilter Filter, SearchNode Node)>();
             foreach (var f in filters)
             {
@@ -128,7 +144,7 @@ public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs,
                 if (a.NeverSpam && labels.Contains(SystemLabels.Spam) && !m.SpamIsFinal)
                 {
                     labels.Remove(SystemLabels.Spam);
-                    labels.AddRange([SystemLabels.Inbox, SystemLabels.CategoryPrimary]);
+                    labels.AddRange([SystemLabels.Inbox, org?.Category ?? SystemLabels.CategoryPrimary]);
                 }
 
                 if (a.SkipInbox)
@@ -165,7 +181,7 @@ public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs,
 
         var spam = labels.Contains(SystemLabels.Spam);
 
-        // 3. Automatic forwarding (never for spam, as Gmail).
+        // 4. Automatic forwarding (never for spam, as Gmail).
         if (userId is { } owner2 && !spam)
         {
             var active = await db.ForwardingAddresses.IgnoreQueryFilters().AsNoTracking()
@@ -183,14 +199,26 @@ public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs,
 
         var verified = forwards.Count == 0 || userId is null ? [] : await VerifiedTargetsAsync(tenant, userId.Value, forwards, ct);
         var vacation = userId is not null && !spam && !labels.Contains(SystemLabels.Trash);
-        var delivery = new MailboxDelivery(mailboxId, labels.Distinct().ToList(), seen, Important: important ?? false, ExtraLabelIds: extra.Distinct().ToList(),
-            DeliveredTo: deliveredTo);
-        return new MailboxPlan(delivery, verified, vacation, matched, false);
+        var isImportant = important ?? (!spam && (org?.Important ?? false));
+        if (isImportant)
+        {
+            labels.Add(SystemLabels.Important);
+        }
+
+        var category = labels.FirstOrDefault(l => l.StartsWith("CATEGORY_", StringComparison.Ordinal))?["CATEGORY_".Length..];
+        var delivery = new MailboxDelivery(mailboxId, labels.Distinct().ToList(), seen, category, isImportant, extra.Distinct().ToList(), DeliveredTo: deliveredTo);
+        return new MailboxPlan(delivery, verified, vacation, matched, false, org);
     }
 
     /// <summary>After the copy is stored: forwards and the vacation reply. Failures are logged, never fail the delivery.</summary>
-    public async Task AfterDeliveryAsync(Guid tenant, Guid mailboxId, MailboxPlan plan, IncomingMessage m, CancellationToken ct)
+    public async Task AfterDeliveryAsync(Guid tenant, Guid mailboxId, MailboxPlan plan, IncomingMessage m, CancellationToken ct, Guid? threadId = null)
     {
+        if (threadId is { } thread && !plan.Blocked && plan.Delivery.SystemLabels.Contains(SystemLabels.Inbox))
+        {
+            // New mail in a snoozed conversation brings it back now (PROMPT 6.5).
+            await new Mail.SnoozeService(db, store).WakeOnNewMailAsync(tenant, mailboxId, thread, ct);
+        }
+
         if (plan.ForwardTo.Count == 0 && !plan.Vacation)
         {
             return;
@@ -353,7 +381,8 @@ public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs,
             return;
         }
 
-        if (v.OnlyContacts && !await WroteToAsync(tenant, userId, sender, ct))
+        if (v.OnlyContacts && !await db.Contacts.IgnoreQueryFilters().AnyAsync(c => c.TenantId == tenant && c.UserId == userId && c.DeletedAt == null
+                                                                                  && c.EmailKeys.Contains(sender), ct))
         {
             return;
         }
@@ -397,23 +426,6 @@ public sealed class MailboxRules(BlueMailDbContext db, SystemMail mail, Srs srs,
         var signed = await mail.SignAsync(tenant, userEmail[(userEmail.LastIndexOf('@') + 1)..], reply, ct);
         // RFC 3834 3.3: the reply goes to the return path and carries a null return path itself.
         await mail.SendAsync(tenant, userId, "", m.EnvelopeFrom!, signed, notification: true, locale, null, ct);
-    }
-
-    private async Task<bool> WroteToAsync(Guid tenant, Guid userId, string address, CancellationToken ct)
-    {
-        var c = await OpenAsync(ct);
-        await using var cmd = new NpgsqlCommand("""
-            SELECT EXISTS (
-              SELECT 1 FROM mail.messages m JOIN mail.mailboxes b ON b.id = m.mailbox_id
-              JOIN mail.message_labels ml ON ml.tenant_id = m.tenant_id AND ml.message_id = m.id
-              JOIN mail.labels l ON l.id = ml.label_id
-              WHERE m.tenant_id = @t AND b.owner_id = @u AND l.system_key = 'SENT' AND m.expunged_at IS NULL
-                AND EXISTS (SELECT 1 FROM jsonb_array_elements(m.to_addrs || m.cc_addrs || m.bcc_addrs) e WHERE lower(e->>'address') = @a))
-            """, c);
-        cmd.Parameters.AddWithValue("t", tenant);
-        cmd.Parameters.AddWithValue("u", userId);
-        cmd.Parameters.AddWithValue("a", address);
-        return (bool)(await cmd.ExecuteScalarAsync(ct))!;
     }
 
     private async Task<NpgsqlConnection> OpenAsync(CancellationToken ct)

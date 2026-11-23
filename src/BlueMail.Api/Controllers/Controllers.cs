@@ -22,6 +22,24 @@ public sealed class MeController(ISender mediator) : ControllerBase
     [HttpGet]
     [SelfGuarded("Returns the caller's own profile only.")]
     public async Task<ApiResponse<MeDto>> Get(CancellationToken ct) => ApiResponses.Ok(await mediator.Send(new GetMeQuery(), ct));
+
+    [HttpGet("settings")]
+    [SelfGuarded("The caller's own settings only.")]
+    public async Task<ApiResponse<BlueMail.Application.Features.Me.MailSettings>> Settings(CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Me.GetSettingsQuery(), ct));
+
+    [HttpPut("settings")]
+    [SelfGuarded("The caller's own settings only.")]
+    public async Task<ApiResponse<BlueMail.Application.Features.Me.MailSettings>> SaveSettings([FromBody] BlueMail.Application.Features.Me.MailSettings body,
+        CancellationToken ct) => ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Me.SaveSettingsCommand(body), ct));
+
+    [HttpPut("profile")]
+    [SelfGuarded("The caller's own profile only.")]
+    public async Task<ApiResponse<bool>> SaveProfile([FromBody] BlueMail.Application.Features.Me.SaveProfileCommand body, CancellationToken ct)
+    {
+        await mediator.Send(body, ct);
+        return ApiResponses.Ok(true);
+    }
 }
 
 [ApiController]
@@ -35,7 +53,7 @@ public sealed class MailController(ISender mediator) : ControllerBase
     public async Task<ApiResponse<LabelsDto>> Labels([FromQuery] Guid? mailboxId, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new GetLabelsQuery(mailboxId), ct));
 
-    public sealed record LabelBody(string Name, Guid? ParentId, string? ColorBg, string? ColorText);
+    public sealed record LabelBody(string Name, Guid? ParentId, string? ColorBg, string? ColorText, string? ShowInList = null, bool? ShowInMessageList = null);
 
     [HttpPost("labels")]
     [SelfGuarded(Guarded)]
@@ -45,7 +63,7 @@ public sealed class MailController(ISender mediator) : ControllerBase
     [HttpPut("labels/{id:guid}")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<Guid>> UpdateLabel(Guid id, [FromQuery] Guid? mailboxId, [FromBody] LabelBody body, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(new SaveLabelCommand(mailboxId, id, body.Name, null, body.ColorBg, body.ColorText), ct));
+        ApiResponses.Ok(await mediator.Send(new SaveLabelCommand(mailboxId, id, body.Name, null, body.ColorBg, body.ColorText, body.ShowInList, body.ShowInMessageList), ct));
 
     [HttpDelete("labels/{id:guid}")]
     [SelfGuarded(Guarded)]
@@ -77,6 +95,16 @@ public sealed class MailController(ISender mediator) : ControllerBase
     public async Task<ApiResponse<OriginalDto>> Original(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new GetOriginalQuery(mailboxId, id), ct));
 
+    [HttpGet("snoozed")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<IReadOnlyList<BlueMail.Application.Features.Mail.SnoozedDto>>> Snoozed([FromQuery] Guid? mailboxId, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.ListSnoozedQuery(mailboxId), ct));
+
+    [HttpPost("messages/{id:guid}/unsubscribe")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Mail.UnsubscribeResult>> Unsubscribe(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.UnsubscribeCommand(id, mailboxId), ct));
+
     [HttpPost("messages/{id:guid}/trust-images")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<bool>> TrustImages(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct)
@@ -85,12 +113,14 @@ public sealed class MailController(ISender mediator) : ControllerBase
         return ApiResponses.Ok(true);
     }
 
-    public sealed record ActionBody(string Action, IReadOnlyList<Guid>? ThreadIds, IReadOnlyList<Guid>? MessageIds, Guid? LabelId, Guid? FromLabelId);
+    public sealed record ActionBody(string Action, IReadOnlyList<Guid>? ThreadIds, IReadOnlyList<Guid>? MessageIds, Guid? LabelId, Guid? FromLabelId,
+        DateTimeOffset? SnoozeUntil = null);
 
     [HttpPost("actions")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.MailStore.ChangeResult>> Action([FromQuery] Guid? mailboxId, [FromBody] ActionBody body, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(new MailActionCommand(mailboxId, body.Action, body.ThreadIds ?? [], body.MessageIds ?? [], body.LabelId, body.FromLabelId), ct));
+        ApiResponses.Ok(await mediator.Send(new MailActionCommand(mailboxId, body.Action, body.ThreadIds ?? [], body.MessageIds ?? [], body.LabelId, body.FromLabelId,
+            body.SnoozeUntil), ct));
 
     [HttpGet("changes")]
     [SelfGuarded(Guarded)]

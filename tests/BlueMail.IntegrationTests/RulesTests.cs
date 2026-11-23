@@ -103,7 +103,9 @@ public partial class RulesTests(StackFixture stack)
             var facts = MessageFacts.Extract(MimeMessage.Parse(s), s);
             var at = await Db(db => db.Messages.IgnoreQueryFilters().Where(m => m.Id == id).Select(m => m.ReceivedAt).SingleAsync());
             var size = await Db(db => db.Messages.IgnoreQueryFilters().Where(m => m.Id == id).Select(m => m.Size).SingleAsync());
-            subjects.Add((id, SearchSubject.FromFacts(facts, at, size, ["ngoc@bluemail.test"], [SystemLabels.Inbox, SystemLabels.CategoryPrimary])));
+            var system = await Db(db => (from ml in db.MessageLabels.IgnoreQueryFilters() join l in db.Labels.IgnoreQueryFilters() on ml.LabelId equals l.Id
+                                         where ml.MessageId == id && l.SystemKey != null select l.SystemKey!).ToListAsync());
+            subjects.Add((id, SearchSubject.FromFacts(facts, at, size, ["ngoc@bluemail.test"], system)));
         }
 
         var queries = new[]

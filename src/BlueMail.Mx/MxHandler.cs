@@ -309,7 +309,7 @@ public sealed class MxHandler(
         });
         // Authentication results as an ARC-Authentication-Results value, when we pass the message on.
         var authValue = arHeader[(arHeader.IndexOf(';', StringComparison.Ordinal) + 1)..].Replace("\r\n\t", " ", StringComparison.Ordinal).Trim();
-        var after = new List<(Guid Tenant, Guid Mailbox, MailboxPlan Plan, IncomingMessage Incoming)>();
+        var after = new List<(Guid Tenant, Guid Mailbox, MailboxPlan Plan, IncomingMessage Incoming, Guid Thread)>();
         try
         {
             foreach (var group in plan.GroupBy(p => (p.Tenant, Kind: p.Verdict.Decision is SpamDecision.Reject or SpamDecision.Quarantine)))
@@ -328,10 +328,10 @@ public sealed class MxHandler(
                         v.Decision == SpamDecision.Spam, v.Final, options.AuthServId, authValue, arc.Status);
                     var rcpts = accepted.Where(a => a.TenantId == group.Key.Tenant && a.MailboxIds.Contains(v.MailboxId)).Select(a => a.Address).ToList();
                     var mailboxPlan = await rules.PlanAsync(group.Key.Tenant, v.MailboxId, rcpts, incoming, ct);
-                    await store.DeliverAsync(new DeliveryRequest(group.Key.Tenant, final, facts, [mailboxPlan.Delivery], receivedAt,
+                    var copies = await store.DeliverAsync(new DeliveryRequest(group.Key.Tenant, final, facts, [mailboxPlan.Delivery], receivedAt,
                         authJson, v.Score, v.ReportJson, statuses), ct);
                     final.Position = 0;
-                    after.Add((group.Key.Tenant, v.MailboxId, mailboxPlan, incoming));
+                    after.Add((group.Key.Tenant, v.MailboxId, mailboxPlan, incoming, copies[0].ThreadId));
                 }
             }
 
@@ -351,9 +351,9 @@ public sealed class MxHandler(
             return temp;
         }
 
-        foreach (var (t, mb, mailboxPlan, incoming) in after)
+        foreach (var (t, mb, mailboxPlan, incoming, thread) in after)
         {
-            await rules.AfterDeliveryAsync(t, mb, mailboxPlan, incoming, ct);
+            await rules.AfterDeliveryAsync(t, mb, mailboxPlan, incoming, ct, thread);
         }
 
         var ok = new SmtpReply(250, "2.0.0", "Message accepted for delivery");

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Alert, App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
-  BulbOutlined, ClusterOutlined, CoffeeOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
+  BulbOutlined, ClusterOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
   MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,7 +16,9 @@ import { act, createLabel, deleteLabel, mailKeys } from "../modules/mail/mailApi
 import { dragType } from "../modules/mail/ConversationList";
 import { useMailboxLive } from "../modules/mail/realtime";
 import { SearchBox } from "../modules/mail/SearchBox";
+import { ShortcutHost } from "../modules/mail/ShortcutHost";
 import { rulesApi, rulesKeys, vacationActive } from "../modules/settings/rulesApi";
+import { useSaveSettings, useSettings, type MailSettings } from "../modules/settings/settingsApi";
 import { ComposeDock } from "../modules/compose/ComposeDock";
 import { useCompose } from "../modules/compose/composeStore";
 import { useCan, useMe } from "../session";
@@ -51,6 +53,8 @@ export function AppShell() {
   const canTenants = useCan(Permission.PlatformTenantsView);
   const labels = useQuery({ queryKey: mailKeys.labels, queryFn: () => api.get<Labels>("/api/v1/mail/labels") });
   const vacation = useQuery({ queryKey: rulesKeys.vacation, queryFn: rulesApi.vacation });
+  const settings = useSettings();
+  const saveSettings = useSaveSettings();
   const [newLabel, setNewLabel] = useState<string | null>(null);
   const [newColor, setNewColor] = useState<string | null>(null);
   useMailboxLive();
@@ -159,6 +163,8 @@ export function AppShell() {
     items: [
       { key: "who", label: me.email, disabled: true },
       { type: "divider" },
+      { key: "/settings", icon: <SettingOutlined />, label: t("nav.settings") },
+      { key: "/contacts", icon: <ContactsOutlined />, label: t("nav.contacts") },
       { key: "/settings/sessions", icon: <SafetyOutlined />, label: t("nav.sessions") },
       { key: "/settings/signatures", icon: <SignatureFilled />, label: t("nav.signatures") },
       { key: "/settings/filters", icon: <FilterOutlined />, label: t("nav.filters") },
@@ -187,10 +193,15 @@ export function AppShell() {
     onClick: ({ key }) => {
       if (key === "signout") void signOut();
       else if (key === "notify") void Notification.requestPermission();
-      else if (key.startsWith("theme:")) setTheme(key.slice(6) as ThemePreference);
-      else if (key.startsWith("density:")) setDensity(key.slice(8) as Density);
-      else if (key.startsWith("pane:")) setReadingPane(key.slice(5) as ReadingPane);
-      else if (key.startsWith("undo:")) setUndoSeconds(Number(key.slice(5)) as 5 | 10 | 20 | 30);
+      // Quick switches change the account settings (server), which every device follows.
+      else if (key.startsWith("theme:")) { setTheme(key.slice(6) as ThemePreference); void saveSettings({ theme: key.slice(6).toUpperCase() as MailSettings["theme"] }); }
+      else if (key.startsWith("density:")) { setDensity(key.slice(8) as Density); void saveSettings({ density: key.slice(8).toUpperCase() as MailSettings["density"] }); }
+      else if (key.startsWith("pane:")) { setReadingPane(key.slice(5) as ReadingPane); void saveSettings({ readingPane: key.slice(5).toUpperCase() as MailSettings["readingPane"] }); }
+      else if (key.startsWith("undo:")) {
+        const n = Number(key.slice(5)) as 5 | 10 | 20 | 30;
+        setUndoSeconds(n);
+        void saveSettings({ undoSendSeconds: n });
+      }
       else if (key.startsWith("/")) navigate(key);
     },
   };
@@ -272,6 +283,7 @@ export function AppShell() {
           </div>
         </Content>
         <ComposeDock />
+        <ShortcutHost enabled={settings?.keyboardShortcuts ?? false} />
       </Layout>
     </Layout>
   );

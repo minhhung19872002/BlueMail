@@ -195,6 +195,214 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_logs", "audit");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Contacts.Contact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<int>("ContactCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("contact_count");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("display_name");
+
+                    b.PrimitiveCollection<List<string>>("EmailKeys")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("email_keys");
+
+                    b.Property<string>("Emails")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("emails");
+
+                    b.Property<bool>("IsAutoSaved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_auto_saved");
+
+                    b.Property<DateTimeOffset?>("LastContactedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_contacted_at");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Org")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("org");
+
+                    b.Property<string>("Phones")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("phones");
+
+                    b.Property<string>("PhotoContentType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("photo_content_type");
+
+                    b.Property<byte[]>("PhotoSha256")
+                        .HasColumnType("bytea")
+                        .HasColumnName("photo_sha256");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contacts");
+
+                    b.HasIndex("EmailKeys")
+                        .HasDatabaseName("ix_contacts_email_keys");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("EmailKeys"), "gin");
+
+                    b.HasIndex("TenantId", "UserId", "DisplayName")
+                        .HasDatabaseName("ix_contacts_tenant_id_user_id_display_name");
+
+                    b.ToTable("contacts", "contact");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Contacts.ContactGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contact_groups");
+
+                    b.HasIndex("TenantId", "UserId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_contact_groups_tenant_id_user_id_name")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("contact_groups", "contact");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Contacts.ContactGroupMember", b =>
+                {
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("ContactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("contact_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("GroupId", "ContactId")
+                        .HasName("pk_contact_group_members");
+
+                    b.ToTable("contact_group_members", "contact");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Contacts.DirectoryOverride", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<bool>("HideFromDirectory")
+                        .HasColumnType("boolean")
+                        .HasColumnName("hide_from_directory");
+
+                    b.HasKey("TenantId", "UserId")
+                        .HasName("pk_directory_overrides");
+
+                    b.ToTable("directory_overrides", "contact");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Identity.AppPassword", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1359,6 +1567,177 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasFilter("deleted_at IS NULL");
 
                     b.ToTable("blocked_senders", "mail");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.CategoryRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("category");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("Match")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("match");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_category_rules");
+
+                    b.HasIndex("TenantId", "SortOrder")
+                        .HasDatabaseName("ix_category_rules_tenant_id_sort_order");
+
+                    b.ToTable("category_rules", "mail");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"facebookmail.com\"}",
+                            SortOrder = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"facebook.com\"}",
+                            SortOrder = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"linkedin.com\"}",
+                            SortOrder = 3
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"x.com\"}",
+                            SortOrder = 4
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"twitter.com\"}",
+                            SortOrder = 5
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"instagram.com\"}",
+                            SortOrder = 6
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"zalo.me\"}",
+                            SortOrder = 7
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"tiktok.com\"}",
+                            SortOrder = 8
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"youtube.com\"}",
+                            SortOrder = 9
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Category = "CATEGORY_SOCIAL",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"pinterest.com\"}",
+                            SortOrder = 10
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Category = "CATEGORY_PROMOTIONS",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"mailchimp.com\"}",
+                            SortOrder = 11
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Category = "CATEGORY_PROMOTIONS",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"mcsv.net\"}",
+                            SortOrder = 12
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Category = "CATEGORY_PROMOTIONS",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"sendgrid.net\"}",
+                            SortOrder = 13
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Category = "CATEGORY_PROMOTIONS",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"shopee.vn\"}",
+                            SortOrder = 14
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Category = "CATEGORY_PROMOTIONS",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"lazada.vn\"}",
+                            SortOrder = 15
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Category = "CATEGORY_PROMOTIONS",
+                            IsEnabled = true,
+                            Match = "{\"fromDomain\":\"tiki.vn\"}",
+                            SortOrder = 16
+                        });
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Mail.DestinationLimit", b =>
@@ -3033,6 +3412,61 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.ToTable("signatures", "mail");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.Snooze", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("ThreadId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("thread_id");
+
+                    b.Property<DateTimeOffset>("UntilAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("until_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTimeOffset?>("WokenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("woken_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_snoozes");
+
+                    b.HasIndex("Status", "UntilAt")
+                        .HasDatabaseName("ix_snoozes_status_until_at");
+
+                    b.HasIndex("UserId", "ThreadId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_snoozes_active")
+                        .HasFilter("status = 'ACTIVE'");
+
+                    b.ToTable("snoozes", "mail");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Mail.SpamSettings", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -3309,6 +3743,32 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_uploads_expires_at");
 
                     b.ToTable("uploads", "mail");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.UserSettings", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("settings");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_user_settings");
+
+                    b.ToTable("user_settings", "mail");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Mail.Vacation", b =>

@@ -67,6 +67,18 @@ answer `404` (indistinguishable from "does not exist").
 | GET / PUT | `/api/v1/mail/vacation` | self | Auto reply `{ enabled, startAt, endAt, subject, html, onlyContacts, onlyOrganization }` |
 | GET / POST / DELETE | `/api/v1/mail/forwarding[/{id}]`, `POST …/{id}/verify { code }`, `PUT /api/v1/mail/forwarding/active { id?, keepCopy }` | self | Forwarding addresses: a 6-digit code is mailed to the address (24 h, 5 tries); one active automatic forward |
 | GET / PUT | `/api/v1/admin/policy` | `mail.admin.policy.edit` | `{ allowExternalForwarding }` |
+| POST | `/api/v1/mail/actions` `action: snooze \| unsnooze` (`snoozeUntil`), `mute` | self | Snooze (one active per conversation, DB rule; new mail wakes it); mute also archives |
+| GET | `/api/v1/mail/snoozed` | self | Active snoozes with their time |
+| POST | `/api/v1/mail/messages/{id}/unsubscribe` | self | `{ outcome: DONE \| OPEN_URL, url }`: RFC 8058 one-click POST (only with DKIM pass), else mailto:, else the page |
+| GET / PUT | `/api/v1/me/settings`, `PUT /api/v1/me/profile` | self | Account settings (normalised server-side) and profile (name, locale, time zone, clock, week start) |
+| GET / POST / PUT | `/api/v1/contacts[/{id}]`, `POST /api/v1/contacts/delete` | self | Contacts (`?q=&groupId=&other=`): emails/phones with labels, org, title, notes |
+| GET / PUT / DELETE | `/api/v1/contacts/{id}/photo` | self | JPEG/PNG ≤ 1 MB (checked by magic bytes), encrypted in S3 |
+| GET / POST / PUT / DELETE | `/api/v1/contacts/groups[/{id}]` | self | Contact groups |
+| POST / GET | `/api/v1/contacts/import` (multipart vCard/CSV), `/api/v1/contacts/export?format=vcf\|csv` | self | Import merges cards whose address is known |
+| POST | `/api/v1/contacts/merge-duplicates` | self | Merges contacts sharing an address |
+| GET | `/api/v1/contacts/directory?q=` | self (tenant) | Users, groups, shared mailboxes (hidden people left out) |
+| PUT | `/api/v1/admin/directory/{userId}` | `mail.admin.users.edit` | `{ hidden }` |
+| GET / POST / DELETE | `/api/v1/admin/category-rules[/{id}]` | `mail.admin.policy.edit` | Inbox category rules (system defaults read-only) |
 | GET | `/api/v1/account/sessions` | self | Signed-in devices |
 | DELETE | `/api/v1/account/sessions/{id}` | self | Sign a device out (immediate) |
 | GET | `/api/v1/admin/users?search=&page=&pageSize=` | `mail.admin.users.view` | Users of the caller's tenant |

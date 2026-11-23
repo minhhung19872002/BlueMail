@@ -11,6 +11,8 @@ import { ThreadView } from "./ThreadView";
 import { mailKeys } from "./mailApi";
 import { composeApi } from "../compose/composeApi";
 import { useCompose } from "../compose/composeStore";
+import { InboxTabs } from "./InboxTabs";
+import { useSettings, type Category } from "../settings/settingsApi";
 
 /**
  * A list (system view or user label) with its reading pane. The open conversation is in the URL (?t=), so
@@ -25,10 +27,13 @@ export function MailboxPage() {
   const labels = useQuery({ queryKey: mailKeys.labels, queryFn: () => api.get<Labels>("/api/v1/mail/labels") });
   const threadId = search.get("t");
   const openCompose = useCompose((s) => s.open);
+  const settings = useSettings();
 
   if (!labels.data) return <Spin className="bm-list-spin" />;
   const all = labels.data.labels;
   const query = label === "search" ? search.get("q") ?? "" : "";
+  const tabs = settings?.inboxCategories ?? [];
+  const tab = (search.get("c") as Category | null) ?? "PRIMARY";
   const view = labelId ? undefined : systemViews.find((v) => v.route === (query ? "all" : label));
   const userLabel = labelId ? all.find((l) => l.id === labelId) : undefined;
   const systemLabel = view?.systemKey ? all.find((l) => l.systemKey === view.systemKey) : undefined;
@@ -49,10 +54,12 @@ export function MailboxPage() {
   // Split panes only where there is room (≥ 1200 px); phones and the "none" setting show one at a time.
   const split = pane !== "none" && screens.xl === true;
 
+  // Inbox tabs when more than Primary is enabled (PROMPT 6.6); each tab is the Inbox narrowed by category.
+  const inboxTabs = view?.systemKey === "INBOX" && !query && tabs.length > 1;
   const list = (
     <ConversationList
-      key={(scopeLabelId ?? "all") + query}
-      scope={{ labelId: view?.route === "all" ? null : scopeLabelId, q: query || undefined }}
+      key={(scopeLabelId ?? "all") + query + (inboxTabs ? tab : "")}
+      scope={{ labelId: view?.route === "all" ? null : scopeLabelId, q: query || (inboxTabs ? `category:${tab.toLowerCase()}` : undefined) }}
       systemKey={view?.systemKey ?? null}
       labels={all}
       title={title}
@@ -60,6 +67,12 @@ export function MailboxPage() {
       onOpen={open}
     />
   );
+  const listWithTabs = inboxTabs ? (
+    <>
+      <InboxTabs categories={tabs} active={tab} labels={all} onChange={(c) => setSearch((s) => { s.set("c", c); s.delete("t"); return s; })} />
+      {list}
+    </>
+  ) : list;
   const reader = threadId ? <ThreadView key={threadId} threadId={threadId} labels={all} systemKey={view?.systemKey ?? null} onClose={close} /> : null;
 
   return (
@@ -67,11 +80,11 @@ export function MailboxPage() {
       <Typography.Title level={4} id="mailbox-title" className={split || !threadId ? undefined : "bm-visually-hidden"}>{title}</Typography.Title>
       {split ? (
         <>
-          <div className="bm-split-list">{list}</div>
+          <div className="bm-split-list">{listWithTabs}</div>
           <div className="bm-split-reader">{reader ?? <Typography.Text type="secondary" className="bm-empty">{t("mail.nothingSelected")}</Typography.Text>}</div>
         </>
       ) : (
-        reader ?? list
+        reader ?? listWithTabs
       )}
     </section>
   );

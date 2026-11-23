@@ -281,4 +281,19 @@ trên thư tiếng Việt, Nhật, Trung, Ba Lan, Đức và đòi hai lối cho
   `X-BlueMail-Loop` (mã băm hộp thư); thư đã đi qua hộp thư này hoặc có > 25 `Received` thì không chuyển tiếp nữa.
 - Thư chuyển tiếp bị trả lại: DSN của BlueMail.Outbound về **người gửi gốc** (giải SRS), như MTA khác sẽ làm.
 - Trả lời tự động: mỗi người gửi một lần trong 4 ngày (như Gmail), bộ đếm xoá khi người dùng lưu lại thiết lập.
-  "Chỉ trả lời danh bạ" tạm hiểu là "người mình đã từng gửi thư"; danh bạ thật thay vào ở Phase 8.
+  "Chỉ trả lời danh bạ" dùng danh bạ (kể cả "Liên hệ khác" tự lưu khi gửi) từ Phase 8.
+
+
+## D17. Phân loại và "quan trọng" chỉ bằng quy tắc nhìn thấy được
+
+Không dùng mô hình học máy cho tab và mức quan trọng (PROMPT 6.5/6.6 đòi "giải thích được"). Thứ tự: người trong danh bạ →
+Chính; quy tắc tên miền / List-Id của tenant rồi của hệ thống (`mail.category_rules`, quản trị viên sửa được); `List-Id` không
+kèm hủy đăng ký → Diễn đàn; `List-Unsubscribe` hoặc `Precedence: bulk` → Quảng cáo; `Auto-Submitted` hoặc người gửi
+noreply/notifications → Cập nhật; còn lại → Chính. Quan trọng: người mình gửi thư ≥ 3 lần, hoặc đồng nghiệp cùng tổ chức gửi
+thẳng (To) cho mình; thư hàng loạt không bao giờ tự thành quan trọng. Bộ lọc của người dùng luôn được áp sau và thắng.
+
+## D18. Cài đặt người dùng ở máy chủ, một tài liệu JSON
+
+`mail.user_settings.settings` (jsonb) theo PROMPT mục 4; máy chủ chuẩn hoá mọi giá trị (giá trị lạ về mặc định) nên một máy khách
+cũ không thể lưu thứ máy chủ không đọc được. Giao diện (chủ đề, mật độ, khung đọc, hoàn tác) đọc từ đây và theo người dùng trên
+mọi thiết bị; store cục bộ chỉ là bản sao.

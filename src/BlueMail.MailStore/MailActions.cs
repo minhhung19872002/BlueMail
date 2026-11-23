@@ -294,7 +294,8 @@ public sealed partial class PgMailStore
         return label.Id;
     }
 
-    public async Task UpdateLabelAsync(MailboxAccess access, Guid labelId, string name, string? colorBg, string? colorText, CancellationToken ct = default)
+    public async Task UpdateLabelAsync(MailboxAccess access, Guid labelId, string name, string? colorBg, string? colorText,
+        LabelVisibility? showInList = null, bool? showInMessageList = null, CancellationToken ct = default)
     {
         access.Require(MailboxRights.Write);
         var label = await db.Labels.IgnoreQueryFilters()
@@ -303,6 +304,8 @@ public sealed partial class PgMailStore
         label.Name = name.Trim();
         label.ColorBg = colorBg;
         label.ColorText = colorText;
+        label.ShowInList = showInList ?? label.ShowInList;
+        label.ShowInMessageList = showInMessageList ?? label.ShowInMessageList;
         try
         {
             await db.SaveChangesAsync(ct);

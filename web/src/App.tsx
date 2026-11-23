@@ -20,6 +20,8 @@ import { SignaturesPage } from "./modules/settings/SignaturesPage";
 import { FiltersPage } from "./modules/settings/FiltersPage";
 import { VacationPage } from "./modules/settings/VacationPage";
 import { ForwardingPage } from "./modules/settings/ForwardingPage";
+import { ContactsPage } from "./modules/contacts/ContactsPage";
+import { SettingsPage } from "./modules/settings/SettingsPage";
 import { UsersPage } from "./modules/admin/UsersPage";
 import { TenantsPage } from "./modules/admin/TenantsPage";
 
@@ -72,6 +74,8 @@ function Authenticated() {
           <Route path="/settings/filters" element={<FiltersPage />} />
           <Route path="/settings/vacation" element={<VacationPage />} />
           <Route path="/settings/forwarding" element={<ForwardingPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/admin/users" element={<UsersPage />} />
           <Route path="/admin/tenants" element={<TenantsPage />} />
           <Route path="*" element={<Navigate to="/mail/inbox" replace />} />

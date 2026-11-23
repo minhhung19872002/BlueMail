@@ -20,14 +20,29 @@ export function scopeKey(s: ListScope): string {
   return (s.labelId ?? "all") + (s.q ? "?" + s.q : "");
 }
 
-export function listConversations(scope: ListScope, cursor: string | null, limit = 50): Promise<ConversationPage> {
+export function listConversations(scope: ListScope, cursor: string | null, limit = 50, threads = true): Promise<ConversationPage> {
   const q = new URLSearchParams({ limit: String(limit) });
+  if (!threads) q.set("threads", "false");
   if (scope.labelId) q.set("labelId", scope.labelId);
   else q.set("view", "all");
   if (scope.q) q.set("q", scope.q);
   if (cursor) q.set("cursor", cursor);
   return api.get<ConversationPage>(`/api/v1/mail/conversations?${q.toString()}`);
 }
+
+export interface Snoozed {
+  threadId: string;
+  untilAt: string;
+}
+
+export const getSnoozed = () => api.get<Snoozed[]>("/api/v1/mail/snoozed");
+
+export interface UnsubscribeResult {
+  outcome: "DONE" | "OPEN_URL";
+  url: string | null;
+}
+
+export const unsubscribe = (messageId: string) => api.post<UnsubscribeResult>(`/api/v1/mail/messages/${messageId}/unsubscribe`, {});
 
 export const getThread = (id: string) => api.get<Thread>(`/api/v1/mail/threads/${id}`);
 
@@ -42,7 +57,7 @@ export const getChanges = (since: number) => api.get<MailChanges>(`/api/v1/mail/
 
 export type MailAction =
   | "markRead" | "markUnread" | "star" | "unstar" | "important" | "notImportant" | "archive" | "moveToInbox"
-  | "trash" | "untrash" | "spam" | "notSpam" | "addLabel" | "removeLabel" | "moveTo" | "deleteForever" | "mute" | "unmute" | "reportPhishing";
+  | "trash" | "untrash" | "spam" | "notSpam" | "addLabel" | "removeLabel" | "moveTo" | "deleteForever" | "mute" | "unmute" | "reportPhishing" | "snooze" | "unsnooze";
 
 export interface ActionRequest {
   action: MailAction;
@@ -50,6 +65,7 @@ export interface ActionRequest {
   messageIds?: string[];
   labelId?: string;
   fromLabelId?: string;
+  snoozeUntil?: string;
 }
 
 /** Server limit per request; larger selections are refused (background bulk jobs: PROMPT 8.3). */

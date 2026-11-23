@@ -125,6 +125,36 @@ public sealed class SafeHttpFetcher : IDisposable
         return (v6[0] & 0xE0) == 0x20 && !(v6[0] == 0x20 && v6[1] == 0x01 && v6[2] == 0x0d && v6[3] == 0xb8); // global unicast 2000::/3, not documentation
     }
 
+    /// <summary>
+    /// RFC 8058 one-click unsubscribe: POST "List-Unsubscribe=One-Click" to an https URL, through the same public-address
+    /// checks as images (no redirects followed: RFC 8058 section 3.2). True when the sender answered 2xx.
+    /// </summary>
+    public async Task<bool> PostOneClickUnsubscribeAsync(string url, CancellationToken ct)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || !IsAllowedUrl(uri))
+        {
+            throw new FetchException(FetchFailure.BadUrl);
+        }
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, uri)
+        {
+            Content = new FormUrlEncodedContent([new KeyValuePair<string, string>("List-Unsubscribe", "One-Click")]),
+        };
+        try
+        {
+            using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+            return resp.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException ex) when (ex.InnerException is FetchException fe)
+        {
+            throw fe;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException && !ct.IsCancellationRequested)
+        {
+            throw new FetchException(FetchFailure.Upstream);
+        }
+    }
+
     public async Task<FetchedImage> FetchAsync(string url, CancellationToken ct)
     {
         if (_cache.TryGetValue(url, out FetchedImage? hit) && hit is not null)

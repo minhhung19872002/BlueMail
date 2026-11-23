@@ -672,3 +672,91 @@ internal sealed class TenantMailPolicyConfig : IEntityTypeConfiguration<TenantMa
         b.HasKey(x => x.TenantId);
     }
 }
+
+internal sealed class SnoozeConfig : IEntityTypeConfiguration<Snooze>
+{
+    public void Configure(EntityTypeBuilder<Snooze> b)
+    {
+        b.ToTable("snoozes", "mail");
+        // "One active snooze per conversation" is a database rule.
+        b.HasIndex(x => new { x.UserId, x.ThreadId }).IsUnique().HasFilter("status = 'ACTIVE'").HasDatabaseName("ux_snoozes_active");
+        b.HasIndex(x => new { x.Status, x.UntilAt });
+    }
+}
+
+internal sealed class UserSettingsConfig : IEntityTypeConfiguration<UserSettings>
+{
+    public void Configure(EntityTypeBuilder<UserSettings> b)
+    {
+        b.ToTable("user_settings", "mail");
+        b.HasKey(x => x.UserId);
+        b.Property(x => x.Settings).HasColumnType("jsonb");
+    }
+}
+
+internal sealed class CategoryRuleConfig : IEntityTypeConfiguration<CategoryRule>
+{
+    private static readonly string[] SocialDomains =
+        ["facebookmail.com", "facebook.com", "linkedin.com", "x.com", "twitter.com", "instagram.com", "zalo.me", "tiktok.com", "youtube.com", "pinterest.com"];
+
+    private static readonly string[] PromotionDomains = ["mailchimp.com", "mcsv.net", "sendgrid.net", "shopee.vn", "lazada.vn", "tiki.vn"];
+
+    public void Configure(EntityTypeBuilder<CategoryRule> b)
+    {
+        b.ToTable("category_rules", "mail");
+        b.Property(x => x.Match).HasColumnType("jsonb");
+        b.Property(x => x.Category).HasMaxLength(32);
+        b.HasIndex(x => new { x.TenantId, x.SortOrder });
+        // System defaults (tenant null): well-known social networks and bulk senders. Administrators add their own.
+        var i = 0;
+        b.HasData(
+            SocialDomains.Select(d => new CategoryRule { Id = ++i, Match = "{\"fromDomain\":\"" + d + "\"}", Category = "CATEGORY_SOCIAL", SortOrder = i })
+                .Concat(PromotionDomains.Select(d => new CategoryRule { Id = ++i, Match = "{\"fromDomain\":\"" + d + "\"}", Category = "CATEGORY_PROMOTIONS", SortOrder = i }))
+                .ToArray());
+    }
+}
+
+internal sealed class ContactConfig : IEntityTypeConfiguration<BlueMail.Domain.Contacts.Contact>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Contacts.Contact> b)
+    {
+        b.ToTable("contacts", "contact");
+        b.Property(x => x.DisplayName).HasMaxLength(300);
+        b.Property(x => x.Emails).HasColumnType("jsonb");
+        b.Property(x => x.Phones).HasColumnType("jsonb");
+        b.Property(x => x.Org).HasMaxLength(300);
+        b.Property(x => x.Title).HasMaxLength(300);
+        b.Property(x => x.Notes).HasMaxLength(10_000);
+        b.Property(x => x.PhotoContentType).HasMaxLength(50);
+        b.HasIndex(x => new { x.TenantId, x.UserId, x.DisplayName });
+        b.HasIndex(x => x.EmailKeys).HasMethod("gin");
+    }
+}
+
+internal sealed class ContactGroupConfig : IEntityTypeConfiguration<BlueMail.Domain.Contacts.ContactGroup>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Contacts.ContactGroup> b)
+    {
+        b.ToTable("contact_groups", "contact");
+        b.Property(x => x.Name).HasMaxLength(200);
+        b.HasIndex(x => new { x.TenantId, x.UserId, x.Name }).IsUnique().HasFilter("deleted_at IS NULL");
+    }
+}
+
+internal sealed class ContactGroupMemberConfig : IEntityTypeConfiguration<BlueMail.Domain.Contacts.ContactGroupMember>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Contacts.ContactGroupMember> b)
+    {
+        b.ToTable("contact_group_members", "contact");
+        b.HasKey(x => new { x.GroupId, x.ContactId });
+    }
+}
+
+internal sealed class DirectoryOverrideConfig : IEntityTypeConfiguration<BlueMail.Domain.Contacts.DirectoryOverride>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Contacts.DirectoryOverride> b)
+    {
+        b.ToTable("directory_overrides", "contact");
+        b.HasKey(x => new { x.TenantId, x.UserId });
+    }
+}
