@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/BlueMail.Api/BlueMail.Api.csproj" />
     <Project Path="src/BlueMail.Application/BlueMail.Application.csproj" />
+    <Project Path="src/BlueMail.Auth/BlueMail.Auth.csproj" />
     <Project Path="src/BlueMail.Dkim/BlueMail.Dkim.csproj" />
     <Project Path="src/BlueMail.Dns/BlueMail.Dns.csproj" />
     <Project Path="src/BlueMail.Domain/BlueMail.Domain.csproj" />

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BlueMail.Dns\BlueMail.Dns.csproj" />
+    <ProjectReference Include="..\BlueMail.Dkim\BlueMail.Dkim.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\public_suffix_list.dat" LogicalName="public_suffix_list.dat" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="BlueMail.UnitTests" />
+    <InternalsVisibleTo Include="BlueMail.InteropTests" />
+    <InternalsVisibleTo Include="BlueMail.FuzzTests" />
+  </ItemGroup>
+</Project>

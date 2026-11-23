@@ -5,3 +5,4 @@ checkdmarc==6.0.4
 dnspython==2.9.2
 aiosmtpd==1.4.6
 vobject==0.9.9
+PyYAML==6.0.4

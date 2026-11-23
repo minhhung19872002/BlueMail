@@ -16,8 +16,12 @@
     <ProjectReference Include="..\..\src\BlueMail.Dns\BlueMail.Dns.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Dkim\BlueMail.Dkim.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Scanner\BlueMail.Scanner.csproj" />
+    <ProjectReference Include="..\..\src\BlueMail.Auth\BlueMail.Auth.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\BlueMail.InteropTests\ScannerSamples.cs" Link="Scanner\ScannerSamples.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Auth\Data\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
