@@ -270,3 +270,24 @@ Chạy: `dotnet test tests/BlueMail.UnitTests --filter Admin`, `dotnet test test
 | P9-15 | Tổ chức (nền tảng) | Quản trị tổ chức xem tổ chức; nền tảng xem mức dùng; đổi chế độ tạm ngưng | 403; số người dùng; `suspendTemporary` lưu | Như mong đợi | ✅ |
 | P9-16 | Đăng nhập hộ | Lý do rỗng; có lý do | 400; liên kết một lần, nhật ký kiểm toán, thư báo quản trị tổ chức, dải cảnh báo trong phiên | Như mong đợi | ✅ |
 | P9-17 | Giao diện | Mọi thẻ, 375 px, bảng điều khiển console | Không lỗi console, bảng cuộn ngang, ngăn chi tiết vừa màn hình | Như mong đợi | ✅ |
+
+## Phase 10 — tuân thủ, nhập/xuất dữ liệu, máy khách IMAP
+
+Chạy: `dotnet test tests/BlueMail.UnitTests --filter "Imap|Imports"`, `dotnet test tests/BlueMail.InteropTests --filter "ImapClient|Mbox"`,
+`dotnet test tests/BlueMail.IntegrationTests --filter ComplianceMigrationTests`, fuzz `imap`. Nguồn IMAP thử nghiệm: Dovecot của
+`doitac.test` (127.0.0.1:55993, chứng chỉ dev ghim), nạp dữ liệu bằng `tests/interop/imap_source.py populate`.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P10-01 | Bộ phân tích IMAP | Ví dụ RFC 3501, literal lớn (ra đĩa), Gmail X-GM-LABELS, đầu vào hỏng, fuzz | Đúng giá trị; lỗi ồn ào; không treo/không nổ bộ nhớ | Như mong đợi | ✅ |
+| P10-02 | Máy khách IMAP vs imaplib | Dovecot thật, thư mục tên Việt lồng nhau, thư 4,8 MB | Cùng thư mục, UIDVALIDITY, UID, cờ, ngày, kích thước, SHA-256 | Như mong đợi | ✅ |
+| P10-03 | Bảo mật kết nối | Sai mật khẩu; chứng chỉ tự ký không ghim; cổng 25 | AUTHENTICATIONFAILED; TLS từ chối; 400 `import_port_not_allowed` | Như mong đợi | ✅ |
+| P10-04 | Nhập IMAP | Kiểm tra → nhập → chạy lại | 8 thư, giữ cờ/ngày/nhãn lồng nhau, thư `\Deleted` bỏ qua; lần hai 0 thư mới; không có thư đi | Như mong đợi (cả qua trình duyệt) | ✅ |
+| P10-05 | Nhập mbox | Takeout (X-Gmail-Labels, "Unread"), mutt (Status/X-Status), dòng "From " trong thân | Nhãn và cờ đúng; trích dẫn mboxrd gỡ đúng một lần | Như mong đợi sau BUG-052 | ✅ |
+| P10-06 | mbox với công cụ ngoài | BlueMail ghi → `mailbox` Python đọc; Python ghi → BlueMail đọc | Cùng số thư, cùng byte | Như mong đợi | ✅ |
+| P10-07 | Giữ pháp lý | Giữ theo người; thư đến sau; người dùng xoá vĩnh viễn; tìm eDiscovery; gỡ giữ; dọn | Thư cũ và mới đều bị giữ; ẩn với người dùng nhưng còn; tìm thấy, có nhật ký; xoá hẳn sau khi gỡ | Như mong đợi | ✅ |
+| P10-08 | Giữ theo truy vấn | Điều kiện khớp 1 thư; điều kiện sai cú pháp | Matched = 1, thư bị giữ; 400 | Như mong đợi | ✅ |
+| P10-09 | Lưu giữ | KEEP_MIN 30 ngày: xoá thư mới / thư 40 ngày; DELETE_AFTER 365 ngày theo điều kiện | Thư mới chỉ ẩn, thư cũ xoá hẳn; chỉ thư quá hạn khớp điều kiện bị xoá | Như mong đợi | ✅ |
+| P10-10 | eDiscovery xuất | Tìm trên hai hộp thư, xuất mbox | Mỗi hộp thư một mbox + manifest.csv; băm khớp; liên kết chỉ cho người yêu cầu; SHA-256 tệp khớp | Như mong đợi | ✅ |
+| P10-11 | Tải dữ liệu của tôi | Yêu cầu; yêu cầu lần hai | ZIP `mail/INBOX.mbox`, `contacts.vcf`, `settings.json`; 409 | Như mong đợi | ✅ |
+| P10-12 | Nhập thật từ Gmail và Outlook.com | Hộp thư thử nghiệm thật, mật khẩu ứng dụng | Đủ thư, nhãn Gmail; chạy lại không trùng | **Chưa chạy**: cần tài khoản thử nghiệm của chủ sản phẩm (mã đã đối chứng với Dovecot; ánh xạ X-GM-LABELS kiểm đơn vị) | ⏳ |

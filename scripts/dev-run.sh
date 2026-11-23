@@ -10,6 +10,7 @@ main() {
   # dotnet run starts the app in the project directory: make repository paths absolute (pwd -W: Windows path in Git Bash).
   root=$(pwd -W 2>/dev/null || pwd)
   export BM_DEV_DKIM_DIR="$root/deploy/dev/dkim"
+  export BM_IMPORT_TRUSTED_CERTS="$root/deploy/dev/postfix/tls/cert.pem"
   # Host-run processes ask the dev CoreDNS through its published port (domain wizard checks).
   export BM_DNS_SERVERS="${BM_DNS_SERVERS_HOST:-127.0.0.1:55353}"
   case "$1" in

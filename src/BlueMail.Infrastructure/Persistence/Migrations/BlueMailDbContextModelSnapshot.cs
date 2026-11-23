@@ -195,6 +195,312 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_logs", "audit");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Compliance.DataExport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Chunks")
+                        .HasColumnType("integer")
+                        .HasColumnName("chunks");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("Done")
+                        .HasColumnType("integer")
+                        .HasColumnName("done");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("format");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<string>("Mailboxes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("mailboxes");
+
+                    b.Property<string>("Query")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("query");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by");
+
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SubjectUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("Total")
+                        .HasColumnType("integer")
+                        .HasColumnName("total");
+
+                    b.HasKey("Id")
+                        .HasName("pk_data_exports");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_data_exports_status_created_at");
+
+                    b.HasIndex("TenantId", "RequestedBy")
+                        .HasDatabaseName("ix_data_exports_tenant_id_requested_by");
+
+                    b.ToTable("data_exports", "compliance");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Compliance.HoldMessage", b =>
+                {
+                    b.Property<Guid>("HoldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("hold_id");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("message_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("HoldId", "MessageId")
+                        .HasName("pk_hold_messages");
+
+                    b.HasIndex("TenantId", "MessageId")
+                        .HasDatabaseName("ix_hold_messages_tenant_id_message_id");
+
+                    b.ToTable("hold_messages", "compliance");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Compliance.LegalHold", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<int>("Matched")
+                        .HasColumnType("integer")
+                        .HasColumnName("matched");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_unit_id");
+
+                    b.Property<string>("Query")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("query");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("released_at");
+
+                    b.Property<Guid?>("ReleasedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("released_by");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("scope");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_legal_holds");
+
+                    b.HasIndex("OrgUnitId")
+                        .HasDatabaseName("ix_legal_holds_org_unit_id")
+                        .HasFilter("released_at IS NULL AND deleted_at IS NULL");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_legal_holds_user_id")
+                        .HasFilter("released_at IS NULL AND deleted_at IS NULL");
+
+                    b.HasIndex("TenantId", "Scope")
+                        .HasDatabaseName("ix_legal_holds_tenant_id_scope")
+                        .HasFilter("released_at IS NULL AND deleted_at IS NULL");
+
+                    b.ToTable("legal_holds", "compliance");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Compliance.RetentionRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("action");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("integer")
+                        .HasColumnName("days");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<DateTimeOffset?>("LastRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_run_at");
+
+                    b.Property<int>("LastRunDeleted")
+                        .HasColumnType("integer")
+                        .HasColumnName("last_run_deleted");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("org_unit_id");
+
+                    b.Property<string>("Query")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("query");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_retention_rules");
+
+                    b.HasIndex("TenantId", "Action")
+                        .HasDatabaseName("ix_retention_rules_tenant_id_action")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("retention_rules", "compliance");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Contacts.Contact", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3919,6 +4225,238 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_vacation_replies_user_id_sender");
 
                     b.ToTable("vacation_replies", "mail");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Migration.ImportError", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("detail");
+
+                    b.Property<string>("Folder")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("folder");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<long?>("Uid")
+                        .HasColumnType("bigint")
+                        .HasColumnName("uid");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_errors");
+
+                    b.HasIndex("TenantId", "JobId")
+                        .HasDatabaseName("ix_import_errors_tenant_id_job_id");
+
+                    b.ToTable("import_errors", "migration");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Migration.ImportJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CurrentFolder")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("current_folder");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<int>("Failed")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Host")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("host");
+
+                    b.Property<int>("Imported")
+                        .HasColumnType("integer")
+                        .HasColumnName("imported");
+
+                    b.Property<DateTimeOffset?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_until");
+
+                    b.Property<byte[]>("PasswordCipher")
+                        .HasColumnType("bytea")
+                        .HasColumnName("password_cipher");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("integer")
+                        .HasColumnName("port");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by");
+
+                    b.Property<int>("Skipped")
+                        .HasColumnType("integer")
+                        .HasColumnName("skipped");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("source");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Tls")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("tls");
+
+                    b.Property<int>("Total")
+                        .HasColumnType("integer")
+                        .HasColumnName("total");
+
+                    b.Property<int>("UploadChunks")
+                        .HasColumnType("integer")
+                        .HasColumnName("upload_chunks");
+
+                    b.Property<Guid?>("UploadId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("upload_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("username");
+
+                    b.HasKey("Id")
+                        .HasName("pk_import_jobs");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_import_jobs_one_active_per_user")
+                        .HasFilter("status IN ('QUEUED', 'RUNNING')");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_import_jobs_status_created_at");
+
+                    b.HasIndex("TenantId", "BatchId")
+                        .HasDatabaseName("ix_import_jobs_tenant_id_batch_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_import_jobs_tenant_id_user_id");
+
+                    b.ToTable("import_jobs", "migration");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Migration.ImportedMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<byte[]>("ContentSha256")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content_sha256");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("message_id");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(1500)
+                        .HasColumnType("character varying(1500)")
+                        .HasColumnName("source_key");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_imported_messages");
+
+                    b.HasIndex("TenantId", "MailboxId", "ContentSha256")
+                        .HasDatabaseName("ix_imported_messages_tenant_id_mailbox_id_content_sha256");
+
+                    b.HasIndex("TenantId", "MailboxId", "SourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_imported_messages_tenant_id_mailbox_id_source_key");
+
+                    b.ToTable("imported_messages", "migration");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Tenants.DkimKey", b =>

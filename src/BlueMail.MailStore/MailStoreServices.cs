@@ -8,6 +8,7 @@ public static class MailStoreServices
     {
         services.AddScoped<BlobStore>();
         services.AddScoped<UploadStore>();
+        services.AddScoped<ExportStore>();
         services.AddSingleton<IMailEvents, ValkeyMailEvents>();
         services.AddScoped<PgMailStore>();
         services.AddScoped<RecipientResolver>();

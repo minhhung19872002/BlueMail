@@ -85,6 +85,13 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<BlueMail.Domain.Contacts.ContactGroup> ContactGroups => Set<BlueMail.Domain.Contacts.ContactGroup>();
     public DbSet<BlueMail.Domain.Contacts.ContactGroupMember> ContactGroupMembers => Set<BlueMail.Domain.Contacts.ContactGroupMember>();
     public DbSet<BlueMail.Domain.Contacts.DirectoryOverride> DirectoryOverrides => Set<BlueMail.Domain.Contacts.DirectoryOverride>();
+    public DbSet<BlueMail.Domain.Compliance.LegalHold> LegalHolds => Set<BlueMail.Domain.Compliance.LegalHold>();
+    public DbSet<BlueMail.Domain.Compliance.HoldMessage> HoldMessages => Set<BlueMail.Domain.Compliance.HoldMessage>();
+    public DbSet<BlueMail.Domain.Compliance.RetentionRule> RetentionRules => Set<BlueMail.Domain.Compliance.RetentionRule>();
+    public DbSet<BlueMail.Domain.Compliance.DataExport> DataExports => Set<BlueMail.Domain.Compliance.DataExport>();
+    public DbSet<BlueMail.Domain.Migration.ImportJob> ImportJobs => Set<BlueMail.Domain.Migration.ImportJob>();
+    public DbSet<BlueMail.Domain.Migration.ImportError> ImportErrors => Set<BlueMail.Domain.Migration.ImportError>();
+    public DbSet<BlueMail.Domain.Migration.ImportedMessage> ImportedMessages => Set<BlueMail.Domain.Migration.ImportedMessage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

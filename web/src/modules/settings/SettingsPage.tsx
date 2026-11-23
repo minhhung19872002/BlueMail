@@ -14,6 +14,7 @@ import { composeApi } from "../compose/composeApi";
 import { FiltersPage } from "./FiltersPage";
 import { ForwardingPage } from "./ForwardingPage";
 import { SignaturesPage } from "./SignaturesPage";
+import { ImportExportSettings } from "./importExport";
 import { settingsApi, useSaveSettings, useSettings, type Category, type MailSettings, type Profile } from "./settingsApi";
 
 /** Settings in tabs, as Gmail (PROMPT 6.11). */
@@ -33,6 +34,7 @@ export function SettingsPage() {
         { key: "forwarding", label: t("settings.tabs.forwarding"), children: <ForwardingPage /> },
         { key: "templates", label: t("settings.tabs.templates"), children: <SignaturesPage /> },
         { key: "appearance", label: t("settings.tabs.appearance"), children: <Appearance /> },
+        { key: "import", label: t("settings.tabs.import"), children: <ImportExportSettings /> },
       ]} />
     </section>
   );

@@ -63,6 +63,8 @@ services:
     volumes:
       - ./dev/dkim/doitac.test.private.pem:/dkim/doitac.test.private.pem:ro
       - doitacmail:/var/mail/vhosts
+    # IMAP for the Phase 10 import tool run on the host (tests and dev-run.sh); localhost only.
+    ports: ["127.0.0.1:55993:993"]
     networks: { bmnet: { ipv4_address: 10.77.0.30 } }
     restart: unless-stopped
 

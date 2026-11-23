@@ -84,6 +84,10 @@ public sealed class StackFixture : IAsyncLifetime
             ["BM_SEED_SAMPLE_DATA"] = "true",
             ["BM_SEED_USER_PASSWORD"] = UserPassword,
             ["BM_DNS_SERVERS"] = "127.0.0.1:9", // nothing answers: the domain wizard uses FakeDomainDns below
+            // Import tests read the dev Dovecot of doitac.test (deploy/docker-compose.dev.yml, 127.0.0.1:55993).
+            ["BM_IMPORT_ALLOW_PRIVATE"] = "true",
+            ["BM_IMPORT_PORTS"] = "993,55993",
+            ["BM_IMPORT_TRUSTED_CERTS"] = Path.Combine(RepoRoot(), "deploy", "dev", "postfix", "tls", "cert.pem"),
         };
         foreach (var (k, v) in env)
         {
@@ -136,8 +140,11 @@ public sealed class StackFixture : IAsyncLifetime
         await Garage("layout", "assign", "-z", "dc1", "-c", "1G", node);
         await Garage("layout", "apply", "--version", "1");
         await Garage("key", "import", "--yes", "-n", "bluemail", S3AccessKey, S3SecretKey);
-        await Garage("bucket", "create", "bm-messages");
-        await Garage("bucket", "allow", "--read", "--write", "--owner", "bm-messages", "--key", S3AccessKey);
+        foreach (var bucket in new[] { "bm-messages", "bm-attachments-large", "bm-exports" })
+        {
+            await Garage("bucket", "create", bucket);
+            await Garage("bucket", "allow", "--read", "--write", "--owner", bucket, "--key", S3AccessKey);
+        }
     }
 
     public static string RepoRoot()

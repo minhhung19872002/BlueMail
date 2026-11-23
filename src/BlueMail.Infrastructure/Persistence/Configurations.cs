@@ -785,3 +785,94 @@ internal sealed class SupportTicketConfig : IEntityTypeConfiguration<BlueMail.Do
         b.HasIndex(x => x.TokenHash).IsUnique();
     }
 }
+
+internal sealed class LegalHoldConfig : IEntityTypeConfiguration<BlueMail.Domain.Compliance.LegalHold>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Compliance.LegalHold> b)
+    {
+        b.ToTable("legal_holds", "compliance");
+        b.Property(x => x.Name).HasMaxLength(200);
+        b.Property(x => x.Query).HasMaxLength(2000);
+        b.Property(x => x.Reason).HasMaxLength(2000);
+        b.HasIndex(x => new { x.TenantId, x.Scope }).HasFilter("released_at IS NULL AND deleted_at IS NULL");
+        b.HasIndex(x => x.UserId).HasFilter("released_at IS NULL AND deleted_at IS NULL");
+        b.HasIndex(x => x.OrgUnitId).HasFilter("released_at IS NULL AND deleted_at IS NULL");
+    }
+}
+
+internal sealed class HoldMessageConfig : IEntityTypeConfiguration<BlueMail.Domain.Compliance.HoldMessage>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Compliance.HoldMessage> b)
+    {
+        b.ToTable("hold_messages", "compliance");
+        b.HasKey(x => new { x.HoldId, x.MessageId });
+        b.HasIndex(x => new { x.TenantId, x.MessageId });
+    }
+}
+
+internal sealed class RetentionRuleConfig : IEntityTypeConfiguration<BlueMail.Domain.Compliance.RetentionRule>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Compliance.RetentionRule> b)
+    {
+        b.ToTable("retention_rules", "compliance");
+        b.Property(x => x.Name).HasMaxLength(200);
+        b.Property(x => x.Query).HasMaxLength(2000);
+        b.HasIndex(x => new { x.TenantId, x.Action }).HasFilter("deleted_at IS NULL");
+    }
+}
+
+internal sealed class DataExportConfig : IEntityTypeConfiguration<BlueMail.Domain.Compliance.DataExport>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Compliance.DataExport> b)
+    {
+        b.ToTable("data_exports", "compliance");
+        b.Property(x => x.Query).HasMaxLength(2000);
+        b.Property(x => x.Mailboxes).HasColumnType("jsonb");
+        b.Property(x => x.Format).HasMaxLength(10);
+        b.Property(x => x.Sha256).HasMaxLength(64);
+        b.HasIndex(x => new { x.Status, x.CreatedAt });
+        b.HasIndex(x => new { x.TenantId, x.RequestedBy });
+    }
+}
+
+internal sealed class ImportJobConfig : IEntityTypeConfiguration<BlueMail.Domain.Migration.ImportJob>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Migration.ImportJob> b)
+    {
+        b.ToTable("import_jobs", "migration");
+        b.Property(x => x.Host).HasMaxLength(253);
+        b.Property(x => x.Username).HasMaxLength(320);
+        b.Property(x => x.Tls).HasMaxLength(10);
+        b.Property(x => x.FileName).HasMaxLength(255);
+        b.Property(x => x.CurrentFolder).HasMaxLength(1000);
+        b.HasIndex(x => new { x.Status, x.CreatedAt });
+        b.HasIndex(x => new { x.TenantId, x.UserId });
+        b.HasIndex(x => new { x.TenantId, x.BatchId });
+        // One running import per target mailbox: two jobs into one mailbox would race on the dedup rows.
+        b.HasIndex(x => x.UserId).IsUnique().HasFilter("status IN ('QUEUED', 'RUNNING')").HasDatabaseName("ux_import_jobs_one_active_per_user");
+    }
+}
+
+internal sealed class ImportErrorConfig : IEntityTypeConfiguration<BlueMail.Domain.Migration.ImportError>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Migration.ImportError> b)
+    {
+        b.ToTable("import_errors", "migration");
+        b.Property(x => x.Folder).HasMaxLength(1000);
+        b.Property(x => x.Code).HasMaxLength(64);
+        b.Property(x => x.Detail).HasMaxLength(2000);
+        b.HasIndex(x => new { x.TenantId, x.JobId });
+    }
+}
+
+internal sealed class ImportedMessageConfig : IEntityTypeConfiguration<BlueMail.Domain.Migration.ImportedMessage>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Migration.ImportedMessage> b)
+    {
+        b.ToTable("imported_messages", "migration");
+        b.Property(x => x.SourceKey).HasMaxLength(1500);
+        b.HasIndex(x => new { x.TenantId, x.MailboxId, x.SourceKey }).IsUnique();
+        b.HasIndex(x => new { x.TenantId, x.MailboxId, x.ContentSha256 });
+    }
+}
+

@@ -55,6 +55,9 @@ export function TenantDrawer({ id, canEdit, onClose }: { id: string; canEdit: bo
               <Typography.Title level={5}>{t("admin.tenants.support")}</Typography.Title>
               <Typography.Text type="secondary">{t("admin.tenants.supportHint")}</Typography.Text>
               <Button onClick={() => { setSupport(true); setLink(null); }}>{t("admin.tenants.supportStart")}</Button>
+              <Typography.Title level={5}>{t("admin.tenants.export")}</Typography.Title>
+              <Typography.Text type="secondary">{t("admin.tenants.exportHint")}</Typography.Text>
+              <Button onClick={() => void adminApi.exportTenant(id).then(() => message.success(t("compliance.exportQueued")), fail)}>{t("admin.tenants.export")}</Button>
             </>
           )}
         </Space>

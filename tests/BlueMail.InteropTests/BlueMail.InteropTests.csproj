@@ -14,5 +14,6 @@
     <ProjectReference Include="..\..\src\BlueMail.Dns\BlueMail.Dns.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Dkim\BlueMail.Dkim.csproj" />
     <ProjectReference Include="..\..\src\BlueMail.Scanner\BlueMail.Scanner.csproj" />
+    <ProjectReference Include="..\..\src\BlueMail.Protocols.Imap\BlueMail.Protocols.Imap.csproj" />
   </ItemGroup>
 </Project>

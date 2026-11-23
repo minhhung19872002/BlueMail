@@ -21,13 +21,17 @@ public static class Permissions
     public const string AdminTraceView = "mail.admin.trace.view";
     public const string AdminQueueEdit = "mail.admin.queue.edit";
     public const string AdminReportsView = "mail.admin.reports.view";
+    public const string AdminComplianceView = "mail.admin.compliance.view";
+    public const string AdminComplianceEdit = "mail.admin.compliance.edit";
+    public const string AdminMigrationEdit = "mail.admin.migration.edit";
 
     public static readonly IReadOnlyList<string> Platform = [PlatformTenantsView, PlatformTenantsEdit];
 
     public static readonly IReadOnlyList<string> TenantAdmin =
         [
             AdminUsersView, AdminUsersEdit, AdminAuditView, AdminQuarantineView, AdminQuarantineEdit, AdminSpamEdit, AdminPolicyEdit, AdminDomainsView,
-            AdminDomainsEdit, AdminGroupsEdit, AdminTraceView, AdminQueueEdit, AdminReportsView,
+            AdminDomainsEdit, AdminGroupsEdit, AdminTraceView, AdminQueueEdit, AdminReportsView, AdminComplianceView, AdminComplianceEdit,
+            AdminMigrationEdit,
         ];
 
     public static IReadOnlySet<string> For(bool isPlatformAdmin, bool isTenantAdmin)

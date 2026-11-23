@@ -3,6 +3,7 @@ import { Tabs, Typography } from "antd";
 import { useTranslation } from "react-i18next";
 import { useMe } from "../../session";
 import { AdminPermission } from "./adminApi";
+import { ComplianceAdmin, MigrationAdmin } from "./ComplianceAdmin";
 import { DomainsAdmin } from "./DomainsAdmin";
 import { GroupsAdmin } from "./GroupsAdmin";
 import { OperationsAdmin } from "./OperationsAdmin";
@@ -21,6 +22,8 @@ const sections = [
   { key: "security", any: [AdminPermission.SpamEdit, AdminPermission.QuarantineView], render: () => <SecurityAdmin /> },
   { key: "operations", any: [AdminPermission.TraceView], render: () => <OperationsAdmin /> },
   { key: "reports", any: [AdminPermission.ReportsView], render: () => <ReportsAdmin /> },
+  { key: "compliance", any: [AdminPermission.ComplianceView], render: () => <ComplianceAdmin /> },
+  { key: "migration", any: [AdminPermission.MigrationEdit], render: () => <MigrationAdmin /> },
   { key: "tenants", any: [AdminPermission.TenantsView], render: () => <TenantsPage /> },
 ] as const;
 

@@ -16,6 +16,9 @@ export const AdminPermission = {
   TraceView: "mail.admin.trace.view",
   QueueEdit: "mail.admin.queue.edit",
   ReportsView: "mail.admin.reports.view",
+  ComplianceView: "mail.admin.compliance.view",
+  ComplianceEdit: "mail.admin.compliance.edit",
+  MigrationEdit: "mail.admin.migration.edit",
   TenantsView: "mail.platform.tenants.view",
   TenantsEdit: "mail.platform.tenants.edit",
 } as const;
@@ -147,6 +150,7 @@ export const adminApi = {
   tenant: (id: string) => api.get<TenantDetail>(`/api/v1/admin/tenants/${id}`),
   updateTenant: (id: string, t: Omit<TenantDetail, "id" | "code" | "status" | "usage">) => api.put<boolean>(`/api/v1/admin/tenants/${id}`, { id, ...t }),
   setTenantStatus: (id: string, status: "ACTIVE" | "SUSPENDED") => api.put<boolean>(`/api/v1/admin/tenants/${id}/status`, { status }),
+  exportTenant: (id: string) => api.post<string>(`/api/v1/admin/tenants/${id}/export`, {}),
   supportSignIn: (id: string, userId: string, reason: string) => api.post<string>(`/api/v1/admin/tenants/${id}/support-signin`, { userId, reason }),
 };
 

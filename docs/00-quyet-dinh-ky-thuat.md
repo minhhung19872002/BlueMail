@@ -318,3 +318,22 @@ quy ước `Every_policy_key_has_a_reader` đỏ khi có khoá không ai dùng, 
 Quản trị nền tảng nhập lý do → phiếu ngẫu nhiên 256 bit (lưu băm SHA-256, dùng một lần, 10 phút) → BlueID tạo phiên 1 giờ cho
 người dùng với `actor_user_id` của quản trị viên. Nhật ký kiểm toán ghi cả lúc tạo phiếu và lúc dùng; quản trị viên của tổ chức
 nhận thư báo; giao diện người dùng hiện dải cảnh báo suốt phiên. Không có cách đăng nhập hộ im lặng.
+
+## D22. Giữ pháp lý và lưu giữ: đếm lại từ nguồn, quyết định trong chính câu xoá
+
+`mail.messages.legal_hold_count` là cột chép sẵn, luôn tính lại bằng `compliance.f_recompute_hold_counts` (không cộng dồn,
+PROMPT 14.4) khi đặt/gỡ lệnh giữ và khi người dùng đổi phòng ban; thư mới nhận số của hộp thư ngay trong câu INSERT. Lệnh giữ
+theo người/phòng ban phủ cả thư đến sau; lệnh giữ theo truy vấn phủ những thư khớp lúc đặt (`compliance.hold_messages`, tối đa
+500 000). "Xoá vĩnh viễn" (người dùng, dọn Thùng rác 30 ngày, quy tắc DELETE_AFTER) dùng một câu UPDATE duy nhất: luôn đặt
+`deleted_at` (biến khỏi giao diện), chỉ đặt `expunged_at` khi `legal_hold_count = 0` và đã qua KEEP_MIN — cùng một câu, nên không
+có khe giữa kiểm tra và xoá. Thư bị ẩn mà sau này hết bị giữ được `ExpungeReleasedAsync` xoá hẳn mỗi giờ. KEEP_MIN không có điều
+kiện tìm (phải kiểm được trong câu xoá); DELETE_AFTER có.
+
+## D23. Nhập thư: máy khách IMAP tự viết, chống trùng hai lớp, không mở SSRF
+
+Nguồn IMAP: chỉ địa chỉ công khai và cổng 143/993 (cấu hình được cho mạng thử nghiệm), mật khẩu mã hoá bằng khoá tenant và xoá
+khi việc nhập kết thúc. Gmail: chỉ đọc `[Gmail]/All Mail` (nhãn qua `X-GM-LABELS`) cùng Thư rác/Thùng rác. Chống trùng: vị trí
+nguồn (tài khoản + thư mục + UIDVALIDITY + UID, hoặc băm tệp + vị trí) là khoá duy nhất; cùng nội dung (SHA-256) gặp ở thư mục
+khác chỉ thêm nhãn. Một việc nhập mỗi hộp thư (ràng buộc duy nhất). Thư nhập không chạy bộ lọc/trả lời tự động/chuyển tiếp
+nhưng vẫn qua bộ quét tệp. mbox theo mboxrd khi ghi; đọc chấp nhận cả mboxo (dòng ">From " gốc trong tệp mboxo mất một '>' —
+giới hạn vốn có của định dạng). Nghiệm thu với Gmail/Outlook.com thật cần hộp thư thử nghiệm của chủ sản phẩm (docs/06 P10-12).

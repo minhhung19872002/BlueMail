@@ -2,6 +2,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="..\BlueMail.MailStore\BlueMail.MailStore.csproj" />
+    <ProjectReference Include="..\BlueMail.Protocols.Imap\BlueMail.Protocols.Imap.csproj" />
     <ProjectReference Include="..\BlueMail.Dkim\BlueMail.Dkim.csproj" />
     <ProjectReference Include="..\BlueMail.Scanner\BlueMail.Scanner.csproj" />
     <ProjectReference Include="..\BlueMail.Antispam\BlueMail.Antispam.csproj" />

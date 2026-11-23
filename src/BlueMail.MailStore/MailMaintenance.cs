@@ -6,7 +6,7 @@ public sealed partial class PgMailStore
 {
     /// <summary>
     /// Deletes forever what has been in Trash or Spam for longer than <paramref name="age"/> (PROMPT 6.5: 30 days),
-    /// except messages under legal hold (the expunge itself skips them). Returns how many were expunged.
+    /// Held messages and those inside KEEP_MIN retention leave the user's view but stay for compliance (the expunge decides).
     /// Runs as the system, not as a user: it goes through the normal change path (modseq, label log, events).
     /// </summary>
     public async Task<int> PurgeTrashAndSpamAsync(TimeSpan age, int limit, CancellationToken ct = default)
@@ -18,7 +18,7 @@ public sealed partial class PgMailStore
             FROM mail.message_labels ml
             JOIN mail.labels l ON l.id = ml.label_id AND l.system_key IN ('TRASH', 'SPAM')
             JOIN mail.messages m ON m.tenant_id = ml.tenant_id AND m.id = ml.message_id
-            WHERE m.expunged_at IS NULL AND m.deleted_at IS NULL AND m.legal_hold_count = 0
+            WHERE m.expunged_at IS NULL AND m.deleted_at IS NULL
               AND (SELECT max(lc.occurred_at) FROM mail.label_changes lc
                    WHERE lc.tenant_id = ml.tenant_id AND lc.label_id = ml.label_id AND lc.imap_uid = ml.imap_uid AND lc.change = 'ADDED') < now() - @age
             LIMIT @lim
@@ -41,6 +41,41 @@ public sealed partial class PgMailStore
         }
 
         return done;
+    }
+
+    /// <summary>
+    /// Removes for good what the user deleted earlier but a legal hold or KEEP_MIN retention kept, once neither applies
+    /// any more (hold released, period over). Same condition as the expunge. Returns how many.
+    /// </summary>
+    public async Task<int> ExpungeReleasedAsync(int limit, CancellationToken ct = default)
+    {
+        var c = await OpenConnAsync(ct);
+        await using var cmd = new NpgsqlCommand("""
+            WITH due AS (
+                SELECT tenant_id, id FROM mail.messages
+                WHERE deleted_at IS NOT NULL AND expunged_at IS NULL AND legal_hold_count = 0
+                  AND received_at < now() - make_interval(days => compliance.f_keep_min_days(tenant_id, mailbox_id))
+                LIMIT @lim)
+            UPDATE mail.messages m SET expunged_at = now(), updated_at = now()
+            FROM due WHERE m.tenant_id = due.tenant_id AND m.id = due.id AND m.legal_hold_count = 0 AND m.expunged_at IS NULL
+            """, c);
+        cmd.Parameters.AddWithValue("lim", limit);
+        return await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    /// <summary>Recomputes legal_hold_count of every message of the mailboxes from the active holds (docs/00 D22).</summary>
+    public async Task<int> RecomputeHoldCountsAsync(Guid tenantId, IReadOnlyCollection<Guid> mailboxIds, CancellationToken ct = default)
+    {
+        if (mailboxIds.Count == 0)
+        {
+            return 0;
+        }
+
+        var c = await OpenConnAsync(ct);
+        await using var cmd = new NpgsqlCommand("SELECT compliance.f_recompute_hold_counts(@t, @mb)", c);
+        cmd.Parameters.AddWithValue("t", tenantId);
+        cmd.Parameters.AddWithValue("mb", mailboxIds.ToArray());
+        return (int)(await cmd.ExecuteScalarAsync(ct))!;
     }
 
     /// <summary>Access of the system to a mailbox, for background work on behalf of its owner (snooze wake-up).</summary>

@@ -45,6 +45,9 @@ builder.Services.AddSingleton<BlueMail.Application.Features.Rules.FilterJobWorke
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Rules.FilterJobWorker>());
 builder.Services.AddSingleton<BlueMail.Application.Features.Mail.MailMaintenanceWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Mail.MailMaintenanceWorker>());
+BlueMail.Application.Features.Compliance.ComplianceServiceRegistration.AddBlueMailComplianceAndMigration(builder.Services, builder.Configuration);
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Migration.ImportWorker>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Compliance.ComplianceWorker>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new() { Title = "BlueMail API", Version = "v1" }));
 builder.Services.AddResponseCompression(o => o.EnableForHttps = true);

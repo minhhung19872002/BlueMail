@@ -29,6 +29,7 @@ public static class FuzzTargets
         new("scanner", d => Scanner.ScanAsync(new MemoryStream(d), "fuzz.bin").GetAwaiter().GetResult(), []),
         new("smtp", Smtp, []),
         new("text", Text, []),
+        new("imap", Imap, [typeof(BlueMail.Protocols.Imap.ImapProtocolException)]),
     ];
 
     private sealed class AcceptAll : ISmtpHandler
@@ -70,6 +71,23 @@ public static class FuzzTargets
             new AcceptAll(), new SmtpEnvelope { RemoteAddress = IPAddress.Loopback });
         new SmtpTransport(new ScriptStream(input), session, new SmtpTransportOptions { CommandTimeout = TimeSpan.FromSeconds(5), DataTimeout = TimeSpan.FromSeconds(5) },
             Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance).RunAsync(default).GetAwaiter().GetResult();
+    }
+
+    /// <summary>Server responses through the shared IMAP reader and parser (Phase 10); only ImapProtocolException may escape.</summary>
+    private static void Imap(byte[] data)
+    {
+        var reader = new BlueMail.Protocols.Imap.ImapReader(new MemoryStream(data), new BlueMail.Protocols.Imap.ImapReaderOptions { SpoolThreshold = 4096 });
+        while (reader.ReadLineAsync(null, default).GetAwaiter().GetResult() is { } line)
+        {
+            using var r = BlueMail.Protocols.Imap.ImapResponseParser.Parse(line);
+            if (r.Kind == "FETCH" && r.Data.Count > 2)
+            {
+                _ = BlueMail.Protocols.Imap.ImapClient.ParseFetch(r.Data[2].AsList());
+            }
+
+            _ = BlueMail.Protocols.Imap.ModifiedUtf7.Decode(r.Text);
+            line.Dispose();
+        }
     }
 
     private static void Text(byte[] data)

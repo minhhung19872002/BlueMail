@@ -623,7 +623,8 @@
       "filters": "Filters and blocked addresses",
       "forwarding": "Forwarding",
       "templates": "Signatures and templates",
-      "appearance": "Appearance"
+      "appearance": "Appearance",
+      "import": "Import and export"
     },
     "name": "Name",
     "language": "Language",
@@ -728,7 +729,9 @@
       "security": "Spam and quarantine",
       "operations": "Mail flow",
       "reports": "Reports",
-      "tenants": "Organisations"
+      "tenants": "Organisations",
+      "compliance": "Compliance",
+      "migration": "Data migration"
     },
     "domains": {
       "add": "New domain, e.g. company.vn",
@@ -1115,10 +1118,138 @@
       "supportUser": "User",
       "supportReason": "Reason (ticket number, what you will check)",
       "supportLink": "The link below works once, for 10 minutes. Open it in a private window.",
-      "supportOpen": "Open the support session"
+      "supportOpen": "Open the support session",
+      "export": "Export all data",
+      "exportHint": "Every mailbox, contacts and settings of the organisation as one ZIP (end of contract)."
     }
   },
   "support": {
     "banner": "Support session: {actor} is signed in as you to help. Everything done here is recorded."
+  },
+  "import": {
+    "title": "Import mail from another account",
+    "intro": "BlueMail signs in to your old mailbox over IMAP and copies every folder, keeping dates, read state and stars. Running it again only copies what is new. Imported mail does not trigger filters or auto-replies.",
+    "provider": "Provider",
+    "providerHint": "Choose to fill in the server",
+    "otherServer": "Other IMAP server",
+    "host": "IMAP server",
+    "port": "Port",
+    "security": "Security",
+    "username": "User name (usually the email address)",
+    "password": "Password",
+    "appPasswordHint": "Gmail and Outlook.com need an app password (with two-step verification on). It is kept encrypted only until the import ends.",
+    "test": "Test the connection",
+    "start": "Start import",
+    "testOk": "Signed in: {folders} folders, {messages} messages.",
+    "gmailNote": "Gmail: mail is read from All Mail with its labels, plus Spam and Trash.",
+    "started": "Import started. You can close this page.",
+    "fileTitle": "Import a file",
+    "fileHint": ".mbox (Google Takeout, Thunderbird), a single .eml or a .zip of .eml files. Without labels in the file, mail goes under a label named after it.",
+    "chooseFile": "Choose file",
+    "none": "No imports yet.",
+    "from": "Source",
+    "counts": "Messages",
+    "countsValue": "{imported} imported · {skipped} already there · {failed} problems",
+    "errorsCsv": "Problems (CSV)",
+    "status": {
+      "QUEUED": "Waiting",
+      "RUNNING": "Running",
+      "DONE": "Finished",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "importErrors": {
+    "import_auth_failed": "Wrong user name or password (use an app password for Gmail and Outlook.com).",
+    "import_connection_failed": "Could not connect, or the connection was lost.",
+    "import_tls_failed": "The server's certificate could not be verified.",
+    "import_host_not_found": "Server not found.",
+    "import_host_not_allowed": "This server address is not allowed.",
+    "import_port_not_allowed": "Only ports 993 and 143.",
+    "import_no_mailbox": "The user has no mailbox.",
+    "import_failed": "The import stopped because of an error.",
+    "user_not_found": "No such user",
+    "duplicate_in_file": "Twice in the file",
+    "required": "Missing",
+    "invalid_format": "Wrong format"
+  },
+  "export": {
+    "title": "Download your data",
+    "intro": "A ZIP with your mail (one mbox file per label), contacts (vCard) and settings. The link is valid for 7 days.",
+    "request": "Prepare my data",
+    "none": "No exports.",
+    "kind": "Export",
+    "size": "Size",
+    "download": "Download",
+    "expired": "Expired",
+    "until": "until {at}",
+    "kinds": {
+      "USER_DATA": "User data",
+      "E_DISCOVERY": "eDiscovery",
+      "TENANT": "Whole organisation"
+    }
+  },
+  "compliance": {
+    "holds": "Legal holds",
+    "retention": "Retention",
+    "ediscovery": "eDiscovery",
+    "exports": "Exports",
+    "holdsIntro": "Mail under a legal hold cannot be removed for good. Users who delete it no longer see it; it stays here for searches and exports.",
+    "newHold": "New legal hold",
+    "place": "Place hold",
+    "name": "Name",
+    "scope": "Covers",
+    "matched": "Messages",
+    "reason": "Reason",
+    "scopes": {
+      "USER": "A user",
+      "ORG_UNIT": "A department",
+      "QUERY": "Messages matching a search"
+    },
+    "query": "Search",
+    "queryHoldHint": "Same syntax as mail search; covers what matches now, in every mailbox.",
+    "active": "Active",
+    "released": "Released {at}",
+    "release": "Release",
+    "releaseConfirm": "Release the hold \"{name}\"?",
+    "releaseHint": "Mail the users have deleted will then be removed for good.",
+    "retentionIntro": "Delete mail after a period, or keep all mail for a minimum period (deleting earlier only hides it from the user).",
+    "newRule": "Retention rule",
+    "action": "Rule",
+    "days": "Days",
+    "actionNames": {
+      "DELETE_AFTER": "Delete after",
+      "KEEP_MIN": "Keep at least"
+    },
+    "actions": {
+      "DELETE_AFTER": "Delete after {days} days",
+      "KEEP_MIN": "Keep at least {days} days"
+    },
+    "queryRuleHint": "Optional: only mail matching this search.",
+    "allMail": "All mail",
+    "lastRun": "Last run",
+    "lastRunValue": "{at}: {count} removed",
+    "ediscoveryIntro": "Search every mailbox of the organisation, deleted-but-kept mail included. Every search and export is recorded in the audit log.",
+    "found": "{count} messages found",
+    "foundCapped": "More than {count} messages found",
+    "format": "Format",
+    "export": "Export with manifest",
+    "exportQueued": "The export is being prepared; it appears under Exports.",
+    "mailbox": "Mailbox",
+    "state": "State",
+    "hidden": "deleted by the user",
+    "held": "on hold",
+    "exportsIntro": "eDiscovery exports and complete data of a user (access requests).",
+    "userExport": "User whose data to export",
+    "exportUser": "Export user data"
+  },
+  "migration": {
+    "intro": "Import a user's old mailbox, or many at once from a CSV file.",
+    "target": "Into the mailbox of",
+    "pickUser": "Choose the user first.",
+    "batch": "Batch from CSV",
+    "batchHint": "Columns: email (BlueMail user), host, port, tls (IMPLICIT or STARTTLS), username, password. Nothing starts while a row is wrong.",
+    "batchCreated": "{count, plural, one {# import queued.} other {# imports queued.}}",
+    "field": "Column"
   }
 }

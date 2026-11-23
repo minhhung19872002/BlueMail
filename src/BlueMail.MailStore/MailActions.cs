@@ -31,6 +31,14 @@ public sealed class LabelConflictException() : Exception("A label with this name
 
 public sealed partial class PgMailStore
 {
+    internal const string ExpungeSql = """
+        UPDATE mail.messages SET deleted_at = coalesce(deleted_at, now()), modseq = @modseq, updated_at = now(),
+            expunged_at = CASE WHEN legal_hold_count = 0
+                                    AND received_at < now() - make_interval(days => compliance.f_keep_min_days(tenant_id, mailbox_id))
+                               THEN now() END
+        WHERE tenant_id = @t AND id = ANY(@ids) AND expunged_at IS NULL
+        """;
+
     /// <summary>Messages of the given threads and/or ids that belong to the mailbox (others are silently dropped).</summary>
     public async Task<IReadOnlyList<Guid>> ResolveMessagesAsync(MailboxAccess access, IReadOnlyCollection<Guid> threadIds, IReadOnlyCollection<Guid> messageIds,
         CancellationToken ct = default)
@@ -227,8 +235,9 @@ public sealed partial class PgMailStore
 
             if (change.Expunge)
             {
-                await Exec(c, t, ct, "UPDATE mail.messages SET expunged_at = now(), modseq = @modseq, updated_at = now() WHERE tenant_id = @t AND id = ANY(@ids) AND legal_hold_count = 0",
-                    ("modseq", modseq), ("t", access.TenantId), ("ids", target));
+                // Gone for the user in every case; really removed only when no legal hold covers it and KEEP_MIN retention
+                // has passed - decided in this same statement (PROMPT 7.5). Hidden copies stay for compliance search.
+                await Exec(c, t, ct, ExpungeSql, ("modseq", modseq), ("t", access.TenantId), ("ids", target));
                 changedIds.UnionWith(target);
             }
 

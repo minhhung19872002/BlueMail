@@ -97,3 +97,12 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Domain records come from `DomainRecordPlanner` (customer domains include `_spf.<platform>`); keep `scripts/dev-gen-zones.py`
   matching it, then `docker restart bluemail-dev-dns-1`. Integration tests use `stack.Dns` (`FakeDomainDns`) for DNS answers.
 - Seed platform admin must change password at first sign-in; tests clear `MustChangePassword`/`TwoFactorEnabled` before using it.
+
+## Compliance and migration (Phase 10)
+- `BlueMail.Protocols.Imap`: shared reader/parser + import client (Phase 11 adds the server on the same parser). Interop:
+  `tests/interop/imap_source.py` fills nguon@doitac.test on the dev Dovecot (127.0.0.1:55993, pinned cert deploy/dev/postfix/tls).
+  Integration tests that import need the dev compose running (doitac + tools).
+- Permanent delete = `PgMailStore.ExpungeSql` only: it hides always and expunges only when not held and past KEEP_MIN (docs/00 D22).
+  Never add another `expunged_at = now()` path; a change of hold scope calls `RecomputeHoldCountsAsync`.
+- Import/export jobs use the lease pattern like FilterJobWorker; workers are singletons (tests call `RunOnceAsync`/`HousekeepingAsync`).
+- Python's mailbox appends to existing files: delete outputs before writing in interop tests.

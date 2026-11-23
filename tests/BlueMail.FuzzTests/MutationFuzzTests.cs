@@ -82,6 +82,12 @@ public sealed class MutationFuzzTests
                 Encoding.UTF8.GetBytes("attachment; filename*0*=utf-8''%E1%BA%A1; filename*1=b.pdf"),
             ],
             "scanner" => [.. ScannerSamples.Dangerous().Concat(ScannerSamples.Clean()).Where(s => s.Data.Length < 2_000_000).Select(s => s.Data)],
+            "imap" =>
+            [
+                Encoding.UTF8.GetBytes("* OK [CAPABILITY IMAP4rev1 LITERAL+ AUTH=PLAIN] ready\r\n* LIST (\\HasNoChildren \\Sent) \"/\" \"Sent\"\r\n* 3 EXISTS\r\nA1 OK [READ-WRITE] done\r\n"),
+                Encoding.UTF8.GetBytes("* 1 FETCH (UID 7 FLAGS (\\Seen) INTERNALDATE \" 7-Feb-2026 09:05:00 +0700\" RFC822.SIZE 12 X-GM-LABELS (\\Inbox \"Dự án\") BODY[] {12}\r\nSubject: x\r\n)\r\n"),
+                Encoding.UTF8.GetBytes("* LIST () \"/\" &U,BTFw-/&ZeVnLIqe-\r\n* SEARCH 1 2 3\r\n+ go\r\n* BYE bye\r\n"),
+            ],
             "smtp" =>
             [
                 Encoding.ASCII.GetBytes("\x01DATA\r\nSubject: x\r\n\r\n..dot\r\n.\r\nQUIT\r\n"),

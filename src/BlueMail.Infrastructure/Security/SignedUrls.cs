@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace BlueMail.Infrastructure.Security;
 
-public enum SignedKind { Part, Zip, Raw, Image }
+public enum SignedKind { Part, Zip, Raw, Image, Export }
 
 /// <summary>What a signed URL grants. Short-lived; bound to the user and mailbox that were authorised.</summary>
 public sealed record SignedGrant(SignedKind Kind, Guid TenantId, Guid UserId, Guid MailboxId, Guid MessageId, string? Part, string? Url, bool Download, long Expires);

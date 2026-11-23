@@ -13,7 +13,13 @@ namespace BlueMail.MailStore;
 /// Starred is the STARRED system label (the flag mirrors it).
 /// </summary>
 public sealed record MailboxDelivery(Guid MailboxId, IReadOnlyList<string> SystemLabels, bool Seen = false, string? Category = null, bool Important = false,
-    IReadOnlyList<Guid>? ExtraLabelIds = null, bool Draft = false, IReadOnlyList<string>? DeliveredTo = null);
+    IReadOnlyList<Guid>? ExtraLabelIds = null, bool Draft = false, IReadOnlyList<string>? DeliveredTo = null)
+{
+    /// <summary>Imported mail keeps its source flags (PROMPT 7.7).</summary>
+    public bool Answered { get; init; }
+    public bool Forwarded { get; init; }
+    public IReadOnlyList<string> Keywords { get; init; } = [];
+}
 
 public sealed record DeliveryRequest(
     Guid TenantId,
@@ -53,6 +59,8 @@ public sealed partial class PgMailStore
     /// </summary>
     public async Task<IReadOnlyList<DeliveredMessage>> DeliverAsync(DeliveryRequest r, CancellationToken ct = default)
     {
+        // PostgreSQL timestamptz parameters must be UTC; imports carry the source's own offset (BUG-052).
+        r = r with { ReceivedAt = r.ReceivedAt.ToUniversalTime() };
         var sha = await BlobStore.HashAsync(r.Content, ct);
         var known = await db.Blobs.IgnoreQueryFilters().AnyAsync(b => b.TenantId == r.TenantId && b.Sha256 == sha, ct);
         if (!known)
@@ -119,8 +127,8 @@ public sealed partial class PgMailStore
                 seen, flagged, answered, forwarded, draft, keywords, spam_score, spam_report, auth_results, list_id, list_unsubscribe, category, is_important,
                 modseq, legal_hold_count, search_vector, delivered_to, created_at, updated_at)
             VALUES (@t, @id, @mb, @sha, @thread, @mid, @irt, @refs, @subj, @ns, @from, @fromName, @to::jsonb, @cc::jsonb, @bcc::jsonb, @replyTo::jsonb,
-                @sent, @recv, @size, @snippet, @hasAtt, @mime::jsonb, @seen, @flagged, false, false, @draft, '{}', @spam, @spamReport::jsonb, @auth::jsonb,
-                @listId, @unsub::jsonb, @category, @important, @modseq, 0,
+                @sent, @recv, @size, @snippet, @hasAtt, @mime::jsonb, @seen, @flagged, @answered, @forwarded, @draft, @keywords, @spam, @spamReport::jsonb, @auth::jsonb,
+                @listId, @unsub::jsonb, @category, @important, @modseq, compliance.f_mailbox_hold_count(@t, @mb),
                 setweight(to_tsvector('simple', public.f_unaccent(@vSubject)), 'A') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vPeople)), 'B') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vFiles)), 'B') ||
@@ -132,9 +140,10 @@ public sealed partial class PgMailStore
             ("refs", f.References.Select(x => Trunc(x, 998)!).ToArray()), ("subj", (object?)Trunc(f.Subject, 4000) ?? DBNull.Value),
             ("ns", Trunc(f.NormalizedSubject, 998)), ("from", (object?)Trunc(f.From?.Address, 320) ?? DBNull.Value),
             ("fromName", (object?)Trunc(f.From?.Name, 400) ?? DBNull.Value), ("to", Addrs(f.To)), ("cc", Addrs(f.Cc)), ("bcc", Addrs(f.Bcc)), ("replyTo", Addrs(f.ReplyTo)),
-            ("sent", (object?)f.Date ?? DBNull.Value), ("recv", r.ReceivedAt), ("size", r.Content.Length), ("snippet", f.Snippet),
+            ("sent", (object?)f.Date?.ToUniversalTime() ?? DBNull.Value), ("recv", r.ReceivedAt.ToUniversalTime()), ("size", r.Content.Length), ("snippet", f.Snippet),
             ("hasAtt", f.HasAttachments), ("mime", JsonSerializer.Serialize(f.Parts, MessageFacts.Json)), ("seen", target.Seen), ("draft", target.Draft),
-            ("flagged", target.SystemLabels.Contains(SystemLabels.Starred)),
+            ("flagged", target.SystemLabels.Contains(SystemLabels.Starred)), ("answered", target.Answered), ("forwarded", target.Forwarded),
+            ("keywords", target.Keywords.ToArray()),
             ("deliveredTo", (target.DeliveredTo ?? []).Select(a => a.ToLowerInvariant()).Distinct().ToArray()),
             ("spam", (object?)r.SpamScore ?? DBNull.Value), ("spamReport", (object?)r.SpamReportJson ?? DBNull.Value), ("auth", (object?)r.AuthResultsJson ?? DBNull.Value),
             ("listId", (object?)Trunc(f.ListId, 998) ?? DBNull.Value),

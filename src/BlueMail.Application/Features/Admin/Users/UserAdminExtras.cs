@@ -52,7 +52,8 @@ public sealed class UpdateUserValidator : AbstractValidator<UpdateUserCommand>
     }
 }
 
-public sealed class UpdateUserHandler(BlueMailDbContext db, ICurrentUser me, AuditWriter audit, ISessionValidator sessions) : IRequestHandler<UpdateUserCommand, Unit>
+public sealed class UpdateUserHandler(BlueMailDbContext db, ICurrentUser me, AuditWriter audit, ISessionValidator sessions, BlueMail.MailStore.PgMailStore store)
+    : IRequestHandler<UpdateUserCommand, Unit>
 {
     public async Task<Unit> Handle(UpdateUserCommand c, CancellationToken ct)
     {
@@ -73,7 +74,15 @@ public sealed class UpdateUserHandler(BlueMailDbContext db, ICurrentUser me, Aud
         u.QuotaBytes = c.QuotaBytes;
         u.OrgUnitId = c.OrgUnitId;
         u.ImapEnabled = c.ImapEnabled;
+        var unitChanged = db.Entry(u).Property(x => x.OrgUnitId).IsModified;
         await db.SaveChangesAsync(ct);
+        if (unitChanged)
+        {
+            // Org-unit legal holds follow the user (docs/00 D22).
+            var boxes = await db.Mailboxes.Where(m => m.OwnerId == u.Id && m.DeletedAt == null).Select(m => m.Id).ToListAsync(ct);
+            await store.RecomputeHoldCountsAsync(u.TenantId, boxes, ct);
+        }
+
         await sessions.InvalidateUserAsync(u.Id); // admin rights live in the cached session state
         await audit.WriteAsync(new AuditEntry("user.update", AuditResult.Success, me.TenantId, me.UserId, me.Email, me.Ip, me.UserAgent, "user", u.Id.ToString(), old,
             JsonSerializer.Serialize(c)), ct);

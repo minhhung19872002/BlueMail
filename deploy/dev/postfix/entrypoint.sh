@@ -23,6 +23,7 @@ main() {
   opendkim -x /etc/opendkim.conf
   mkdir -p /run/dkimpy-milter && chown dkimpy-milter /run/dkimpy-milter
   dkimpy-milter /etc/dkimpy-milter/dkimpy-milter.conf &
+  dovecot
   exec postfix start-fg
 }
 main "$@"

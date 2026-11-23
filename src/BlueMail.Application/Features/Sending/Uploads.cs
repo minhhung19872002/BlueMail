@@ -112,7 +112,9 @@ public sealed class UploadService(BlueMailDbContext db, UploadStore store, IFile
 
     private async Task FinishAsync(Upload u, CancellationToken ct)
     {
-        using var content = new MemoryStream();
+        // Up to 2 GB (an mbox import): scanned from a temporary file, never held in memory (BUG-051).
+        await using var content = new FileStream(Path.Combine(Path.GetTempPath(), "bm-upload-" + u.Id.ToString("N")), FileMode.Create, FileAccess.ReadWrite,
+            FileShare.None, 81920, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
         await store.CopyToAsync(u.TenantId, u.Id, u.Chunks, content, ct);
         content.Position = 0;
         var result = await scanner.ScanAsync(content, u.FileName, ct);

@@ -137,3 +137,28 @@ discovery `/.well-known/openid-configuration`. Client `bluemail-web`: public, au
 required, scopes `openid email profile offline_access bluemail-api`. Access tokens 15 min, refresh tokens 14 days;
 each refresh re-checks the session. CORS only for `BM_WEB_URL`. Pages: `/account/login`, `/account/login-2fa`,
 `/account/change-password`, `/account/2fa`.
+
+### Compliance and migration (Phase 10)
+
+| Method | Path | Guard | Purpose |
+|---|---|---|---|
+| POST | `/api/v1/me/imports/test` | self | `{ host, port, tls: IMPLICIT \| STARTTLS, username, password }` → `{ ok, error, folders, messages, gmail }`; nothing stored |
+| POST | `/api/v1/me/imports` | self | Start an IMAP import into the caller's mailbox (409 `import_running`; 400 `import_port_not_allowed` / `import_host_not_allowed`) |
+| POST | `/api/v1/me/imports/file` | self | `{ uploadId }` of a finished tus upload: `.mbox`/`.mbx`, `.eml` or `.zip` of `.eml` |
+| GET | `/api/v1/me/imports` | self | Jobs with counters (`imported`, `skipped`, `failed`), current folder, error code |
+| GET | `/api/v1/me/imports/{id}/errors.csv` | owner, requester or `mail.admin.migration.edit` | Problems per message (CSV, formulas neutralised) |
+| POST | `/api/v1/me/imports/{id}/cancel` | same | Cancel; the stored password is dropped |
+| POST | `/api/v1/admin/imports` | `mail.admin.migration.edit` | `{ userId, source }` import for another user |
+| POST | `/api/v1/admin/imports/batch` | `mail.admin.migration.edit` | multipart CSV (email, host, port, tls, username, password); all rows checked first, nothing starts while one is wrong |
+| GET | `/api/v1/admin/imports?batchId=` | `mail.admin.migration.edit` | All imports of the tenant |
+| GET / POST | `/api/v1/admin/compliance/holds` | `mail.admin.compliance.view` / `.edit` | Legal holds; create `{ name, scope: USER \| ORG_UNIT \| QUERY, userId?, orgUnitId?, query?, reason? }` (audited) |
+| POST | `/api/v1/admin/compliance/holds/{id}/release` | `mail.admin.compliance.edit` | Release (409 `hold_released`) |
+| GET / POST / PUT / DELETE | `/api/v1/admin/compliance/retention[/{id}]` | view / edit | `{ name, action: DELETE_AFTER \| KEEP_MIN, days, query?, orgUnitId?, isEnabled }` (KEEP_MIN without query) |
+| POST | `/api/v1/admin/compliance/ediscovery/search` | `mail.admin.compliance.view` | `{ query, mailboxIds? }` over all mailboxes incl. Spam, Trash and deleted-but-kept mail: first 100 + count (≤ 10 000); audited |
+| POST | `/api/v1/admin/compliance/ediscovery/export` | `mail.admin.compliance.edit` | `{ query, mailboxIds?, format: MBOX \| EML }` → background export with `manifest.csv` (SHA-256 per message); audited |
+| POST | `/api/v1/admin/compliance/users/{id}/export` | `mail.admin.compliance.edit` | All data of one user (access request) |
+| GET | `/api/v1/admin/compliance/exports` | `mail.admin.compliance.view` | Exports of the tenant made by administrators |
+| POST / GET | `/api/v1/me/export`, `/api/v1/me/exports` | self | "Download my data": mbox per label + `contacts.vcf` + `settings.json` |
+| POST | `/api/v1/exports/{id}/link` | requester only | Signed download link, 2 h; audited |
+| GET | `/api/v1/exports/d/{token}` | signed token | The ZIP (requester still active, export not expired: 7 days) |
+| POST | `/api/v1/admin/tenants/{id}/export` | `mail.platform.tenants.edit` | Whole tenant: every user and shared mailbox, `users.csv`, `domains.txt` |

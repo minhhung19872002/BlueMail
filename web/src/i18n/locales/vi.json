@@ -623,7 +623,8 @@
       "filters": "Bộ lọc và địa chỉ bị chặn",
       "forwarding": "Chuyển tiếp",
       "templates": "Chữ ký và mẫu thư",
-      "appearance": "Giao diện"
+      "appearance": "Giao diện",
+      "import": "Nhập và xuất"
     },
     "name": "Tên hiển thị",
     "language": "Ngôn ngữ",
@@ -728,7 +729,9 @@
       "security": "Thư rác và cách ly",
       "operations": "Luồng thư",
       "reports": "Báo cáo",
-      "tenants": "Tổ chức"
+      "tenants": "Tổ chức",
+      "compliance": "Tuân thủ",
+      "migration": "Chuyển dữ liệu"
     },
     "domains": {
       "add": "Tên miền mới, ví dụ congty.vn",
@@ -1115,10 +1118,138 @@
       "supportUser": "Người dùng",
       "supportReason": "Lý do (số phiếu hỗ trợ, việc cần kiểm tra)",
       "supportLink": "Liên kết dưới dùng được một lần, trong 10 phút. Hãy mở trong cửa sổ ẩn danh.",
-      "supportOpen": "Mở phiên hỗ trợ"
+      "supportOpen": "Mở phiên hỗ trợ",
+      "export": "Xuất toàn bộ dữ liệu",
+      "exportHint": "Mọi hộp thư, danh bạ và cài đặt của tổ chức trong một tệp ZIP (khi kết thúc hợp đồng)."
     }
   },
   "support": {
     "banner": "Phiên hỗ trợ: {actor} đang đăng nhập hộ bạn để hỗ trợ. Mọi thao tác đều được ghi nhật ký."
+  },
+  "import": {
+    "title": "Nhập thư từ tài khoản khác",
+    "intro": "BlueMail đăng nhập vào hộp thư cũ qua IMAP và sao chép mọi thư mục, giữ nguyên ngày, trạng thái đã đọc và gắn sao. Chạy lại chỉ sao chép thư mới. Thư nhập vào không chạy bộ lọc hay trả lời tự động.",
+    "provider": "Nhà cung cấp",
+    "providerHint": "Chọn để điền sẵn máy chủ",
+    "otherServer": "Máy chủ IMAP khác",
+    "host": "Máy chủ IMAP",
+    "port": "Cổng",
+    "security": "Bảo mật",
+    "username": "Tên đăng nhập (thường là địa chỉ thư)",
+    "password": "Mật khẩu",
+    "appPasswordHint": "Gmail và Outlook.com cần mật khẩu ứng dụng (khi đã bật xác minh hai bước). Mật khẩu được mã hoá và chỉ giữ tới khi việc nhập kết thúc.",
+    "test": "Kiểm tra kết nối",
+    "start": "Bắt đầu nhập",
+    "testOk": "Đăng nhập được: {folders} thư mục, {messages} thư.",
+    "gmailNote": "Gmail: thư được đọc từ Tất cả thư kèm nhãn, cùng Thư rác và Thùng rác.",
+    "started": "Đã bắt đầu nhập. Bạn có thể đóng trang này.",
+    "fileTitle": "Nhập từ tệp",
+    "fileHint": ".mbox (Google Takeout, Thunderbird), một tệp .eml hoặc tệp .zip chứa các .eml. Nếu tệp không có nhãn, thư được gắn nhãn theo tên tệp.",
+    "chooseFile": "Chọn tệp",
+    "none": "Chưa có lần nhập nào.",
+    "from": "Nguồn",
+    "counts": "Số thư",
+    "countsValue": "đã nhập {imported} · đã có {skipped} · lỗi {failed}",
+    "errorsCsv": "Danh sách lỗi (CSV)",
+    "status": {
+      "QUEUED": "Đang chờ",
+      "RUNNING": "Đang chạy",
+      "DONE": "Đã xong",
+      "FAILED": "Thất bại",
+      "CANCELLED": "Đã huỷ"
+    }
+  },
+  "importErrors": {
+    "import_auth_failed": "Sai tên đăng nhập hoặc mật khẩu (Gmail và Outlook.com cần mật khẩu ứng dụng).",
+    "import_connection_failed": "Không kết nối được, hoặc kết nối bị ngắt.",
+    "import_tls_failed": "Không xác minh được chứng chỉ của máy chủ.",
+    "import_host_not_found": "Không tìm thấy máy chủ.",
+    "import_host_not_allowed": "Địa chỉ máy chủ này không được phép.",
+    "import_port_not_allowed": "Chỉ cho phép cổng 993 và 143.",
+    "import_no_mailbox": "Người dùng chưa có hộp thư.",
+    "import_failed": "Việc nhập dừng lại vì có lỗi.",
+    "user_not_found": "Không có người dùng này",
+    "duplicate_in_file": "Trùng trong tệp",
+    "required": "Thiếu",
+    "invalid_format": "Sai định dạng"
+  },
+  "export": {
+    "title": "Tải dữ liệu của bạn",
+    "intro": "Tệp ZIP gồm thư (mỗi nhãn một tệp mbox), danh bạ (vCard) và cài đặt. Liên kết dùng được trong 7 ngày.",
+    "request": "Chuẩn bị dữ liệu của tôi",
+    "none": "Chưa có bản xuất nào.",
+    "kind": "Bản xuất",
+    "size": "Dung lượng",
+    "download": "Tải xuống",
+    "expired": "Hết hạn",
+    "until": "đến {at}",
+    "kinds": {
+      "USER_DATA": "Dữ liệu người dùng",
+      "E_DISCOVERY": "eDiscovery",
+      "TENANT": "Toàn tổ chức"
+    }
+  },
+  "compliance": {
+    "holds": "Giữ pháp lý",
+    "retention": "Lưu giữ",
+    "ediscovery": "eDiscovery",
+    "exports": "Bản xuất",
+    "holdsIntro": "Thư đang bị giữ pháp lý không thể bị xoá hẳn. Người dùng xoá thì không còn thấy, nhưng thư vẫn còn để tìm kiếm và xuất.",
+    "newHold": "Lệnh giữ mới",
+    "place": "Đặt lệnh giữ",
+    "name": "Tên",
+    "scope": "Phạm vi",
+    "matched": "Số thư",
+    "reason": "Lý do",
+    "scopes": {
+      "USER": "Một người dùng",
+      "ORG_UNIT": "Một phòng ban",
+      "QUERY": "Thư khớp điều kiện tìm"
+    },
+    "query": "Điều kiện tìm",
+    "queryHoldHint": "Cú pháp như tìm thư; giữ các thư khớp tại thời điểm đặt, ở mọi hộp thư.",
+    "active": "Đang giữ",
+    "released": "Đã gỡ {at}",
+    "release": "Gỡ lệnh giữ",
+    "releaseConfirm": "Gỡ lệnh giữ \"{name}\"?",
+    "releaseHint": "Thư người dùng đã xoá sẽ bị xoá hẳn sau đó.",
+    "retentionIntro": "Tự xoá thư sau một thời gian, hoặc giữ mọi thư tối thiểu một thời gian (xoá sớm hơn chỉ ẩn khỏi người dùng).",
+    "newRule": "Quy tắc lưu giữ",
+    "action": "Quy tắc",
+    "days": "Số ngày",
+    "actionNames": {
+      "DELETE_AFTER": "Xoá sau",
+      "KEEP_MIN": "Giữ tối thiểu"
+    },
+    "actions": {
+      "DELETE_AFTER": "Xoá sau {days} ngày",
+      "KEEP_MIN": "Giữ tối thiểu {days} ngày"
+    },
+    "queryRuleHint": "Không bắt buộc: chỉ thư khớp điều kiện này.",
+    "allMail": "Mọi thư",
+    "lastRun": "Lần chạy gần nhất",
+    "lastRunValue": "{at}: xoá {count}",
+    "ediscoveryIntro": "Tìm trên mọi hộp thư của tổ chức, kể cả thư đã xoá nhưng còn giữ. Mọi lượt tìm và xuất đều được ghi nhật ký.",
+    "found": "Tìm thấy {count} thư",
+    "foundCapped": "Tìm thấy hơn {count} thư",
+    "format": "Định dạng",
+    "export": "Xuất kèm bảng kê",
+    "exportQueued": "Đang chuẩn bị bản xuất; xem ở mục Bản xuất.",
+    "mailbox": "Hộp thư",
+    "state": "Trạng thái",
+    "hidden": "người dùng đã xoá",
+    "held": "đang giữ",
+    "exportsIntro": "Bản xuất eDiscovery và toàn bộ dữ liệu của một người dùng (yêu cầu truy cập dữ liệu).",
+    "userExport": "Người dùng cần xuất dữ liệu",
+    "exportUser": "Xuất dữ liệu người dùng"
+  },
+  "migration": {
+    "intro": "Nhập hộp thư cũ của một người dùng, hoặc nhiều người cùng lúc từ tệp CSV.",
+    "target": "Vào hộp thư của",
+    "pickUser": "Hãy chọn người dùng trước.",
+    "batch": "Hàng loạt từ CSV",
+    "batchHint": "Các cột: email (người dùng BlueMail), host, port, tls (IMPLICIT hoặc STARTTLS), username, password. Chưa dòng nào chạy khi còn dòng sai.",
+    "batchCreated": "Đã xếp hàng {count} việc nhập.",
+    "field": "Cột"
   }
 }
