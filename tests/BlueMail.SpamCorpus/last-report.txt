@@ -4,10 +4,10 @@ Threshold 5: spam caught 697/700 (99.6 %), false positives 0/700 (0.00 %)
   ham  internal     0/103  flagged, mean score -6.3
   spam crypto      90/90   flagged, mean score 10.6
   spam extort      59/60   flagged, mean score 8.5
-  spam fraud       88/90   flagged, mean score 9.4
+  spam fraud       88/90   flagged, mean score 10.5
   spam invoice     47/47   flagged, mean score 11.6
   spam jobscam     36/36   flagged, mean score 11.4
-  spam lottery     93/93   flagged, mean score 12.8
+  spam lottery     93/93   flagged, mean score 15.4
   spam pharma      52/52   flagged, mean score 11.2
   spam phish      190/190  flagged, mean score 13.5
   spam seo         42/42   flagged, mean score 9.1

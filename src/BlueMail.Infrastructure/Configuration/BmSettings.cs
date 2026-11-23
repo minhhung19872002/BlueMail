@@ -30,6 +30,23 @@ public sealed class BmSettings
 
     public string LogDirectory { get; init; } = "logs";
 
+    /// <summary>
+    /// BM_DB_MAX_POOL caps this process's connections (Npgsql's default is 100 per process; several processes against
+    /// one PostgreSQL could exhaust max_connections when 2,000 IMAP sessions wake at once, BUG-069). An explicit
+    /// "Maximum Pool Size" in BM_DB_CONNECTION wins.
+    /// </summary>
+    public static string WithPoolSize(string connection, string? maxPool)
+    {
+        var b = new Npgsql.NpgsqlConnectionStringBuilder(connection);
+        if (int.TryParse(maxPool, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var max) && max > 0
+            && !connection.Contains("Maximum Pool Size", StringComparison.OrdinalIgnoreCase) && !connection.Contains("Max Pool Size", StringComparison.OrdinalIgnoreCase))
+        {
+            b.MaxPoolSize = max;
+        }
+
+        return b.ConnectionString;
+    }
+
     public static BmSettings Load(IConfiguration config)
     {
         string Required(string key)
@@ -45,7 +62,7 @@ public sealed class BmSettings
 
         return new BmSettings
         {
-            DbConnection = Required("BM_DB_CONNECTION"),
+            DbConnection = WithPoolSize(Required("BM_DB_CONNECTION"), config["BM_DB_MAX_POOL"]),
             MasterKeyBase64 = Required("BM_MASTER_KEY"),
             Valkey = Required("BM_VALKEY"),
             S3Endpoint = Required("BM_S3_ENDPOINT"),

@@ -560,7 +560,7 @@ public sealed class PatternRuleScanner : IFileScanner
                         Match(await Head(es, e.Length, ct), e.Length, (fileName ?? "") + "/" + e.FullName, findings);
                     }
                 }
-                catch (InvalidDataException)
+                catch (Exception ex) when (ex is InvalidDataException or IOException) // ZLibException is an IOException (BUG-073)
                 {
                     // layer 3 reports unreadable archives
                 }

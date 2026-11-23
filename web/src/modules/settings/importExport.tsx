@@ -129,7 +129,7 @@ export function ImportJobsTable({ queryKey, load, showUser }: { queryKey: string
         { title: t("admin.trace.status"), render: (_, j) => (
           <Space direction="vertical" size={0}>
             <Tag color={j.status === "DONE" ? "green" : j.status === "FAILED" ? "red" : running(j.status) ? "blue" : "default"}>{t(`import.status.${j.status}`)}</Tag>
-            {running(j.status) && j.total > 0 && <Progress percent={Math.round(((j.imported + j.skipped + j.failed) / j.total) * 100)} size="small" />}
+            {running(j.status) && j.total > 0 && <Progress percent={Math.round(((j.imported + j.skipped + j.failed) / j.total) * 100)} size="small" aria-label={t("common.progress")} />}
             {j.currentFolder && running(j.status) && <Typography.Text type="secondary">{j.currentFolder}</Typography.Text>}
             {j.error && <Typography.Text type="danger">{t(`importErrors.${j.error}`)}</Typography.Text>}
           </Space>
@@ -208,7 +208,7 @@ export function ImportExportSettings() {
       <Upload accept=".mbox,.mbx,.eml,.zip" showUploadList={false} beforeUpload={upload}>
         <Button icon={<UploadOutlined />} loading={progress !== null}>{t("import.chooseFile")}</Button>
       </Upload>
-      {progress !== null && <Progress percent={progress} />}
+      {progress !== null && <Progress percent={progress} aria-label={t("common.progress")} />}
       <ImportJobsTable queryKey={["my-imports"]} load={migrationApi.mine} />
       <Typography.Title level={5} className="bm-settings-gap">{t("export.title")}</Typography.Title>
       <Typography.Paragraph type="secondary">{t("export.intro")}</Typography.Paragraph>

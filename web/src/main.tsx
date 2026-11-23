@@ -22,3 +22,8 @@ void loadConfig().then(() => {
     </StrictMode>,
   );
 });
+
+// PWA (Phase 13): installable, the shell opens offline. Only in built versions: the dev server must not be cached.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => void navigator.serviceWorker.register("/sw.js"));
+}

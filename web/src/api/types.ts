@@ -127,6 +127,8 @@ export interface ConversationPage {
   items: ConversationSummary[];
   nextCursor: string | null;
   total: number;
+  /** False for very large lists: total is then a lower bound ("1–50 of many"). */
+  totalExact: boolean;
 }
 
 export interface Address {

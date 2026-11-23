@@ -20,6 +20,10 @@ services:
 
   postgres:
     image: postgres:16.16-alpine
+    # Room for every process's pool (BM_DB_MAX_POOL per service, about 200 in total) plus admin connections.
+    command: ["postgres", "-c", "max_connections=300"]
+    # Parallel query and VACUUM use /dev/shm; Docker's 64 MB default fails on large tables (BUG-074).
+    shm_size: 512mb
     environment:
       POSTGRES_USER: ${BM_DB_USER:?BM_DB_USER is required}
       POSTGRES_PASSWORD: ${BM_DB_PASSWORD:?BM_DB_PASSWORD is required}
@@ -104,6 +108,7 @@ services:
     env_file: [.env.dev]
     environment:
       BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_DB_MAX_POOL: "40"
       BM_VALKEY: 10.77.0.12:6379
       BM_S3_ENDPOINT: http://10.77.0.11:3900
       BM_DNS_SERVERS: 10.77.0.53
@@ -122,6 +127,7 @@ services:
     env_file: [.env.dev]
     environment:
       BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_DB_MAX_POOL: "20"
       BM_VALKEY: 10.77.0.12:6379
       BM_S3_ENDPOINT: http://10.77.0.11:3900
       BM_DNS_SERVERS: 10.77.0.53
@@ -144,11 +150,14 @@ services:
     env_file: [.env.dev]
     environment:
       BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_DB_MAX_POOL: "40"
       BM_VALKEY: 10.77.0.12:6379
       BM_S3_ENDPOINT: http://10.77.0.11:3900
       BM_DNS_SERVERS: 10.77.0.53
       BM_TLS_CERT: /tls/cert.pem
       BM_TLS_KEY: /tls/key.pem
+      # Load tests (tests/perf/imap_idle_load.py) open thousands of connections from the tools container alone.
+      BM_IMAP_MAX_CONNECTIONS_PER_IP: "2500"
       ASPNETCORE_ENVIRONMENT: Development
     volumes:
       - ./dev/tls:/tls:ro
@@ -165,6 +174,7 @@ services:
     env_file: [.env.dev]
     environment:
       BM_DB_CONNECTION: "Host=10.77.0.10;Port=5432;Database=bluemail;Username=${BM_DB_USER};Password=${BM_DB_PASSWORD}"
+      BM_DB_MAX_POOL: "20"
       BM_VALKEY: 10.77.0.12:6379
       BM_S3_ENDPOINT: http://10.77.0.11:3900
       BM_DNS_SERVERS: 10.77.0.53

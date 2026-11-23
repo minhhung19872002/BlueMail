@@ -75,9 +75,13 @@ export function antdTheme(mode: Mode, density: "default" | "comfortable" | "comp
     algorithm: algorithms,
     token: {
       colorPrimary: p.primary,
+      colorLink: p.primary, // AntD's default link blue is 4.1:1 on white; the primary colour passes 4.5:1
       colorBgBase: p.surface,
       colorBgLayout: p.bg,
       colorTextBase: p.text,
+      // AntD derives secondary/description text with alpha, too faint on white (2.8:1); use the checked muted colour.
+      colorTextSecondary: p.textMuted,
+      colorTextDescription: p.textMuted,
       colorBorder: p.border,
       colorError: p.danger,
       borderRadius: 8,

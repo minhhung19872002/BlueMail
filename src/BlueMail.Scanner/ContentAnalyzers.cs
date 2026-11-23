@@ -246,7 +246,7 @@ internal static partial class PdfAnalyzer
 
                 inflated = ms.ToArray();
             }
-            catch (InvalidDataException)
+            catch (Exception ex) when (ex is InvalidDataException or IOException) // ZLibException is an IOException (BUG-073)
             {
                 // corrupt stream: ignore
             }

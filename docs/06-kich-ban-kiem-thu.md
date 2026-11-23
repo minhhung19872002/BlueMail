@@ -335,3 +335,24 @@ cho phần thật; `BM_OFFLINE=1` để bỏ qua); `dotnet test tests/BlueMail.I
 | P12-10 | TLS-RPT | Kết quả hôm qua của doitac.test | Báo cáo gzip JSON ký DKIM tới `rua`, đúng RFC 8460 (tên tệp, tiêu đề, trường) | Như mong đợi | ✅ |
 | P12-11 | Chế độ bảo mật | Gửi bảo mật có mã; mở bằng mã sai/đúng; gửi lại; thu hồi | Bên ngoài chỉ nhận liên kết; mã sai 403; gửi lại không trùng; thu hồi → 403; người khác không thu hồi được | Như mong đợi | ✅ |
 | P12-12 | IP thật, Gmail/Outlook thật | Gửi từ IP công khai có PTR tới Gmail, Outlook.com; đăng ký Postmaster/SNDS/JMRP | Vào Hộp thư đến, `dkim=pass spf=pass dmarc=pass` | **Chưa chạy**: cần IP công khai và tên miền thật | ⏳ |
+
+## Phase 13 — Hiệu năng, truy cập, PWA, bản chạy thật, sao lưu, fuzz dài
+
+Máy đo: laptop Windows 11, 32 GB, Docker Desktop (WSL2), PostgreSQL 16 trong container, API chạy Debug ngoài container —
+chậm hơn máy chủ thật; số dưới đây là cận trên. Dữ liệu đo: `tests/perf/fill.sql` (thư tổng hợp đúng dạng kho thư, dọn
+bằng `cleanup.sql`); đo qua HTTP thật: `tests/perf/api_latency.py` (hoặc `web-latency.js` trong trình duyệt).
+
+| Mã | Chỉ tiêu (PROMPT 8.2) | Cách đo | Kết quả | Đạt |
+|---|---|---|---|---|
+| P13-01 | Mở Hộp thư đến (50 hội thoại) < 400 ms p95, hộp thư 100.000 thư | 100 lần | Trước sửa: p95 392 ms; sau (D30): **183 ms**; với 1.000.000 thư (600.078 trong Hộp thư đến): **99 ms** | ✅ |
+| P13-02 | Tìm kiếm < 1 s p95, hộp thư 1.000.000 thư | 100 lần, 10 truy vấn (từ, cụm từ, from:, subject:, has:, khoảng ngày, is:, không có kết quả) | Trước: p95 ≈ 3,0–3,9 s; sau: **p95 502 ms**, chậm nhất (cụm từ không ai viết) 560 ms | ✅ |
+| P13-03 | Nhận ≥ 50 thư/s duy trì, `250` < 1 s p95 (< 1 MB) | `tests/perf/smtp_load.py`, thư 20 KB, 16 kết nối | **60 thư/s trong 120 s**: 7.200 thư, p95 93 ms, 0 lỗi; thử 150/s: đạt 112 thư/s, p95 183 ms, 0 lỗi | ✅ |
+| P13-04 | 2.000 kết nối IMAP IDLE | `tests/perf/imap_idle_load.py` 2.000 phiên TLS, LOGIN, SELECT, IDLE; một thư mới | Trước: MX `451` (BUG-069); sau: 2.000/2.000 nhận `EXISTS`, p50 1,27 s, p95 1,63 s, 0 lỗi; mở 2.000 phiên mất 97 s | ✅ |
+| P13-05 | 500 người dùng web đồng thời | — | **Chưa đo** trên tải thật; danh sách 99 ms p95 và API không trạng thái cho thấy dư; cần máy chủ thật để đo | ⏳ |
+| P13-06 | Truy cập | Lighthouse (snapshot) | Hộp thư đến 90 → **100**, Cài đặt 91 → **100**, Quản trị **100**, trang đăng nhập BlueID **100** | ✅ |
+| P13-07 | PWA | `manifest.webmanifest`, `sw.js`, biểu tượng 192/512/maskable; bản build | Cài được; khung mở khi ngoại tuyến; không cache dữ liệu (D32); gói đầu 2,9 MB → 510 kB | ✅ |
+| P13-08 | Điện thoại (375 px) | Ảnh chụp: hộp thư, soạn, chế độ bảo mật, trang xem thư bảo mật, thư đã gửi | Hiển thị đúng | ✅ |
+| P13-09 | `docker compose up -d` lên hệ thống đầy đủ có dữ liệu mẫu | `deploy/docker-compose.yml` (13 dịch vụ) với `BM_SEED_SAMPLE_DATA=true`, cổng thử 8443/2525/2993… | Mọi dịch vụ `healthy`; web, OIDC trả 200; 4 hộp thư nhận 12 thư mẫu **qua SMTP** (đa ngôn ngữ, RTL, tệp tên tiếng Việt, bản tin List-Unsubscribe, lời mời lịch, thư giả dạng, thư rác) | ✅ |
+| P13-10 | Sao lưu / phục hồi thử thật | `backup.sh`, `down -v`, `restore.sh` | docs/03 mục 4: 16 s sao lưu, 49 s phục hồi, nội dung IMAP trùng SHA-256 | ✅ |
+| P13-11 | Fuzz dài | Bộ fuzz đột biến 4 phút/đích × 8 đích (SMTP, IMAP, MIME, tiêu đề, DNS kể cả DNSSEC, DKIM, bộ quét, văn bản), 2 lượt hạt giống khác nhau | Lượt 1 (4 phút/đích): 3 lỗi (BUG-066/067/068); lượt 2 (4 phút/đích, hạt giống khác): 1 lỗi (BUG-073); tất cả đã sửa, có phép thử hồi quy; lượt 3 (3 phút/đích, hạt giống 20261125): **không lỗi**. libFuzzer (SharpFuzz) cho chạy nhiều giờ vẫn cần container Linux (Program.cs) | ✅ |
+| P13-12 | Dữ liệu mẫu chặn thư rác | Thư "trúng thưởng" mẫu | Trước: 2,3 điểm (vào Hộp thư đến); thêm luật `ADVANCE_FEE`: vào Thư rác; bộ thư mẫu: bắt nhầm 0/495 | ✅ |

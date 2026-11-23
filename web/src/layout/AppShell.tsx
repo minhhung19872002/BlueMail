@@ -22,7 +22,7 @@ import { useSaveSettings, useSettings, type MailSettings } from "../modules/sett
 import { ComposeDock } from "../modules/compose/ComposeDock";
 import { useCompose } from "../modules/compose/composeStore";
 import { useMe } from "../session";
-import { useAdminSections } from "../modules/admin/AdminConsole";
+import { useAdminSections } from "../modules/admin/adminSections";
 import { useUi, type Density, type ReadingPane, type ThemePreference } from "../store/ui";
 
 const { Header, Sider, Content } = Layout;
@@ -217,7 +217,7 @@ export function AppShell() {
         <SearchBox />
         <span className="bm-header-spacer" />
         <Dropdown menu={accountMenu} trigger={["click"]}>
-          <Button type="text" aria-label={t("nav.account")}>
+          <Button type="text" aria-label={narrow ? t("nav.account") : `${me.displayName} · ${t("nav.account")}`}>
             <Avatar size="small" icon={<UserOutlined />} />
             {!narrow && <span>{me.displayName}</span>}
           </Button>
@@ -253,7 +253,7 @@ export function AppShell() {
           {!collapsed && quota > 0 && (
             <div className="bm-storage">
               <Tooltip title={t("storage.tooltip")}>
-                <Progress percent={Math.min(100, Math.round((used / quota) * 100))} showInfo={false} size="small" />
+                <Progress percent={Math.min(100, Math.round((used / quota) * 100))} showInfo={false} size="small" aria-label={t("storage.tooltip")} />
               </Tooltip>
               {t("storage.used", { used: bytes(used, me.locale), quota: bytes(quota, me.locale) })}
             </div>

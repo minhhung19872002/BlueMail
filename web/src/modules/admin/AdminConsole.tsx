@@ -1,8 +1,7 @@
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Tabs, Typography } from "antd";
 import { useTranslation } from "react-i18next";
-import { useMe } from "../../session";
-import { AdminPermission } from "./adminApi";
+import { useAdminSections, type AdminSectionKey } from "./adminSections";
 import { ComplianceAdmin, MigrationAdmin } from "./ComplianceAdmin";
 import { DomainsAdmin } from "./DomainsAdmin";
 import { GroupsAdmin } from "./GroupsAdmin";
@@ -14,25 +13,19 @@ import { SendingAdmin } from "./SendingAdmin";
 import { TenantsPage } from "./TenantsPage";
 import { UsersPage } from "./UsersPage";
 
-// Sections of the administration console and the permission each needs to be shown (the API checks again).
-const sections = [
-  { key: "users", any: [AdminPermission.UsersView], render: () => <UsersPage /> },
-  { key: "domains", any: [AdminPermission.DomainsView], render: () => <DomainsAdmin /> },
-  { key: "groups", any: [AdminPermission.GroupsEdit], render: () => <GroupsAdmin /> },
-  { key: "policies", any: [AdminPermission.PolicyEdit], render: () => <PoliciesAdmin /> },
-  { key: "security", any: [AdminPermission.SpamEdit, AdminPermission.QuarantineView], render: () => <SecurityAdmin /> },
-  { key: "operations", any: [AdminPermission.TraceView], render: () => <OperationsAdmin /> },
-  { key: "reports", any: [AdminPermission.ReportsView], render: () => <ReportsAdmin /> },
-  { key: "compliance", any: [AdminPermission.ComplianceView], render: () => <ComplianceAdmin /> },
-  { key: "migration", any: [AdminPermission.MigrationEdit], render: () => <MigrationAdmin /> },
-  { key: "tenants", any: [AdminPermission.TenantsView], render: () => <TenantsPage /> },
-  { key: "sending", any: [AdminPermission.TenantsView], render: () => <SendingAdmin /> },
-] as const;
-
-export function useAdminSections() {
-  const me = useMe();
-  return sections.filter((s) => s.any.some((p) => me.permissions.includes(p)));
-}
+const pages: Record<AdminSectionKey, () => JSX.Element> = {
+  users: () => <UsersPage />,
+  domains: () => <DomainsAdmin />,
+  groups: () => <GroupsAdmin />,
+  policies: () => <PoliciesAdmin />,
+  security: () => <SecurityAdmin />,
+  operations: () => <OperationsAdmin />,
+  reports: () => <ReportsAdmin />,
+  compliance: () => <ComplianceAdmin />,
+  migration: () => <MigrationAdmin />,
+  tenants: () => <TenantsPage />,
+  sending: () => <SendingAdmin />,
+};
 
 /** The administration console (PROMPT 7): one page, a tab per area the signed-in admin may use. */
 export function AdminConsole() {
@@ -48,7 +41,7 @@ export function AdminConsole() {
     <section aria-labelledby="admin-title" className="bm-admin">
       <Typography.Title level={4} id="admin-title" className="bm-no-print">{t("admin.title")}</Typography.Title>
       <Tabs activeKey={active.key} onChange={(k) => navigate(`/admin/${k}`)} destroyOnHidden
-        items={allowed.map((s) => ({ key: s.key, label: t(`admin.section.${s.key}`), children: s.render() }))} />
+        items={allowed.map((s) => ({ key: s.key, label: t(`admin.section.${s.key}`), children: pages[s.key]() }))} />
     </section>
   );
 }

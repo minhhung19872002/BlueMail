@@ -20,6 +20,8 @@ main() {
   chown -R vmail:vmail /var/mail/vhosts
   postmap /etc/postfix/recipient_access /etc/postfix/virtual_mailboxes
   cp /etc/resolv.conf /var/spool/postfix/etc/resolv.conf 2>/dev/null || true
+  # A container restart keeps /run: stale pid files would stop the milters from starting (BUG-075).
+  rm -f /run/opendkim/opendkim.pid /run/dkimpy-milter/dkimpy-milter.pid
   opendkim -x /etc/opendkim.conf
   mkdir -p /run/dkimpy-milter && chown dkimpy-milter /run/dkimpy-milter
   dkimpy-milter /etc/dkimpy-milter/dkimpy-milter.conf &

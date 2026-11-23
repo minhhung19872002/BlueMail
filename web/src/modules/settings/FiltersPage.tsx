@@ -230,7 +230,7 @@ function FilterEditor({ value, onClose, onSaved }: { value: Editing; onClose: ()
         )}
         {job && (
           <div role="status">
-            <Progress percent={job.total ? Math.round((job.done / job.total) * 100) : 0} status={job.status === "FAILED" ? "exception" : undefined} />
+            <Progress percent={job.total ? Math.round((job.done / job.total) * 100) : 0} status={job.status === "FAILED" ? "exception" : undefined} aria-label={t("common.progress")} />
             {t(job.status === "DONE" ? "filters.jobDone" : job.status === "FAILED" ? "filters.jobFailed" : "filters.jobRunning", { done: job.done, total: job.total })}
           </div>
         )}

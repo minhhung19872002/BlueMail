@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { App as AntApp, ConfigProvider, Result, Spin } from "antd";
 import enUS from "antd/locale/en_US";
@@ -15,15 +15,17 @@ import { useUi } from "./store/ui";
 import { MeContext } from "./session";
 import { AppShell } from "./layout/AppShell";
 import { MailboxPage } from "./modules/mail/MailboxPage";
-import { SessionsPage } from "./modules/settings/SessionsPage";
-import { SignaturesPage } from "./modules/settings/SignaturesPage";
-import { FiltersPage } from "./modules/settings/FiltersPage";
-import { VacationPage } from "./modules/settings/VacationPage";
-import { ForwardingPage } from "./modules/settings/ForwardingPage";
-import { ContactsPage } from "./modules/contacts/ContactsPage";
-import { SettingsPage } from "./modules/settings/SettingsPage";
-import { AdminConsole } from "./modules/admin/AdminConsole";
-import { ConfidentialPage } from "./modules/mail/ConfidentialPage";
+
+// Pages other than the mailbox load on demand (smaller first download, PROMPT 8.2).
+const SessionsPage = lazy(() => import("./modules/settings/SessionsPage").then((m) => ({ default: m.SessionsPage })));
+const SignaturesPage = lazy(() => import("./modules/settings/SignaturesPage").then((m) => ({ default: m.SignaturesPage })));
+const FiltersPage = lazy(() => import("./modules/settings/FiltersPage").then((m) => ({ default: m.FiltersPage })));
+const VacationPage = lazy(() => import("./modules/settings/VacationPage").then((m) => ({ default: m.VacationPage })));
+const ForwardingPage = lazy(() => import("./modules/settings/ForwardingPage").then((m) => ({ default: m.ForwardingPage })));
+const ContactsPage = lazy(() => import("./modules/contacts/ContactsPage").then((m) => ({ default: m.ContactsPage })));
+const SettingsPage = lazy(() => import("./modules/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const AdminConsole = lazy(() => import("./modules/admin/AdminConsole").then((m) => ({ default: m.AdminConsole })));
+const ConfidentialPage = lazy(() => import("./modules/mail/ConfidentialPage").then((m) => ({ default: m.ConfidentialPage })));
 
 // Vite may hand over the CommonJS build of antd/locale wrapped in { default } (seen: dialogs in English for vi).
 const unwrap = (m: Locale): Locale => (m as Locale & { default?: Locale }).default ?? m;
@@ -64,6 +66,7 @@ function Authenticated() {
 
   return (
     <MeContext.Provider value={me.data}>
+      <Suspense fallback={<Spin fullscreen />}>
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate to="/mail/inbox" replace />} />
@@ -81,6 +84,7 @@ function Authenticated() {
           <Route path="*" element={<Navigate to="/mail/inbox" replace />} />
         </Route>
       </Routes>
+      </Suspense>
     </MeContext.Provider>
   );
 }
@@ -124,11 +128,13 @@ export function App() {
   return (
     <ConfigProvider theme={themeConfig} locale={antdLocales[lang] ?? enUS} direction={dir}>
       <AntApp>
+        <Suspense fallback={<Spin fullscreen />}>
         <Routes>
           <Route path="/auth/callback" element={<Callback />} />
           <Route path="/c/:token" element={<ConfidentialPage />} />
           <Route path="*" element={<AuthGate />} />
         </Routes>
+        </Suspense>
       </AntApp>
     </ConfigProvider>
   );

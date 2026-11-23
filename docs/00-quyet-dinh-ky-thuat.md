@@ -392,3 +392,28 @@ thư). Mã liên kết = HMAC(khoá, id thư + địa chỉ) nên gửi lại sa
 (chống trùng bằng Message-ID của thư báo); chỉ lưu SHA-256 của mã. Nội dung là bản đã soạn (blob mã hoá của tenant),
 hiển thị qua cùng bộ lọc HTML như khi đọc thư, ảnh ngoài luôn chặn. Mã 6 số: 10 phút, 5 lần sai, 1 mã/phút. Không
 có DRM: trang nói rõ không ngăn được chụp màn hình.
+
+## D30. Danh sách hội thoại ở quy mô lớn: đọc có trần, gom trong bộ nhớ hoặc duyệt theo thời gian
+
+Trước Phase 13 mỗi lần mở danh sách đếm và gom **mọi** thư của nhãn theo hội thoại (O(N), hai lần): 100k thư ≈ 390 ms,
+600k thư 1,8 s; tìm kiếm trên 1M thư p95 ≈ 3 s. Nay (`PgMailStore.ListConversationsAsync`): một truy vấn đọc tối đa
+`CountCap + 1` = 10.001 thư khớp theo bất kỳ thứ tự nào chỉ mục cho (GIN, trigram, nhãn). ≤ 10.000: gom trong bộ nhớ,
+tổng chính xác. Lớn hơn: tổng là "hơn 10.000" (`TotalExact = false`, web hiện "1–50 trên rất nhiều") và trang được dựng
+bằng cách duyệt thư mới nhất trước theo chỉ mục `(tenant, mailbox, received_at, id)`, dừng khi đủ hội thoại. Con trỏ là
+thư mới nhất của hội thoại cuối trang (thời gian, id theo thứ tự uuid của PostgreSQL) — cả hai đường dùng chung nghĩa,
+phép thử `ConversationPagingTests` buộc chúng cho cùng kết quả. Chỉ mục bao phủ hẹp `ix_messages_list_cover` và trigram
+đúng biểu thức tìm `subject:`/`from:` (migration `MessageListCoverIndex`).
+
+## D31. Tiến trình `worker`, kích thước pool kết nối
+
+`api` và `worker` cùng một tệp chạy, chọn bằng `BM_ROLE` (`api` chỉ phục vụ HTTP, `worker` chạy việc nền; không đặt =
+cả hai, cho dev). Mỗi tiến trình đặt `BM_DB_MAX_POOL` (identity/worker/submission/outbound 20, api/mx/imap 40 — tổng
+~200) và PostgreSQL `max_connections=300`: khi 2.000 phiên IMAP IDLE cùng được đánh thức, tiến trình IMAP chờ trong
+pool của mình thay vì làm cạn kết nối của MX (BUG-069).
+
+## D32. PWA không lưu thư trên máy
+
+Service worker (`web/public/sw.js`) chỉ cache khung ứng dụng (tệp `/assets/*` có băm nội dung, trang gốc, biểu tượng);
+không cache API, tệp đính kèm hay bất cứ dữ liệu người dùng nào — máy dùng chung/mất máy không lộ thư. Ngoại tuyến: mở
+được khung và báo không kết nối. Các trang ít dùng (quản trị, cài đặt, danh bạ, trang xem thư bảo mật) và trình soạn
+thảo (tiptap), xem PDF được tải khi cần: gói đầu từ 2,9 MB xuống 510 kB (162 kB gzip).

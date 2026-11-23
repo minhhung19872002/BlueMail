@@ -12,6 +12,9 @@ internal sealed record ArchiveEntry(string Name, long Size, bool Encrypted);
 /// </summary>
 internal static class ArchiveListing
 {
+    /// <summary>Largest tar member size taken seriously (1 TiB); bigger values are corrupt headers.</summary>
+    private const long MaxTarEntryBytes = 1L << 40;
+
     public const int MaxEntries = 100_000;
 
     /// <summary>TAR (POSIX ustar and GNU long names).</summary>
@@ -37,6 +40,11 @@ internal static class ArchiveListing
             var name = CString(header.AsSpan(0, 100));
             var prefix = header.AsSpan(257, 5).SequenceEqual("ustar"u8) ? CString(header.AsSpan(345, 155)) : "";
             var size = Octal(header.AsSpan(124, 12));
+            if (size is < 0 or > MaxTarEntryBytes)
+            {
+                break; // impossible size (e.g. GNU base-256 garbage): stop listing, keep what was read (BUG-068)
+            }
+
             var type = (char)header[156];
             var padded = (size + 511) / 512 * 512;
             if (type == 'L')

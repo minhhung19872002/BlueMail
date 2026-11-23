@@ -16,7 +16,7 @@ import { mailKeys } from "../mail/mailApi";
 import { confidentialDays } from "../mail/confidentialApi";
 import { scheduleSuggestions, sendWarnings, toEditorHtml, toStoredHtml, uploadIdsIn, type Recipient, type SendWarning } from "./compose";
 import { composeApi, emptyDraft, type DraftAttachment, type DraftState } from "./composeApi";
-import { MailEditor } from "./MailEditor";
+import { MailEditor } from "./LazyMailEditor";
 import { RecipientField } from "./RecipientField";
 import { useCompose, type ComposeWindowState } from "./composeStore";
 
@@ -456,7 +456,7 @@ function AttachmentList({ attachments, uploading, onRemove, onCancel }: {
       {uploading.map((u) => (
         <div key={u.key} className="bm-upload-row">
           <span className="bm-upload-name">{u.name}</span>
-          <Progress percent={u.total ? Math.round((u.sent / u.total) * 100) : 0} size="small" className="bm-upload-progress" />
+          <Progress percent={u.total ? Math.round((u.sent / u.total) * 100) : 0} size="small" className="bm-upload-progress" aria-label={t("common.progress")} />
           <Button size="small" type="text" icon={<CloseOutlined />} aria-label={t("compose.cancelUpload", { name: u.name })} onClick={() => onCancel(u)} />
         </div>
       ))}

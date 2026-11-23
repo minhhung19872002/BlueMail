@@ -69,6 +69,14 @@ public static partial class SpamRules
         "verifizieren sie ihr konto", "verifique su cuenta", "verifiez votre compte", "подтвердите вашу учетную запись", "账户将被冻结", "验证您的账户",
     ];
 
+    /// <summary>Advance-fee / prize fraud: one phrase is ordinary, several together are the classic scam (scored by count).</summary>
+    private static readonly string[] AdvanceFee =
+    [
+        "you have won", "you won", "lottery", "claim your prize", "claim your winnings", "western union", "moneygram", "processing fee",
+        "bank account details", "unclaimed inheritance", "next of kin", "beneficiary of", "million dollars", "$1,000,000",
+        "trung thuong", "nhan giai thuong", "phi xu ly", "xo so", "thong tin tai khoan ngan hang",
+    ];
+
     public static SpamVerdict Score(SpamInput i, BayesResult? bayes)
     {
         var hits = new List<SpamHit>();
@@ -212,6 +220,12 @@ public static partial class SpamRules
         if (Phishing.FirstOrDefault(p => lowered.Contains(Tokenizer.RemoveMarks(p), StringComparison.Ordinal)) is { } phrase)
         {
             Hit("PHISHING_PHRASE", 1.5, phrase);
+        }
+
+        var fee = AdvanceFee.Where(p => lowered.Contains(p, StringComparison.Ordinal)).ToList();
+        if (fee.Count >= 2)
+        {
+            Hit("ADVANCE_FEE", Math.Min(5.0, 3.0 + (fee.Count - 2)), string.Join(", ", fee.Take(4)));
         }
 
         // --- links ---

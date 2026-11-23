@@ -219,7 +219,7 @@ public sealed class BlueMailScanner(ScannerPolicy? policy = null) : IFileScanner
         {
             zip = new ZipArchive(s, ZipArchiveMode.Read, leaveOpen: true);
         }
-        catch (InvalidDataException)
+        catch (Exception ex) when (ex is InvalidDataException or IOException) // ZLibException is an IOException (BUG-073)
         {
             ctx.Add(ScanCodes.ArchiveUnreadable, ScanStatus.Suspicious, path);
             return FileTypes.Zip;
@@ -232,7 +232,7 @@ public sealed class BlueMailScanner(ScannerPolicy? policy = null) : IFileScanner
             {
                 entries = zip.Entries; // the central directory is read lazily and may be corrupt
             }
-            catch (InvalidDataException)
+            catch (Exception ex) when (ex is InvalidDataException or IOException) // ZLibException is an IOException (BUG-073)
             {
                 ctx.Add(ScanCodes.ArchiveUnreadable, ScanStatus.Suspicious, path);
                 return FileTypes.Zip;
@@ -415,7 +415,7 @@ public sealed class BlueMailScanner(ScannerPolicy? policy = null) : IFileScanner
                 }
             }
         }
-        catch (InvalidDataException)
+        catch (Exception ex) when (ex is InvalidDataException or IOException) // ZLibException is an IOException (BUG-073)
         {
             ctx.Add(ScanCodes.ArchiveUnreadable, ScanStatus.Suspicious, path);
             return;

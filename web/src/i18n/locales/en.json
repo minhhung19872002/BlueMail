@@ -88,6 +88,7 @@
     "newer": "Newer",
     "older": "Older",
     "range": "{from, number}–{to, number} of {total, number}",
+    "rangeMany": "{from, number}–{to, number} of many",
     "allOnPageSelected": "{count, plural, one {The conversation on this page is selected.} other {All # conversations on this page are selected.}}",
     "selectAllMatching": "Select all {count, number} conversations in this list",
     "selectionTooLarge": "At most {max, number} conversations can be changed at once.",
@@ -176,7 +177,8 @@
     "rangeOfTotal": "{from}–{to} of {total}",
     "create": "Create",
     "cancel": "Cancel",
-    "close": "Close"
+    "close": "Close",
+    "progress": "Progress"
   },
   "adminUsers": {
     "title": "Users",
@@ -401,7 +403,8 @@
       "BAYES_95": "Content much like reported spam.",
       "BAYES_80": "Content somewhat like reported spam.",
       "BAYES_05": "Content like mail you keep.",
-      "BAYES_00": "Content very much like mail you keep."
+      "BAYES_00": "Content very much like mail you keep.",
+      "ADVANCE_FEE": "Several typical prize or advance-fee scam phrases: “{detail}”."
     }
   },
   "search": {

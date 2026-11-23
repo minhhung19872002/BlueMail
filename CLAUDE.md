@@ -122,3 +122,11 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
   VERP addresses and `BM_FEEDBACK_ADDRESS` (default fbl@<platform>). IP pools/warm-up: `Outbound/SendingIps.cs`, `WarmupSchedule`.
 - Confidential mode: `ConfidentialService` + `web/src/modules/mail/ConfidentialPage.tsx` (public route `/c/:token`).
 - Acceptance: `sh scripts/dev-phase12-check.sh` (rebuild mx/outbound/submission first). Build the whole slnx before `docker compose build`.
+
+## Finishing (Phase 13)
+- Production stack: `deploy/docker-compose.yml` (worker = api image with `BM_ROLE=worker`; mail certs from the Caddy volume).
+  Local trial: separate project name and ports (see docs/06 P13-09); stop it when done (Docker Desktop hangs with too many stacks).
+- Perf: `tests/perf/fill.sql` / `cleanup.sql` (synthetic rows, dev only), `api_latency.py`, `smtp_load.py`, `imap_idle_load.py`.
+  The conversation list has two paths (D30); keep `ConversationPagingTests` green when touching it.
+- Backups: `scripts/backup.sh` / `restore.sh` (pg_dump + rclone); drill numbers in docs/03.
+- Long fuzz: `BM_FUZZ_SECONDS=240 BM_FUZZ_ITERATIONS=100000000 dotnet test tests/BlueMail.FuzzTests`; replay saved inputs, then a red test.

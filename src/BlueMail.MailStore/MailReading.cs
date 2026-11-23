@@ -44,8 +44,8 @@ public sealed record ConversationSummary(
     IReadOnlyList<Guid> LabelIds,
     bool Muted);
 
-/// <summary>A page of a list. <see cref="Total"/> is exact (counted from the same rows).</summary>
-public sealed record ConversationPage(IReadOnlyList<ConversationSummary> Items, string? NextCursor, long Total);
+/// <summary>A page of a list. <see cref="Total"/> is exact when <see cref="TotalExact"/>, otherwise a lower bound.</summary>
+public sealed record ConversationPage(IReadOnlyList<ConversationSummary> Items, string? NextCursor, long Total, bool TotalExact = true);
 
 public sealed record AddressDto(string? Name, string Address);
 
@@ -120,12 +120,7 @@ public sealed partial class PgMailStore
                                   WHERE ml.tenant_id = m.tenant_id AND ml.message_id = m.id AND l.system_key = ANY(@hidden))
                   """;
         var (searchSql, searchParams) = q.Search is null ? ("true", []) : Search.SearchSql.Translate(q.Search, q.MyAddresses ?? []);
-        var baseSql = $"""
-            FROM mail.messages m
-            WHERE m.tenant_id = @t AND m.mailbox_id = @mb AND m.deleted_at IS NULL AND m.expunged_at IS NULL {labelFilter} AND {searchSql}
-            GROUP BY {key}
-            {(q.UnreadOnly ? "HAVING count(*) FILTER (WHERE NOT m.seen) > 0" : "")}
-            """;
+        var where = $"m.tenant_id = @t AND m.mailbox_id = @mb AND m.deleted_at IS NULL AND m.expunged_at IS NULL {labelFilter} AND {searchSql}";
 
         void Bind(NpgsqlCommand cmd)
         {
@@ -139,44 +134,140 @@ public sealed partial class PgMailStore
             }
         }
 
-        long total;
-        await using (var count = new NpgsqlCommand($"SELECT count(*) FROM (SELECT 1 {baseSql}) x", c))
-        {
-            Bind(count);
-            total = (long)(await count.ExecuteScalarAsync(ct))!;
-        }
-
-        var (cursorAt, cursorId) = DecodeCursor(q.Cursor);
-        var page = new List<(Guid Key, DateTimeOffset Last, int Count, int Unread)>();
-        await using (var cmd = new NpgsqlCommand($"""
-            SELECT * FROM (SELECT {key} AS k, max(m.received_at) AS last_at, count(*)::int AS n, (count(*) FILTER (WHERE NOT m.seen))::int AS unread {baseSql}) x
-            WHERE (@cAt IS NULL OR (x.last_at, x.k) < (@cAt, @cId))
-            ORDER BY x.last_at DESC, x.k DESC
-            LIMIT @lim
-            """, c))
+        // One read of at most CountCap + 1 matching messages, in whatever order the indexes give them (GIN, trigram,
+        // label). Up to CountCap the list is grouped right here with an exact total; above it the total is "more than
+        // CountCap" and the page comes from walking messages newest first (PROMPT 8.2; counting or grouping every
+        // conversation of a huge label on each view, or walking 1M messages for a rare phrase, is what was slow).
+        var hits = new List<(Guid Id, Guid Key, DateTimeOffset At, bool Seen)>();
+        await using (var cmd = new NpgsqlCommand($"SELECT m.id, {key}, m.received_at, m.seen FROM mail.messages m WHERE {where} LIMIT {CountCap + 1}", c))
         {
             Bind(cmd);
-            cmd.Parameters.Add(new NpgsqlParameter("cAt", NpgsqlTypes.NpgsqlDbType.TimestampTz) { Value = (object?)cursorAt ?? DBNull.Value });
-            cmd.Parameters.AddWithValue("cId", cursorId);
-            cmd.Parameters.AddWithValue("lim", limit + 1);
             await using var rd = await cmd.ExecuteReaderAsync(ct);
             while (await rd.ReadAsync(ct))
             {
-                page.Add((rd.GetGuid(0), rd.GetFieldValue<DateTimeOffset>(1), rd.GetInt32(2), rd.GetInt32(3)));
+                hits.Add((rd.GetGuid(0), rd.GetGuid(1), rd.GetFieldValue<DateTimeOffset>(2), rd.GetBoolean(3)));
+            }
+        }
+
+        var exact = hits.Count <= CountCap;
+        long total = CountCap;
+
+        // Page order: conversations by their newest message (time, then id in PostgreSQL's uuid order). The cursor is
+        // that newest message of the last conversation shown; a conversation with a match at or above it was shown.
+        var (cursorAt, cursorId) = DecodeCursor(q.Cursor);
+        var page = new List<(Guid Key, DateTimeOffset Last, int Count, int Unread, DateTimeOffset FirstAt, Guid FirstId)>();
+        var met = new HashSet<Guid>();
+        var (afterAt, afterId) = (cursorAt, cursorId);
+        var chunk = Math.Max(200, limit * 8);
+        var exhausted = false;
+        if (exact)
+        {
+            exhausted = true;
+            var groups = hits.GroupBy(h => h.Key).Select(g =>
+                {
+                    var top = g.OrderByDescending(h => h.At).ThenByDescending(h => h.Id, UuidOrder.Instance).First();
+                    return (Key: g.Key, Last: top.At, TopId: top.Id, Count: g.Count(), Unread: g.Count(h => !h.Seen));
+                })
+                .Where(x => !q.UnreadOnly || x.Unread > 0)
+                .ToList();
+            total = groups.Count;
+            page.AddRange(groups
+                .Where(x => cursorAt is not { } cAt || x.Last < cAt || (x.Last == cAt && UuidOrder.Instance.Compare(x.TopId, cursorId) < 0))
+                .OrderByDescending(x => x.Last).ThenByDescending(x => x.TopId, UuidOrder.Instance)
+                .Take(limit + 1)
+                .Select(x => (x.Key, x.Last, x.Count, x.Unread, x.Last, x.TopId)));
+        }
+
+        while (page.Count <= limit && !exhausted)
+        {
+            var fresh = new List<(Guid Key, DateTimeOffset At, Guid Id)>();
+            var rows = 0;
+            await using (var cmd = new NpgsqlCommand($"""
+                SELECT m.id, {key}, m.received_at FROM mail.messages m
+                WHERE {where} AND (@aAt IS NULL OR (m.received_at, m.id) < (@aAt, @aId))
+                ORDER BY m.received_at DESC, m.id DESC
+                LIMIT @chunk
+                """, c))
+            {
+                Bind(cmd);
+                cmd.Parameters.Add(new NpgsqlParameter("aAt", NpgsqlTypes.NpgsqlDbType.TimestampTz) { Value = (object?)afterAt ?? DBNull.Value });
+                cmd.Parameters.AddWithValue("aId", afterId);
+                cmd.Parameters.AddWithValue("chunk", chunk);
+                await using var rd = await cmd.ExecuteReaderAsync(ct);
+                while (await rd.ReadAsync(ct))
+                {
+                    rows++;
+                    var (id, k, at) = (rd.GetGuid(0), rd.GetGuid(1), rd.GetFieldValue<DateTimeOffset>(2));
+                    (afterAt, afterId) = (at, id);
+                    if (met.Add(k))
+                    {
+                        fresh.Add((k, at, id));
+                    }
+                }
+            }
+
+            exhausted = rows < chunk;
+            if (fresh.Count == 0)
+            {
+                continue;
+            }
+
+            // Counts of the whole conversation (all its matching messages), and whether it was on an earlier page.
+            var stats = new Dictionary<Guid, (DateTimeOffset Last, int Count, int Unread)>();
+            await using (var cmd = new NpgsqlCommand($"""
+                SELECT {key}, max(m.received_at), count(*)::int, (count(*) FILTER (WHERE NOT m.seen))::int
+                FROM mail.messages m WHERE {where} AND {key} = ANY(@keys) GROUP BY {key}
+                """, c))
+            {
+                Bind(cmd);
+                cmd.Parameters.AddWithValue("keys", fresh.Select(f => f.Key).ToArray());
+                await using var rd = await cmd.ExecuteReaderAsync(ct);
+                while (await rd.ReadAsync(ct))
+                {
+                    stats[rd.GetGuid(0)] = (rd.GetFieldValue<DateTimeOffset>(1), rd.GetInt32(2), rd.GetInt32(3));
+                }
+            }
+
+            foreach (var f in fresh)
+            {
+                if (!stats.TryGetValue(f.Key, out var st) || (cursorAt is { } cAt && st.Last >= cAt) || (q.UnreadOnly && st.Unread == 0))
+                {
+                    continue;
+                }
+
+                page.Add((f.Key, st.Last, st.Count, st.Unread, f.At, f.Id));
+                if (page.Count > limit)
+                {
+                    break;
+                }
             }
         }
 
         string? next = null;
         if (page.Count > limit)
         {
-            page.RemoveAt(limit);
-            next = EncodeCursor(page[^1].Last, page[^1].Key);
+            page.RemoveRange(limit, page.Count - limit);
+            next = EncodeCursor(page[^1].FirstAt, page[^1].FirstId);
         }
 
         var items = await SummariesAsync(access, page.Select(p => p.Key).ToArray(), q, ct);
         var ordered = page.Select(p => items.TryGetValue(p.Key, out var s) ? s with { MessageCount = p.Count, UnreadCount = p.Unread, LastMessageAt = p.Last } : null)
             .Where(s => s is not null).Select(s => s!).ToList();
-        return new ConversationPage(ordered, next, total);
+        return new ConversationPage(ordered, next, total, exact);
+    }
+
+    /// <summary>Above this many matching messages a list reports "more than" instead of counting (PROMPT 8.2).</summary>
+    public const int DefaultCountCap = 10_000;
+
+    /// <summary>Test hook: a small cap exercises the newest-first walk with few messages.</summary>
+    public int CountCap { get; set; } = DefaultCountCap;
+
+    /// <summary>uuid ordering as PostgreSQL compares it (bytes in RFC 4122 order), for cursors built in memory.</summary>
+    private sealed class UuidOrder : IComparer<Guid>
+    {
+        public static readonly UuidOrder Instance = new();
+
+        public int Compare(Guid x, Guid y) => string.CompareOrdinal(x.ToString("N"), y.ToString("N"));
     }
 
     /// <summary>

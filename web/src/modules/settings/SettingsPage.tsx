@@ -198,7 +198,7 @@ function Accounts() {
       <Typography.Title level={5}>{t("settings.password")}</Typography.Title>
       <a href={changePassword}>{t("settings.changePassword")}</a>
       <Typography.Title level={5}>{t("settings.storage")}</Typography.Title>
-      {quota > 0 && <Progress percent={Math.min(100, Math.round((used / quota) * 100))} />}
+      {quota > 0 && <Progress percent={Math.min(100, Math.round((used / quota) * 100))} aria-label={t("storage.tooltip")} />}
       <Typography.Text>{t("storage.used", { used: bytes(used, me.locale), quota: bytes(quota, me.locale) })}</Typography.Text>
       <MailAppsSettings />
     </Space>

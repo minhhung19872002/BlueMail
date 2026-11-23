@@ -9,6 +9,8 @@
 	encode zstd gzip
 	header /assets/* Cache-Control "public, max-age=31536000, immutable"
 	header /config.json Cache-Control "no-store"
+	header /sw.js Cache-Control "no-cache"
+	header /manifest.webmanifest Content-Type "application/manifest+json"
 	try_files {path} /index.html
 	file_server
 }

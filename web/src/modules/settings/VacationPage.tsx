@@ -4,7 +4,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api/client";
-import { MailEditor } from "../compose/MailEditor";
+import { MailEditor } from "../compose/LazyMailEditor";
 import { rulesApi, rulesKeys, type Vacation } from "./rulesApi";
 
 const noImages = async () => null;

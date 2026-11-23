@@ -88,6 +88,7 @@
     "newer": "Mới hơn",
     "older": "Cũ hơn",
     "range": "{from, number}–{to, number} trên {total, number}",
+    "rangeMany": "{from, number}–{to, number} trên rất nhiều",
     "allOnPageSelected": "{count, plural, other {Đã chọn # hội thoại trên trang này.}}",
     "selectAllMatching": "Chọn tất cả {count, number} hội thoại trong danh sách này",
     "selectionTooLarge": "Mỗi lần chỉ thay đổi được tối đa {max, number} hội thoại.",
@@ -176,7 +177,8 @@
     "rangeOfTotal": "{from}–{to} trên {total}",
     "create": "Tạo",
     "cancel": "Huỷ",
-    "close": "Đóng"
+    "close": "Đóng",
+    "progress": "Tiến độ"
   },
   "adminUsers": {
     "title": "Người dùng",
@@ -401,7 +403,8 @@
       "BAYES_95": "Nội dung khá giống thư rác đã báo cáo.",
       "BAYES_80": "Nội dung hơi giống thư rác đã báo cáo.",
       "BAYES_05": "Nội dung giống thư bạn thường giữ lại.",
-      "BAYES_00": "Nội dung rất giống thư bạn thường giữ lại."
+      "BAYES_00": "Nội dung rất giống thư bạn thường giữ lại.",
+      "ADVANCE_FEE": "Nhiều cụm từ đặc trưng của lừa trúng thưởng, đòi phí trước: “{detail}”."
     }
   },
   "search": {

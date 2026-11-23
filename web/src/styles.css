@@ -60,7 +60,7 @@ body { background: var(--bm-bg); color: var(--bm-text); }
 .bm-conv:hover .bm-conv-time { visibility: hidden; }
 .bm-att-chips { display: block; margin-block-start: 2px; }
 .bm-label-chip { margin-inline-end: 4px; }
-.bm-icon-btn { all: unset; cursor: pointer; padding: 2px; border-radius: 4px; color: var(--bm-textMuted); line-height: 1; }
+.bm-icon-btn { all: unset; cursor: pointer; padding: 4px; min-width: 24px; min-height: 24px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; color: var(--bm-textMuted); line-height: 1; } /* WCAG 2.5.8 target size */
 .bm-star-on { color: var(--bm-warning); }
 .bm-important-on { color: var(--bm-warning); font-weight: 700; }
 .bm-important-off { color: var(--bm-border); }

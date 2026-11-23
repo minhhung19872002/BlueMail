@@ -165,7 +165,10 @@ namespace BlueMail.Identity
             var db = sp.GetRequiredService<BlueMailDbContext>();
             if (!string.Equals(config["BM_DB_MIGRATE"], "false", StringComparison.OrdinalIgnoreCase))
             {
+                // Index builds on a large messages table take minutes, not the default 30 s (BUG-072).
+                db.Database.SetCommandTimeout(TimeSpan.FromMinutes(int.TryParse(config["BM_DB_MIGRATE_TIMEOUT_MINUTES"], out var m) ? m : 60));
                 await db.Database.MigrateAsync();
+                db.Database.SetCommandTimeout(null);
             }
 
             await OidcClients.EnsureAsync(sp, settings);

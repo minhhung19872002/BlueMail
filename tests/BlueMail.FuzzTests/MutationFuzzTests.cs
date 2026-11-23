@@ -14,6 +14,9 @@ public sealed class MutationFuzzTests
     private static readonly int Iterations = int.TryParse(Environment.GetEnvironmentVariable("BM_FUZZ_ITERATIONS"), out var n) ? n : 1500;
     private static readonly TimeSpan PerInput = TimeSpan.FromSeconds(5);
 
+    /// <summary>Time per target: 60 s in every test run, longer for scheduled runs (BM_FUZZ_SECONDS, docs/06).</summary>
+    private static readonly TimeSpan PerTarget = TimeSpan.FromSeconds(int.TryParse(Environment.GetEnvironmentVariable("BM_FUZZ_SECONDS"), out var sec) ? sec : 60);
+
     public static TheoryData<string> Targets => new(FuzzTargets.All.Select(t => t.Name));
 
     [Theory]
@@ -24,7 +27,7 @@ public sealed class MutationFuzzTests
         var seeds = Seeds(name);
         var rng = new Random(int.TryParse(Environment.GetEnvironmentVariable("BM_FUZZ_SEED"), out var seed) ? seed : 20261123);
         var watch = Stopwatch.StartNew();
-        for (var i = 0; i < Iterations && watch.Elapsed < TimeSpan.FromSeconds(60); i++)
+        for (var i = 0; i < Iterations && watch.Elapsed < PerTarget; i++)
         {
             var input = Mutate(seeds[rng.Next(seeds.Count)], seeds, rng);
             Exception? error = null;
@@ -74,6 +77,7 @@ public sealed class MutationFuzzTests
                 BlueMail.Dns.DnsWire.EncodeQuery(1, "mx.bluemail.test", BlueMail.Dns.DnsType.MX, 1232, false),
                 [0x12, 0x34, 0x81, 0x80, 0, 1, 0, 1, 0, 0, 0, 0, 3, (byte)'a', (byte)'b', (byte)'c', 0, 0, 1, 0, 1, 0xC0, 12, 0, 1, 0, 1, 0, 0, 0, 60, 0, 4, 10, 0, 0, 1],
                 [0x12, 0x34, 0x81, 0x80, 0, 1, 0, 1, 0, 0, 0, 0, 3, (byte)'a', (byte)'b', (byte)'c', 0, 0, 16, 0, 1, 0xC0, 12, 0, 16, 0, 1, 0, 0, 0, 60, 0, 6, 5, (byte)'h', (byte)'e', (byte)'l', (byte)'l', (byte)'o'],
+                DnssecSeed(),
             ],
             "mime-headers" =>
             [
@@ -166,4 +170,23 @@ public sealed class MutationFuzzTests
 
         return dir!.FullName;
     }
+
+    /// <summary>A response with the DNSSEC record types (RRSIG, DNSKEY, DS, NSEC, NSEC3) for the "dns" target.</summary>
+    private static byte[] DnssecSeed()
+    {
+        var b = new List<byte> { 0x12, 0x34, 0x81, 0xA0, 0, 1, 0, 5, 0, 0, 0, 0, 3, (byte)'a', (byte)'b', (byte)'c', 0, 0, 1, 0, 1 };
+        void Rr(int type, byte[] rdata)
+        {
+            b.AddRange([0xC0, 12, (byte)(type >> 8), (byte)type, 0, 1, 0, 0, 0, 60, (byte)(rdata.Length >> 8), (byte)rdata.Length]);
+            b.AddRange(rdata);
+        }
+
+        Rr(46, [0, 1, 13, 1, 0, 0, 0, 60, 0x70, 0, 0, 0, 0x60, 0, 0, 0, 0xEE, 0x42, 0xC0, 12, 1, 2, 3, 4, 5, 6, 7, 8]); // RRSIG
+        Rr(48, [1, 1, 3, 13, 9, 8, 7, 6, 5, 4, 3, 2]); // DNSKEY
+        Rr(43, [0xEE, 0x42, 13, 2, 1, 2, 3, 4, 5, 6, 7, 8]); // DS
+        Rr(47, [0xC0, 12, 0, 6, 0x40, 0, 0, 0, 0, 0x03]); // NSEC: next name, bitmap A, RRSIG, NSEC
+        Rr(50, [1, 1, 0, 10, 2, 0xAB, 0xCD, 4, 1, 2, 3, 4, 0, 1, 0x40]); // NSEC3 (opt-out), bitmap A
+        return [.. b];
+    }
 }
+

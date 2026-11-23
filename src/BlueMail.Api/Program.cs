@@ -18,6 +18,9 @@ InfrastructureServices.UseInvariantProcessCulture();
 
 var builder = WebApplication.CreateBuilder(args);
 var settings = BmSettings.Load(builder.Configuration);
+// BM_ROLE: "api" serves HTTP only, "worker" runs the background jobs (same image, PROMPT 9), unset/"all" both (dev).
+var role = builder.Configuration["BM_ROLE"] is { Length: > 0 } r ? r : "all";
+var runJobs = role is "all" or "worker";
 var keys = OidcKeys.Load(builder.Configuration);
 
 builder.AddBlueMailLogging(settings, "api");
@@ -25,7 +28,11 @@ builder.Services.AddBlueMailInfrastructure(settings);
 builder.Services.AddBlueMailApiFeatures();
 BlueMail.Application.Features.Admin.Domains.DomainServiceRegistration.AddBlueMailDomainAdmin(builder.Services, builder.Configuration);
 builder.Services.AddScoped<BlueMail.Application.Features.Admin.Domains.MtaStsPolicy>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Admin.Domains.DomainWatchWorker>());
+if (runJobs)
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Admin.Domains.DomainWatchWorker>());
+}
+
 builder.Services.AddBlueMailIdentityCore();
 builder.Services.AddApiAuthentication(settings, keys);
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
@@ -42,12 +49,28 @@ builder.Services.AddSingleton<BlueMail.Scanner.IFileScanner>(sp => BlueMail.Scan
 builder.Services.AddSignalR().AddJsonProtocol(o => WebJson.Configure(o.PayloadSerializerOptions));
 builder.Services.AddHostedService<BlueMail.Api.Realtime.MailEventRelay>();
 builder.Services.AddSingleton<BlueMail.Application.Features.Rules.FilterJobWorker>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Rules.FilterJobWorker>());
+if (runJobs)
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Rules.FilterJobWorker>());
+}
+
 builder.Services.AddSingleton<BlueMail.Application.Features.Mail.MailMaintenanceWorker>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Mail.MailMaintenanceWorker>());
+if (runJobs)
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Mail.MailMaintenanceWorker>());
+}
+
 BlueMail.Application.Features.Compliance.ComplianceServiceRegistration.AddBlueMailComplianceAndMigration(builder.Services, builder.Configuration);
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Migration.ImportWorker>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Compliance.ComplianceWorker>());
+if (runJobs)
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Migration.ImportWorker>());
+}
+
+if (runJobs)
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Compliance.ComplianceWorker>());
+}
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new() { Title = "BlueMail API", Version = "v1" }));
 builder.Services.AddResponseCompression(o => o.EnableForHttps = true);

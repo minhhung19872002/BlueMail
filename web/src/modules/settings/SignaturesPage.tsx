@@ -4,7 +4,7 @@ import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { composeApi, type Signature, type Template } from "../compose/composeApi";
-import { MailEditor } from "../compose/MailEditor";
+import { MailEditor } from "../compose/LazyMailEditor";
 
 /** Signatures and templates (PROMPT 6.4): several signatures, defaults for new mail and replies; reusable templates. */
 export function SignaturesPage() {

@@ -172,7 +172,9 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
       <span className="bm-header-spacer" />
       {page.data && page.data.total > 0 && (
         <Typography.Text type="secondary" className="bm-range">
-          {t("mail.range", { from: start + 1, to: start + items.length, total: page.data.total })}
+          {page.data.totalExact
+            ? t("mail.range", { from: start + 1, to: start + items.length, total: page.data.total })
+            : t("mail.rangeMany", { from: start + 1, to: start + items.length })}
         </Typography.Text>
       )}
       <Button type="text" icon={<LeftOutlined className="bm-flip-rtl" />} aria-label={t("mail.newer")} disabled={cursors.length <= 1}

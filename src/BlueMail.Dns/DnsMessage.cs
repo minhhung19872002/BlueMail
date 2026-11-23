@@ -274,6 +274,11 @@ public static class DnsWire
                 {
                     p = start + 18;
                     var signer = ReadName(m, ref p, start + len);
+                    if (p > start + len)
+                    {
+                        throw new DnsFormatException("RRSIG signer runs past its RDATA"); // BUG-067
+                    }
+
                     return new RrsigData((DnsType)BinaryPrimitives.ReadUInt16BigEndian(rd), rd[2], rd[3], BinaryPrimitives.ReadUInt32BigEndian(rd[4..]),
                         BinaryPrimitives.ReadUInt32BigEndian(rd[8..]), BinaryPrimitives.ReadUInt32BigEndian(rd[12..]), BinaryPrimitives.ReadUInt16BigEndian(rd[16..]),
                         signer, m[p..(start + len)].ToArray());
@@ -286,13 +291,22 @@ public static class DnsWire
             case DnsType.NSEC:
                 {
                     var next = ReadName(m, ref p, start + len);
+                    if (p > start + len)
+                    {
+                        throw new DnsFormatException("NSEC next name runs past its RDATA");
+                    }
+
                     return new NsecData(next, TypeBitmap(m[p..(start + len)]));
                 }
 
             case DnsType.NSEC3 when len >= 5:
                 {
                     var saltLen = rd[4];
-                    Need(m, start + 5 + saltLen, 1);
+                    if (5 + saltLen >= len)
+                    {
+                        throw new DnsFormatException("NSEC3 salt runs past its RDATA"); // BUG-066: bounds are the RDATA's, not the packet's
+                    }
+
                     var hashLen = rd[5 + saltLen];
                     var bitmapStart = 6 + saltLen + hashLen;
                     if (bitmapStart > len)

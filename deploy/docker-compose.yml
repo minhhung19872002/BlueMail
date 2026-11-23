@@ -1,8 +1,8 @@
 # BlueMail - production stack.
 #   cp deploy/.env.example deploy/.env   # fill in every value
 #   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
-# Every image is pinned. Processes for mail (mx, submission, outbound, imap) and the worker join this file
-# in the phases that build them (PROMPT 13).
+# Every image is pinned. One server image runs every .NET process (docs/00 D9): identity, api, worker, mx, submission,
+# outbound, imap. Mail certificates come from Caddy, which also serves the mail host names (docs/04).
 name: bluemail
 
 x-logging: &logging
@@ -28,6 +28,10 @@ x-server-env: &server-env
 services:
   postgres:
     image: postgres:16.16-alpine
+    # Room for every process's pool (BM_DB_MAX_POOL per service, about 200 in total) plus admin connections.
+    command: ["postgres", "-c", "max_connections=300"]
+    # Parallel query and VACUUM use /dev/shm; Docker's 64 MB default fails on large tables (BUG-074).
+    shm_size: 512mb
     environment:
       POSTGRES_USER: ${BM_DB_USER}
       POSTGRES_PASSWORD: ${BM_DB_PASSWORD}
@@ -69,6 +73,7 @@ services:
     command: ["identity"]
     environment:
       <<: *server-env
+      BM_DB_MAX_POOL: "20"
       BM_PLATFORM_ADMIN_EMAIL: ${BM_PLATFORM_ADMIN_EMAIL:?BM_PLATFORM_ADMIN_EMAIL is required}
       BM_PLATFORM_ADMIN_PASSWORD: ${BM_PLATFORM_ADMIN_PASSWORD:?BM_PLATFORM_ADMIN_PASSWORD is required}
       BM_PLATFORM_DOMAIN: ${BM_PLATFORM_DOMAIN:?BM_PLATFORM_DOMAIN is required}
@@ -84,8 +89,85 @@ services:
     command: ["api"]
     environment:
       <<: *server-env
+      BM_DB_MAX_POOL: "40"
     depends_on: { identity: { condition: service_healthy } }
     deploy: { resources: { limits: { memory: 2g } } }
+    restart: unless-stopped
+    <<: *logging
+
+  worker:
+    image: bluemail/server:${BM_VERSION}
+    command: ["worker"]
+    environment:
+      <<: *server-env
+      BM_DB_MAX_POOL: "20"
+    depends_on: { identity: { condition: service_healthy } }
+    deploy: { resources: { limits: { memory: 2g } } }
+    restart: unless-stopped
+    <<: *logging
+
+  mx:
+    image: bluemail/server:${BM_VERSION}
+    command: ["mx"]
+    environment:
+      <<: *server-env
+      BM_DB_MAX_POOL: "40"
+      BM_TLS_CERT: /caddy/caddy/certificates/${BM_CERT_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${BM_MAIL_HOSTNAME}/${BM_MAIL_HOSTNAME}.crt
+      BM_TLS_KEY: /caddy/caddy/certificates/${BM_CERT_ISSUER:-acme-v02.api.letsencrypt.org-directory}/${BM_MAIL_HOSTNAME}/${BM_MAIL_HOSTNAME}.key
+    ports: ["${BM_SMTP_PORT:-25}:25"]
+    volumes: ["caddydata:/caddy:ro"]
+    depends_on: { identity: { condition: service_healthy } }
+    deploy: { resources: { limits: { memory: 2g } } }
+    stop_grace_period: 60s
+    restart: unless-stopped
+    <<: *logging
+
+  submission:
+    image: bluemail/server:${BM_VERSION}
+    command: ["submission"]
+    environment:
+      <<: *server-env
+      BM_DB_MAX_POOL: "20"
+      BM_TLS_CERT: /caddy/caddy/certificates/${BM_CERT_ISSUER:-acme-v02.api.letsencrypt.org-directory}/smtp.${BM_PLATFORM_DOMAIN}/smtp.${BM_PLATFORM_DOMAIN}.crt
+      BM_TLS_KEY: /caddy/caddy/certificates/${BM_CERT_ISSUER:-acme-v02.api.letsencrypt.org-directory}/smtp.${BM_PLATFORM_DOMAIN}/smtp.${BM_PLATFORM_DOMAIN}.key
+    ports: ["${BM_SMTPS_PORT:-465}:465", "${BM_SUBMISSION_PORT:-587}:587"]
+    volumes: ["caddydata:/caddy:ro"]
+    depends_on: { identity: { condition: service_healthy } }
+    deploy: { resources: { limits: { memory: 1g } } }
+    stop_grace_period: 60s
+    restart: unless-stopped
+    <<: *logging
+
+  imap:
+    image: bluemail/server:${BM_VERSION}
+    command: ["imap"]
+    environment:
+      <<: *server-env
+      BM_DB_MAX_POOL: "40"
+      BM_TLS_CERT: /caddy/caddy/certificates/${BM_CERT_ISSUER:-acme-v02.api.letsencrypt.org-directory}/imap.${BM_PLATFORM_DOMAIN}/imap.${BM_PLATFORM_DOMAIN}.crt
+      BM_TLS_KEY: /caddy/caddy/certificates/${BM_CERT_ISSUER:-acme-v02.api.letsencrypt.org-directory}/imap.${BM_PLATFORM_DOMAIN}/imap.${BM_PLATFORM_DOMAIN}.key
+    ports: ["${BM_IMAPS_PORT:-993}:993", "${BM_IMAP_PORT:-143}:143"]
+    volumes: ["caddydata:/caddy:ro"]
+    depends_on: { identity: { condition: service_healthy } }
+    deploy: { resources: { limits: { memory: 2g } } }
+    restart: unless-stopped
+    <<: *logging
+
+  # Sending: the source address is the host's (or BM_SMARTHOST). Several public IPs: IP pools in the admin console
+  # and a host network setup where every pool address exists on the host (docs/04, section "Outbound IPs").
+  outbound:
+    image: bluemail/server:${BM_VERSION}
+    command: ["outbound"]
+    environment:
+      <<: *server-env
+      BM_DB_MAX_POOL: "20"
+      BM_OUTBOUND_HELO: ${BM_OUTBOUND_HELO:-${BM_MAIL_HOSTNAME}}
+      BM_SMARTHOST: ${BM_SMARTHOST:-}
+      BM_DANE: ${BM_DANE:-on}
+      BM_SEED_SAMPLE_DATA: ${BM_SEED_SAMPLE_DATA:-false}
+    depends_on: { identity: { condition: service_healthy }, mx: { condition: service_started } }
+    deploy: { resources: { limits: { memory: 1g } } }
+    stop_grace_period: 60s
     restart: unless-stopped
     <<: *logging
 
@@ -103,6 +185,8 @@ services:
     environment:
       BM_WEB_HOST: ${BM_WEB_HOST}
       BM_ID_HOST: ${BM_ID_HOST}
+      BM_MAIL_HOSTNAME: ${BM_MAIL_HOSTNAME}
+      BM_PLATFORM_DOMAIN: ${BM_PLATFORM_DOMAIN}
       BM_TLS: ${BM_TLS:?BM_TLS is required ("internal" or the ACME account email)}
     # BM_HTTPS_PORT other than 443 is for local tests only (host names then carry the port, e.g. id.x.localhost:8443).
     ports: ["${BM_HTTP_PORT:-80}:80", "${BM_HTTPS_PORT:-443}:${BM_HTTPS_PORT:-443}", "${BM_HTTPS_PORT:-443}:${BM_HTTPS_PORT:-443}/udp"]

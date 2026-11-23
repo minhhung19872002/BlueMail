@@ -64,6 +64,7 @@ builder.Services.AddHttpClient("tlsrpt", c => c.Timeout = TimeSpan.FromSeconds(3
 builder.Services.AddSingleton<TlsReportSender>();
 builder.Services.AddSingleton<DeliveryWorker>();
 builder.Services.AddHostedService<OutboundLoop>();
+builder.Services.AddHostedService<SampleMail>(); // only with BM_SEED_SAMPLE_DATA=true
 
 var healthPort = Int("BM_HEALTH_PORT", 8080);
 builder.WebHost.ConfigureKestrel(k => k.ListenAnyIP(healthPort));

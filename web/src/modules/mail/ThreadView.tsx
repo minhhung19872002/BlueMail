@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { Alert, App, Button, Card, Descriptions, Dropdown, Modal, Space, Spin, Table, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
   ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, ExclamationCircleOutlined, EyeOutlined, FileZipOutlined, InboxOutlined,
@@ -15,7 +15,7 @@ import { SnoozeMenu } from "./SnoozeMenu";
 import { useShortcuts } from "./ShortcutHost";
 import { ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
-import { PdfPreview } from "./PdfPreview";
+const PdfPreview = lazy(() => import("./PdfPreview").then((m) => ({ default: m.PdfPreview })));
 import { SpamReasons } from "./SpamReasons";
 import { rulesApi } from "../settings/rulesApi";
 import { composeApi } from "../compose/composeApi";
@@ -386,7 +386,7 @@ function AttachmentCard({ a }: { a: Attachment }) {
       {preview && a.viewUrl && (
         <Modal open title={a.fileName} footer={null} width="min(960px, 96vw)" onCancel={() => setPreview(false)} destroyOnHidden>
           {a.contentType.startsWith("image/") && <img className="bm-preview-img" src={a.viewUrl} alt={a.fileName ?? ""} />}
-          {a.contentType === "application/pdf" && <PdfPreview url={a.viewUrl} />}
+          {a.contentType === "application/pdf" && <Suspense fallback={<Spin />}><PdfPreview url={a.viewUrl} /></Suspense>}
           {a.contentType === "text/plain" && <iframe className="bm-preview-text" title={a.fileName ?? ""} sandbox="" src={a.viewUrl} />}
         </Modal>
       )}

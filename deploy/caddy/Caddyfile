@@ -46,3 +46,12 @@
 	encode zstd gzip
 	reverse_proxy identity:8080
 }
+
+# Mail host names: Caddy only obtains and renews their certificates; mx, submission and imap read them from the
+# shared caddy data volume and reload them when they change (BM_TLS_CERT / BM_TLS_KEY, docs/04).
+{$BM_MAIL_HOSTNAME}, smtp.{$BM_PLATFORM_DOMAIN}, imap.{$BM_PLATFORM_DOMAIN} {
+	tls {$BM_TLS}
+	import security_headers
+	respond "BlueMail mail service: use SMTP or IMAP." 200
+}
+

@@ -42,6 +42,10 @@ public class DnsWireTests
         { "short header", new byte[] { 1, 2, 3 } },
         { "txt overrun", Header(1).Concat(Question()).Concat(new byte[] { 0xC0, 12, 0, 16, 0, 1, 0, 0, 0, 1, 0, 3, 9, (byte)'a', (byte)'b' }).ToArray() },
         { "label type 01", Header(1, 0).Concat(new byte[] { 0x41, 1, 0 }).ToArray() },
+        // BUG-066 (fuzz dns #661): NSEC3 salt length pointing past its RDATA (inside the packet) read out of bounds.
+        { "nsec3 salt past rdata", Header(1).Concat(Question()).Concat(new byte[] { 0xC0, 12, 0, 50, 0, 1, 0, 0, 0, 1, 0, 5, 1, 0, 0, 1, 3, 1, 2, 3, 4, 5, 6, 7, 8 }).ToArray() },
+        { "nsec3 hash past rdata", Header(1).Concat(Question()).Concat(new byte[] { 0xC0, 12, 0, 50, 0, 1, 0, 0, 0, 1, 0, 7, 1, 0, 0, 1, 1, 0xAA, 0x30, 1, 2, 3, 4 }).ToArray() },
+        { "rrsig signer past rdata", Header(1).Concat(Question()).Concat(new byte[] { 0xC0, 12, 0, 46, 0, 1, 0, 0, 0, 1, 0, 19, 0, 1, 13, 1, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 4, 3, (byte)'a', (byte)'b', (byte)'c', 0 }).ToArray() },
         { "name over 255", Header(1, 0).Concat(Enumerable.Range(0, 5).SelectMany(_ => new byte[] { 63 }.Concat(Enumerable.Repeat((byte)'a', 63)))).Concat(new byte[] { 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 }).ToArray() },
     };
 
