@@ -1,0 +1,12 @@
+$ORIGIN doitac.test.
+$TTL 300
+@ IN SOA ns1.doitac.test. hostmaster.doitac.test. 2026112301 3600 600 86400 60
+@ IN NS ns1.doitac.test.
+ns1 IN A 10.77.0.53
+@ IN MX 10 mail.doitac.test.
+mail IN A 10.77.0.30
+@ IN TXT "v=spf1 ip4:10.77.0.30 -all"
+_dmarc IN TXT "v=DMARC1; p=reject; adkim=s; aspf=s"
+dt2026._domainkey IN TXT "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0MRwjA1BaSbAOpwrgHdbpw7sKoyABUF/O3N9g7xvCGF6vgHWz6qxK6+RWerO8/AlaLbuhq7P5yoISAoRuNNU7U4w8BT6+EHD4CFOM0DHq9mPhKhmo+dmRjIsBeSoM2yOvul+EDfse2kii28DGx3pzG8o2CADct5404ScT+mrjrOAyswkfCvl2BsES5Ui" "tOVmVoRsgbO4QplcTp/z/hD5A99H98Tna+Y28NRKza2uwnQttFwknnOQND66gC22p/inOqFkpvOgayGlVAXANwwkIH1WHhAs3uiYgpDGEwFur4kXO1DzmgvGj6LJUHeEGQD/Nv+kxYZweHOPfIY3+GVd/QIDAQAB"
+nullmx IN MX 0 .
+nomx IN A 10.77.0.30

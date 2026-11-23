@@ -1,0 +1,63 @@
+$ORIGIN bluemail.test.
+$TTL 300
+@ IN SOA ns1.bluemail.test. hostmaster.bluemail.test. 2026112301 3600 600 86400 60
+@ IN NS ns1.bluemail.test.
+ns1 IN A 10.77.0.53
+@ IN MX 10 mx.bluemail.test.
+@ IN TXT "v=spf1 ip4:10.77.0.26 ip4:10.77.0.25 -all"
+_dmarc IN TXT "v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@bluemail.test; adkim=r; aspf=r"
+bm2026._domainkey IN TXT "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA49dtikWf/zc1ROCuKU9wNFGQaWdlR54Pf9aoXrDXERXy1DxmcETV2me63aT4fzxuTH11ZoS0pGQcWoSGww5lMnDlMw7hJ86Sf9sNF3CO8rICLFQidNobLW7aEo7exQZt5YSIuIdfFhJBFxgEwNRkCM17pDacJYlY5W8Vl48DoIrTG+LXBTmeyY9Db/sG" "p+CGrxTLs56zKLFIfw5/j2oY1aIr4PhcopQN59Tq1mp0AyVpyW7Ffb3x66idUPa58YvADeuY3C1QvVMdpuJ0godoB4cUfcs8slNa2tXu/nOEsSHYH6jHneZ+b6ngEtiA9X2eRlVRq+/O5+BUmZOJ+LG4cwIDAQAB"
+mta-sts IN A 10.77.0.20
+_mta-sts IN TXT "v=STSv1; id=2026112301"
+_smtp._tls IN TXT "v=TLSRPTv1; rua=mailto:tlsrpt@bluemail.test"
+autoconfig IN A 10.77.0.20
+_imaps._tcp IN SRV 0 1 993 imap.bluemail.test.
+_submissions._tcp IN SRV 0 1 465 smtp.bluemail.test.
+mx IN A 10.77.0.25
+out1 IN A 10.77.0.26
+smtp IN A 10.77.0.27
+imap IN A 10.77.0.28
+mail IN A 10.77.0.20
+id IN A 10.77.0.20
+alias1 IN CNAME alias2.bluemail.test.
+alias2 IN CNAME mx.bluemail.test.
+bigtxt IN TXT "filler-record-00-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-01-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-02-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-03-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-04-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-05-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-06-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-07-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-08-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-09-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-10-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-11-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-12-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-13-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-14-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-15-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-16-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-17-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-18-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-19-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-20-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-21-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-22-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-23-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-24-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-25-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-26-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-27-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-28-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-29-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-30-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-31-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-32-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-33-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-34-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-35-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-36-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-37-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-38-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+bigtxt IN TXT "filler-record-39-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

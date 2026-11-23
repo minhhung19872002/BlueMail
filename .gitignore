@@ -1,0 +1,17 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+# Node
+node_modules/
+web/dist/
+# Env / secrets
+.env
+deploy/.env
+*.local.json
+.claude/settings.local.json
+# Runtime data
+deploy/data/
+*.log

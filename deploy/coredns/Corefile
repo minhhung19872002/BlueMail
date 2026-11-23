@@ -1,0 +1,26 @@
+# CoreDNS for the BlueMail dev network only. Serves the three test domains and the
+# reverse zone of 10.77.0.0/24. Everything else is refused (no Internet needed).
+bluemail.test {
+    file /zones/bluemail.test.db
+    log
+    errors
+}
+acme.test {
+    file /zones/acme.test.db
+    log
+    errors
+}
+doitac.test {
+    file /zones/doitac.test.db
+    log
+    errors
+}
+0.77.10.in-addr.arpa {
+    file /zones/0.77.10.in-addr.arpa.db
+    log
+    errors
+}
+. {
+    log
+    errors
+}
