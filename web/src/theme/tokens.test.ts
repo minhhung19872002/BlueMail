@@ -25,3 +25,10 @@ describe("theme contrast", () => {
     }
   }
 });
+
+describe("label palette", () => {
+  it("white text is readable on every label colour (WCAG AA 4.5:1)", async () => {
+    const { labelPalette } = await import("../modules/mail/labels");
+    for (const c of labelPalette) expect(contrast(c, "#ffffff"), c).toBeGreaterThanOrEqual(4.5);
+  });
+});

@@ -60,5 +60,20 @@
   "id.password.subtitle": "Choose a new password for your account.",
   "id.password.title": "Change password",
   "id.privacy": "Privacy",
-  "id.terms": "Terms"
+  "id.terms": "Terms",
+  "error.thread_not_found": "Conversation not found.",
+  "error.message_not_found": "Message not found.",
+  "error.label_not_found": "Label not found.",
+  "error.label_exists": "A label with this name already exists here.",
+  "error.mailbox_read_only": "You can read this mailbox but not change it.",
+  "error.delete_forever_needs_trash": "Only conversations in Trash or Spam can be deleted forever.",
+  "error.invalid_action": "This action is not supported.",
+  "error.link_expired": "This link has expired. Open the message again.",
+  "error.image_blocked": "This image address is not allowed.",
+  "error.image_unavailable": "The image could not be loaded.",
+  "error.attachment_not_found": "Attachment not found.",
+  "error.attachment_infected": "This file is dangerous and cannot be downloaded.",
+  "error.selection_size": "Choose between 1 and 500 conversations.",
+  "error.invalid_view": "Unknown list.",
+  "error.label_name_slash": "A label name cannot contain \"/\". Use a sub-label instead."
 }

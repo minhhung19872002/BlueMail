@@ -8,6 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": { target: process.env.BM_DEV_API ?? "http://localhost:5080", changeOrigin: true },
+      "/hubs": { target: process.env.BM_DEV_API ?? "http://localhost:5080", changeOrigin: true, ws: true },
     },
   },
   build: { sourcemap: true, target: "es2022" },

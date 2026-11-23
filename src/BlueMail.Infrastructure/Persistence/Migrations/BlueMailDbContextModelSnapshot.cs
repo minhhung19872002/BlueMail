@@ -1766,6 +1766,63 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.TrustedImageSender", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("address");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_trusted_image_senders");
+
+                    b.HasIndex("MailboxId", "Address")
+                        .IsUnique()
+                        .HasDatabaseName("ix_trusted_image_senders_mailbox_id_address")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("trusted_image_senders", "mail");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Tenants.DkimKey", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2715,6 +2772,16 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_threads_mailboxes_mailbox_id");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.TrustedImageSender", b =>
+                {
+                    b.HasOne("BlueMail.Domain.Mail.Mailbox", null)
+                        .WithMany()
+                        .HasForeignKey("MailboxId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_trusted_image_senders_mailboxes_mailbox_id");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Tenants.DkimKey", b =>

@@ -16,6 +16,7 @@ export interface Me {
   mustChangePassword: boolean;
   permissions: string[];
   branding: string;
+  domains: string[];
 }
 
 export type LabelVisibility = "SHOW" | "HIDE" | "IF_UNREAD";
@@ -92,3 +93,124 @@ export const Permission = {
   AdminUsersView: "mail.admin.users.view",
   AdminUsersEdit: "mail.admin.users.edit",
 } as const;
+
+// ---- mail reading (Phase 4) ----
+
+export interface Participant {
+  name: string | null;
+  address: string;
+  unread: boolean;
+}
+
+export interface ConversationSummary {
+  threadId: string;
+  latestMessageId: string;
+  lastMessageAt: string;
+  subject: string | null;
+  snippet: string | null;
+  participants: Participant[];
+  messageCount: number;
+  unreadCount: number;
+  starred: boolean;
+  important: boolean;
+  hasAttachments: boolean;
+  attachmentNames: string[];
+  labelIds: string[];
+  muted: boolean;
+}
+
+export interface ConversationPage {
+  items: ConversationSummary[];
+  nextCursor: string | null;
+  total: number;
+}
+
+export interface Address {
+  name: string | null;
+  address: string;
+}
+
+export type VirusStatus = "CLEAN" | "INFECTED" | "SUSPICIOUS" | "UNSCANNED";
+
+export interface Attachment {
+  id: string;
+  partPath: string;
+  fileName: string | null;
+  contentType: string;
+  size: number;
+  inline: boolean;
+  virusStatus: VirusStatus;
+  downloadUrl: string | null;
+  viewUrl: string | null;
+}
+
+export interface MessageView {
+  id: string;
+  threadId: string;
+  rfcMessageId: string | null;
+  subject: string | null;
+  from: Address | null;
+  to: Address[];
+  cc: Address[];
+  replyTo: Address[];
+  sentAt: string | null;
+  receivedAt: string;
+  size: number;
+  snippet: string | null;
+  seen: boolean;
+  starred: boolean;
+  important: boolean;
+  draft: boolean;
+  labelIds: string[];
+  authResults: string | null;
+  spamReport: string | null;
+  spamScore: number | null;
+  listUnsubscribe: string | null;
+  modseq: number;
+}
+
+export interface ThreadMessage {
+  message: MessageView;
+  attachments: Attachment[];
+  rawUrl: string;
+}
+
+export interface Thread {
+  threadId: string;
+  subject: string | null;
+  muted: boolean;
+  messages: ThreadMessage[];
+}
+
+export interface MessageBody {
+  htmlDocument: string | null;
+  text: string | null;
+  hasRemoteImages: boolean;
+  remoteImagesShown: boolean;
+  senderTrusted: boolean;
+  calendar: string | null;
+  zipUrl: string | null;
+}
+
+export interface Original {
+  headers: string;
+  authResults: string | null;
+  size: number;
+  rawUrl: string;
+}
+
+export interface MailChanges {
+  highestModseq: number;
+  changed: { id: string; threadId: string; modseq: number; seen: boolean; starred: boolean; labelIds: string[] }[];
+  removed: string[];
+  tooOld: boolean;
+}
+
+export interface AuthResultsSummary {
+  spf?: string;
+  dkim?: { result: string; domain: string | null; selector: string | null; reason: string }[];
+  dmarc?: string;
+  dmarcPolicy?: string;
+  fromDomain?: string | null;
+  arc?: string;
+}

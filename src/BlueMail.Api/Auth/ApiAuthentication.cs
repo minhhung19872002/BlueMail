@@ -45,6 +45,16 @@ public static class ApiAuthentication
             };
             o.Events = new JwtBearerEvents
             {
+                // Browsers cannot set headers on WebSocket requests: SignalR sends the token as access_token, only for the hub.
+                OnMessageReceived = ctx =>
+                {
+                    if (ctx.HttpContext.Request.Path.StartsWithSegments("/hubs") && ctx.Request.Query["access_token"] is { Count: 1 } t)
+                    {
+                        ctx.Token = t[0];
+                    }
+
+                    return Task.CompletedTask;
+                },
                 // PROMPT 8.1 / 14.9: "may this holder still get in" is decided here, once, for every endpoint.
                 OnTokenValidated = async ctx =>
                 {

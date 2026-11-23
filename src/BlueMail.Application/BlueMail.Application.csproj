@@ -6,6 +6,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MediatR" />
+    <PackageReference Include="HtmlSanitizer" />
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
   </ItemGroup>

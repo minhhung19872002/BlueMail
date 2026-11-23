@@ -32,6 +32,8 @@ builder.Services.AddControllers()
 builder.Services.Configure<ApiBehaviorOptions>(o =>
     o.InvalidModelStateResponseFactory = ctx => new ObjectResult(Problems.Build(ctx.HttpContext, HttpStatusCode.BadRequest, "bad_request"))
     { StatusCode = 400, ContentTypes = { "application/problem+json" } });
+builder.Services.AddSignalR().AddJsonProtocol(o => WebJson.Configure(o.PayloadSerializerOptions));
+builder.Services.AddHostedService<BlueMail.Api.Realtime.MailEventRelay>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new() { Title = "BlueMail API", Version = "v1" }));
 builder.Services.AddResponseCompression(o => o.EnableForHttps = true);
@@ -86,5 +88,6 @@ app.UseAuthorization();
 app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") }).AllowAnonymous();
 app.MapControllers();
+app.MapHub<BlueMail.Api.Realtime.MailHub>("/hubs/mail");
 
 app.Run();

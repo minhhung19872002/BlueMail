@@ -1,5 +1,6 @@
 # CoreDNS for the BlueMail dev network only. Serves the three test domains and the
-# reverse zone of 10.77.0.0/24. Everything else is refused (no Internet needed).
+# reverse zone of 10.77.0.0/24. Every other name does not exist (NXDOMAIN), as an unknown domain would on the
+# Internet; no Internet access is needed. (SERVFAIL here made SPF/DMARC report temperror for unknown senders.)
 bluemail.test {
     file /zones/bluemail.test.db
     log
@@ -21,6 +22,9 @@ doitac.test {
     errors
 }
 . {
+    template ANY ANY {
+        rcode NXDOMAIN
+    }
     log
     errors
 }

@@ -60,5 +60,20 @@
   "id.password.subtitle": "Chọn mật khẩu mới cho tài khoản của bạn.",
   "id.password.title": "Đổi mật khẩu",
   "id.privacy": "Quyền riêng tư",
-  "id.terms": "Điều khoản"
+  "id.terms": "Điều khoản",
+  "error.thread_not_found": "Không tìm thấy hội thoại.",
+  "error.message_not_found": "Không tìm thấy thư.",
+  "error.label_not_found": "Không tìm thấy nhãn.",
+  "error.label_exists": "Đã có nhãn trùng tên ở đây.",
+  "error.mailbox_read_only": "Bạn chỉ được đọc hộp thư này, không được thay đổi.",
+  "error.delete_forever_needs_trash": "Chỉ hội thoại trong Thùng rác hoặc Thư rác mới xoá vĩnh viễn được.",
+  "error.invalid_action": "Thao tác này không được hỗ trợ.",
+  "error.link_expired": "Liên kết đã hết hạn. Hãy mở lại thư.",
+  "error.image_blocked": "Địa chỉ hình ảnh này không được phép.",
+  "error.image_unavailable": "Không tải được hình ảnh.",
+  "error.attachment_not_found": "Không tìm thấy tệp đính kèm.",
+  "error.attachment_infected": "Tệp này nguy hiểm, không thể tải về.",
+  "error.selection_size": "Hãy chọn từ 1 đến 500 hội thoại.",
+  "error.invalid_view": "Danh sách không hợp lệ.",
+  "error.label_name_slash": "Tên nhãn không được chứa \"/\". Hãy dùng nhãn con."
 }

@@ -31,3 +31,12 @@ export function countFor(view: SystemView, labels: LabelSummary[]): number {
 export function userLabels(labels: LabelSummary[]): LabelSummary[] {
   return labels.filter((l) => l.systemKey === null && l.showInList !== "HIDE");
 }
+
+/** Background colours offered for user labels (white text on each meets WCAG AA 4.5:1). */
+export const labelPalette = ["#1a73e8", "#188038", "#c5221f", "#b06000", "#7627bb", "#007b83", "#5f6368", "#b80672"] as const;
+
+/** Route of a list: system views by name, user labels by id. */
+export function routeOf(label: LabelSummary): string {
+  const v = systemViews.find((x) => x.systemKey === label.systemKey && label.systemKey !== null);
+  return v ? `/mail/${v.route}` : `/mail/label/${label.id}`;
+}

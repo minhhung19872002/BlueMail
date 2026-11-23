@@ -18,6 +18,8 @@ export interface Palette {
   selected: string;
   onSelected: string;
   danger: string;
+  /** Stars and importance markers (icons: WCAG 1.4.11 needs 3:1; we keep 4.5:1). */
+  warning: string;
 }
 
 export const palettes: Record<Mode, Palette> = {
@@ -33,6 +35,7 @@ export const palettes: Record<Mode, Palette> = {
     selected: "#d3e3fd",
     onSelected: "#041e49",
     danger: "#b3261e",
+    warning: "#a35200",
   },
   dark: {
     bg: "#111418",
@@ -46,6 +49,7 @@ export const palettes: Record<Mode, Palette> = {
     selected: "#004a77",
     onSelected: "#d3e3fd",
     danger: "#f2b8b5",
+    warning: "#fdd663",
   },
 };
 
@@ -60,6 +64,7 @@ export const contrastPairs: [keyof Palette, keyof Palette][] = [
   ["onSelected", "selected"],
   ["primary", "surface"],
   ["danger", "surface"],
+  ["warning", "surface"],
 ];
 
 export function antdTheme(mode: Mode, density: "default" | "comfortable" | "compact"): ThemeConfig {

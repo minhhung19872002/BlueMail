@@ -363,3 +363,14 @@ internal sealed class MailLogConfig : IEntityTypeConfiguration<BlueMail.Domain.A
         b.HasIndex(x => new { x.TenantId, x.RfcMessageId });
     }
 }
+
+internal sealed class TrustedImageSenderConfig : IEntityTypeConfiguration<TrustedImageSender>
+{
+    public void Configure(EntityTypeBuilder<TrustedImageSender> b)
+    {
+        b.ToTable("trusted_image_senders", "mail");
+        b.Property(x => x.Address).HasMaxLength(320);
+        b.HasIndex(x => new { x.MailboxId, x.Address }).IsUnique().HasFilter(Sql.NotDeleted);
+        b.HasOne<Mailbox>().WithMany().HasForeignKey(x => x.MailboxId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

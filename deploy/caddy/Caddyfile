@@ -25,6 +25,10 @@
 	handle /api/* {
 		reverse_proxy api:8080
 	}
+	# SignalR (WebSocket; long polling as fallback). Caddy proxies upgrades without extra settings.
+	handle /hubs/* {
+		reverse_proxy api:8080
+	}
 	handle {
 		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://{$BM_ID_HOST}; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action https://{$BM_ID_HOST}"
 		reverse_proxy web:8080

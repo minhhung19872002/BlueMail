@@ -118,3 +118,29 @@ swaks, Python `smtplib` và socket thô (`tests/interop/mx_checks.py`).
 | P3-17 | Tìm kiếm đa ngôn ngữ | "hop dong" / "HỢP ĐỒNG" / "签署" | Khớp không dấu, không phân biệt hoa thường, chuỗi con CJK | Như mong đợi | ✅ |
 | P3-18 | Sự kiện thay đổi | Theo dõi kênh Valkey `bm:mbx:<id>` | Nhận `message.added`; giao vào hộp của tenant khác → từ chối | Như mong đợi | ✅ |
 | P3-19 | Fuzz | Đích `smtp` (khung dòng, DATA, BDAT, máy trạng thái) và `text` × 100 000 × 3 hạt giống | Không ngoại lệ, không treo | Sạch sau khi sửa BUG-020 (fuzz `text` tìm ra phi ký tự Unicode làm hỏng giao thư) | ✅ |
+
+## Phase 4 — web đọc thư
+
+Chạy: `dotnet test --filter "MailReadingApi|UnitTests.Mail"`; web `npx vitest run`. Kiểm thật trên trình duyệt:
+`scripts/dev-run.sh identity` + `api`, `npm run dev`, gửi thư mẫu qua mx bằng
+`docker exec bluemail-dev-tools-1 python /work/scripts/dev-seed-mail.py` (thư doitac.test đi qua Postfix của nó).
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P4-01 | Danh sách hội thoại | Mở Hộp thư đến (lan, tiếng Việt) | Thư nhiều ngôn ngữ (vi, ja, zh, th, ar, ru), hội thoại gộp có số thư, thẻ tệp, giờ theo Asia/Ho_Chi_Minh | Như mong đợi | ✅ |
+| P4-02 | Phân trang con trỏ | API `limit=2` | Hai trang không trùng, mới nhất trước, `total` đúng | Như mong đợi | ✅ |
+| P4-03 | HTML an toàn | Thư có `<script>`, `onclick`, `javascript:`, pixel theo dõi, ảnh `cid:` | Mã và sự kiện bị bỏ; ảnh cid hiện qua URL ký; pixel không tải; iframe sandbox không script, CSP chặt | Như mong đợi (kiểm cả 16 vectơ XSS ở UnitTests) | ✅ |
+| P4-04 | Ảnh từ xa | "Hiển thị hình ảnh" / "Luôn hiển thị…" | Ảnh đi qua `/api/v1/mail/img/…`, trình duyệt không gọi máy chủ ngoài; tin cậy người gửi được nhớ | Như mong đợi (ghi lại yêu cầu mạng) | ✅ |
+| P4-05 | Chặn SSRF | Địa chỉ nội bộ, metadata đám mây, DNS trỏ về 127.0.0.1, NAT64/6to4, cổng lạ, file:// | Từ chối | Như mong đợi | ✅ |
+| P4-06 | Liên kết lừa | Chữ hiện `https://www.shop.test/account`, đích `evil.test` | Viền cảnh báo + tiêu đề `⚠ https://evil.test/login` | Như mong đợi | ✅ |
+| P4-07 | Biểu ngữ | Người gửi ngoài; tên miền giả `bluemaiI.test`; DMARC fail; tệp nguy hiểm | Đúng biểu ngữ | Như mong đợi (giả dạng và người ngoài kiểm trên trình duyệt; còn lại ở phép thử) | ✅ |
+| P4-08 | Tệp đính kèm | PDF, txt, PNG; tệp nhiễm | Xem PDF bằng pdf.js, tải về qua URL ký, ZIP tất cả; tệp nhiễm không có liên kết tải, URL giả mạo → 404 | Như mong đợi | ✅ |
+| P4-09 | Thao tác | Đọc/chưa đọc, sao, nhãn mới, gắn nhãn 2 hội thoại, lưu trữ, thùng rác, xoá vĩnh viễn | Danh sách và số đếm cập nhật; xoá vĩnh viễn ngoài Thùng rác bị từ chối; nhật ký label_changes cho IMAP | Như mong đợi | ✅ |
+| P4-10 | Thời gian thực | Gửi thư mới qua Postfix khi trang đang mở | Thư hiện ngay, số chưa đọc và tiêu đề tab cập nhật, không tải lại trang | Như mong đợi; hub từ chối hộp thư tenant khác | ✅ |
+| P4-11 | Đồng bộ tăng dần | `/mail/changes?sinceModseq=` | Trả thư đổi cờ/nhãn và id đã xoá | Như mong đợi | ✅ |
+| P4-12 | Cô lập | Người cùng tenant và tenant khác mở/đổi hội thoại của người khác | 404; thao tác bỏ qua id lạ (0 thư đổi) | Như mong đợi | ✅ |
+| P4-13 | Bố cục | 1400 px khung đọc bên phải; 375 px | Chia đôi; ở 375 px một cột, không tràn ngang | Như mong đợi sau BUG-023, BUG-024 | ✅ |
+
+Chưa làm trong Phase 4 (đúng phase sau theo mục 13): trả lời/chuyển tiếp và phản hồi lời mời lịch (Phase 5); nút
+hủy đăng ký, tạm ẩn, biểu ngữ "người gửi lần đầu" (cần danh bạ), phím tắt (Phase 8); thao tác hàng loạt > 500 thư
+chạy nền (cần Hangfire, Phase 7/8 khi có việc nền đầu tiên) — hiện API giới hạn 500/lần và giao diện báo rõ.

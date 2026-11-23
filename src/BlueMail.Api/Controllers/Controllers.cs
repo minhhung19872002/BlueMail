@@ -28,10 +28,107 @@ public sealed class MeController(ISender mediator) : ControllerBase
 [Route("api/v1/mail")]
 public sealed class MailController(ISender mediator) : ControllerBase
 {
+    private const string Guarded = "Mailbox access is checked by IMailStore.OpenAsync (own mailbox or granted shared mailbox).";
+
     [HttpGet("labels")]
-    [SelfGuarded("Mailbox access is checked by IMailStore.OpenAsync (own mailbox or granted shared mailbox).")]
+    [SelfGuarded(Guarded)]
     public async Task<ApiResponse<LabelsDto>> Labels([FromQuery] Guid? mailboxId, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new GetLabelsQuery(mailboxId), ct));
+
+    public sealed record LabelBody(string Name, Guid? ParentId, string? ColorBg, string? ColorText);
+
+    [HttpPost("labels")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<Guid>> CreateLabel([FromQuery] Guid? mailboxId, [FromBody] LabelBody body, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new SaveLabelCommand(mailboxId, null, body.Name, body.ParentId, body.ColorBg, body.ColorText), ct));
+
+    [HttpPut("labels/{id:guid}")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<Guid>> UpdateLabel(Guid id, [FromQuery] Guid? mailboxId, [FromBody] LabelBody body, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new SaveLabelCommand(mailboxId, id, body.Name, null, body.ColorBg, body.ColorText), ct));
+
+    [HttpDelete("labels/{id:guid}")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<bool>> DeleteLabel(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct)
+    {
+        await mediator.Send(new DeleteLabelCommand(mailboxId, id), ct);
+        return ApiResponses.Ok(true);
+    }
+
+    [HttpGet("conversations")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.MailStore.ConversationPage>> Conversations([FromQuery] Guid? mailboxId, [FromQuery] Guid? labelId, [FromQuery] string? view,
+        [FromQuery] bool unreadOnly = false, [FromQuery] bool threads = true, [FromQuery] string? cursor = null, [FromQuery] int limit = 50, CancellationToken ct = default) =>
+        ApiResponses.Ok(await mediator.Send(new ListConversationsQuery(mailboxId, labelId, view, unreadOnly, threads, cursor, limit), ct));
+
+    [HttpGet("threads/{id:guid}")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<ThreadDto>> Thread(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new GetThreadQuery(mailboxId, id), ct));
+
+    [HttpGet("messages/{id:guid}/body")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<MessageBodyDto>> Body(Guid id, [FromQuery] Guid? mailboxId, [FromQuery] bool showImages = false, CancellationToken ct = default) =>
+        ApiResponses.Ok(await mediator.Send(new GetMessageBodyQuery(mailboxId, id, showImages), ct));
+
+    [HttpGet("messages/{id:guid}/original")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<OriginalDto>> Original(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new GetOriginalQuery(mailboxId, id), ct));
+
+    [HttpPost("messages/{id:guid}/trust-images")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<bool>> TrustImages(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct)
+    {
+        await mediator.Send(new TrustImageSenderCommand(mailboxId, id), ct);
+        return ApiResponses.Ok(true);
+    }
+
+    public sealed record ActionBody(string Action, IReadOnlyList<Guid>? ThreadIds, IReadOnlyList<Guid>? MessageIds, Guid? LabelId, Guid? FromLabelId);
+
+    [HttpPost("actions")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.MailStore.ChangeResult>> Action([FromQuery] Guid? mailboxId, [FromBody] ActionBody body, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new MailActionCommand(mailboxId, body.Action, body.ThreadIds ?? [], body.MessageIds ?? [], body.LabelId, body.FromLabelId), ct));
+
+    [HttpGet("changes")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.MailStore.MailChanges>> Changes([FromQuery] Guid? mailboxId, [FromQuery] long sinceModseq, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new GetChangesQuery(mailboxId, sinceModseq), ct));
+}
+
+/// <summary>
+/// Content fetched by the browser without the bearer token (images in the sandboxed iframe, downloads).
+/// The signed token is the credential; access to the mailbox is re-checked when serving.
+/// </summary>
+[ApiController]
+[Route("api/v1/mail")]
+public sealed class MailContentController(SignedContent content) : ControllerBase
+{
+    [HttpGet("p/{token}")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    public Task<IActionResult> Part(string token, CancellationToken ct) => Serve(token, BlueMail.Infrastructure.Security.SignedKind.Part, ct);
+
+    [HttpGet("img/{token}")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    public Task<IActionResult> Image(string token, CancellationToken ct) => Serve(token, BlueMail.Infrastructure.Security.SignedKind.Image, ct);
+
+    private async Task<IActionResult> Serve(string token, BlueMail.Infrastructure.Security.SignedKind kind, CancellationToken ct)
+    {
+        var c = await content.ServeAsync(token, kind, ct);
+        // Our origin serves untrusted bytes: never sniff, never run anything, keep private.
+        Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox; style-src 'unsafe-inline'";
+        Response.Headers.CacheControl = "private, max-age=3600";
+        var cd = new Microsoft.Net.Http.Headers.ContentDispositionHeaderValue(c.Download ? "attachment" : "inline");
+        if (c.FileName is not null)
+        {
+            cd.FileNameStar = c.FileName;
+            cd.FileName = new string(c.FileName.Select(ch => ch < 128 && ch >= 32 && ch != '"' ? ch : '_').ToArray());
+        }
+
+        Response.Headers.ContentDisposition = cd.ToString();
+        return File(c.Content, c.ContentType);
+    }
 }
 
 [ApiController]

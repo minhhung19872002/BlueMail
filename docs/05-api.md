@@ -35,6 +35,17 @@ answer `404` (indistinguishable from "does not exist").
 | GET | `/health/ready` | anonymous | PostgreSQL, Valkey, S3 |
 | GET | `/api/v1/me` | self | Profile, effective locale/time zone, permissions, tenant branding |
 | GET | `/api/v1/mail/labels?mailboxId=` | self (via `IMailStore.OpenAsync`) | Labels with total/unread counts computed from rows; used/quota bytes |
+| POST / PUT / DELETE | `/api/v1/mail/labels[/{id}]?mailboxId=` | self | Create (`{ name, parentId?, colorBg?, colorText? }`), rename/recolour, delete a user label (messages keep their other labels) |
+| GET | `/api/v1/mail/conversations?mailboxId=&labelId=&view=all&threads=true&unreadOnly=&cursor=&limit=` | self | Cursor page of conversations (key: latest message time + id); `total` exact; `view=all` = everything except Spam/Trash |
+| GET | `/api/v1/mail/threads/{id}` | self | Messages of a conversation with attachments (signed `downloadUrl`/`viewUrl`; none for infected files) and signed `rawUrl` |
+| GET | `/api/v1/mail/messages/{id}/body?showImages=` | self | `htmlDocument` (HtmlSanitizer + CSP document for an iframe sandbox), `text`, remote-image state, `zipUrl` |
+| GET | `/api/v1/mail/messages/{id}/original` | self | Raw headers (first 512 KB) + stored SPF/DKIM/DMARC/ARC results |
+| POST | `/api/v1/mail/messages/{id}/trust-images` | self | "Always display images from this sender" |
+| POST | `/api/v1/mail/actions?mailboxId=` | self | `{ action, threadIds?, messageIds?, labelId?, fromLabelId? }`; actions: markRead, markUnread, star, unstar, important, notImportant, archive, moveToInbox, trash, untrash, spam, notSpam, addLabel, removeLabel, moveTo, deleteForever (Trash/Spam only), mute, unmute; ≤ 500 items per call |
+| GET | `/api/v1/mail/changes?mailboxId=&sinceModseq=` | self | Incremental sync: changed messages (flags, labels), removed ids, `highestModseq`; `tooOld` when > 2000 changes (reload lists) |
+| GET | `/api/v1/mail/p/{token}` | signed URL (re-checks mailbox access) | Attachment / inline part / `.eml` / ZIP of attachments; `nosniff`, sandbox CSP, `Content-Disposition` |
+| GET | `/api/v1/mail/img/{token}` | signed URL | Image proxy: only URLs BlueMail signed; http/https ports 80/443, public addresses only (checked per connection and redirect), image types without SVG, ≤ 10 MB, cached 6 h, no cookies/referrer |
+| WS | `/hubs/mail` (SignalR, `access_token` query) | bearer, session re-validated on `Subscribe(mailboxId?)` | Event `mailboxChanged { mailboxId, modseq, kind }`; the client then calls `/mail/changes` |
 | GET | `/api/v1/account/sessions` | self | Signed-in devices |
 | DELETE | `/api/v1/account/sessions/{id}` | self | Sign a device out (immediate) |
 | GET | `/api/v1/admin/users?search=&page=&pageSize=` | `mail.admin.users.view` | Users of the caller's tenant |

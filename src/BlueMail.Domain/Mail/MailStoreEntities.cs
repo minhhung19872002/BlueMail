@@ -165,3 +165,10 @@ public class LabelChange : ITenantOwned
     public LabelChangeKind Change { get; set; }
     public DateTimeOffset OccurredAt { get; set; }
 }
+
+/// <summary>"Always show images from this sender" (PROMPT 6.3), per mailbox, by lower-case address.</summary>
+public class TrustedImageSender : TenantEntity
+{
+    public Guid MailboxId { get; set; }
+    public string Address { get; set; } = "";
+}

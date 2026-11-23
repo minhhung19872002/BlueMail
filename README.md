@@ -13,6 +13,7 @@ for the full specification.
 | 1 | Foundation: solution, BlueID (OIDC, 2FA, sessions), tenants + isolation, hash-chained audit log, health, Serilog, mail store schema (modseq/UID, partitioned), React shell | done |
 | 2 | Own libraries: BlueMail.Mime, BlueMail.Dns, BlueMail.Dkim (DKIM + ARC), BlueMail.Scanner (layers 1–6); verified against Python email, dnspython, dkimpy, OpenDKIM, Postfix and ClamAV; fuzzed | done |
 | 3 | IMailStore + encrypted S3 store, threading, multilingual search; BlueMail.Mx (SMTP in, SPF/DKIM/DMARC/ARC, scanning, delivery) | done |
+| 4 | Web reading: labels, conversation list (cursor paging), reading pane, sanitized HTML in a sandboxed iframe, image proxy, attachments (pdf.js, ZIP), single/bulk actions, SignalR live updates, incremental sync | done |
 
 ## Quick start (development)
 
@@ -23,6 +24,7 @@ MSYS_NO_PATHCONV=1 sh scripts/dev-phase0-check.sh
 sh scripts/dev-run.sh identity     # once: migrates the database and seeds the sample tenants (Ctrl+C after start)
 docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev up -d --build mx   # mx.bluemail.test, 10.77.0.25
 sh scripts/dev-phase3-check.sh     # receive mail through Postfix, swaks/smtplib checks, database verification
+MSYS_NO_PATHCONV=1 docker exec bluemail-dev-tools-1 python /work/scripts/dev-seed-mail.py   # sample mail for lan@
 ```
 
 Run the processes on the host against the dev containers:

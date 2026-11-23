@@ -58,6 +58,7 @@ function Authenticated() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate to="/mail/inbox" replace />} />
+          <Route path="/mail/label/:labelId" element={<MailboxPage />} />
           <Route path="/mail/:label" element={<MailboxPage />} />
           <Route path="/settings/sessions" element={<SessionsPage />} />
           <Route path="/admin/users" element={<UsersPage />} />

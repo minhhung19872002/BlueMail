@@ -99,7 +99,7 @@ public partial class LocalizationTests
     private static IEnumerable<string> Placeholders(string s) => Regex.Matches(s, "\\{([a-zA-Z0-9_]+)\\}").Select(m => m.Groups[1].Value).Order();
 
     // AppException.X("code"), new AppException("code", ...), Problems.WriteAsync(..., "code"), ValidationCodes, ErrorKey = "..."
-    [GeneratedRegex("(?:AppException\\.(?:NotFound|Forbidden|Conflict|BadRequest)|new AppException|: AppException)\\(\\s*\"(?<code>[a-z0-9_]+)\"|HttpStatusCode\\.[A-Za-z]+, \"(?<code>[a-z0-9_]+)\"")]
+    [GeneratedRegex("(?:AppException\\.(?:NotFound|Forbidden|Conflict|BadRequest)|new AppException|: AppException)\\(\\s*\"(?<code>[a-z0-9_]+)\"|HttpStatusCode\\.[A-Za-z]+, \"(?<code>[a-z0-9_]+)\"|WithErrorCode\\(\"(?<code>[a-z0-9_]+)\"\\)")]
     private static partial Regex ErrorCode();
 
     [GeneratedRegex("\"(?<key>id\\.[a-z0-9_.]+)\"")]

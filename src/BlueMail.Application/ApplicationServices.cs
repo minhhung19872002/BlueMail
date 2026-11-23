@@ -29,6 +29,8 @@ public static class ApplicationServices
     public static IServiceCollection AddBlueMailApiFeatures(this IServiceCollection services)
     {
         services.AddBlueMailApplicationCore();
+        services.AddScoped<Features.Mail.MailboxOpener>();
+        services.AddScoped<Features.Mail.SignedContent>();
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(typeof(ApplicationServices).Assembly);

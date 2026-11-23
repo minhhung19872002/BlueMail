@@ -27,6 +27,10 @@ public sealed class KeyService
 
     public static KeyService FromBase64(string base64) => new(Convert.FromBase64String(base64));
 
+    /// <summary>A key for one purpose derived from the master key (HKDF-SHA256, RFC 5869); never the master key itself.</summary>
+    public byte[] DeriveKey(string purpose) =>
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, _masterKey, 32, salt: [], info: System.Text.Encoding.UTF8.GetBytes("bluemail:" + purpose));
+
     public byte[] NewWrappedTenantKey(Guid tenantId) => Encrypt(_masterKey, RandomNumberGenerator.GetBytes(32), Aad("tenant-key", tenantId));
 
     public byte[] UnwrapTenantKey(Guid tenantId, byte[] wrapped) => Decrypt(_masterKey, wrapped, Aad("tenant-key", tenantId));

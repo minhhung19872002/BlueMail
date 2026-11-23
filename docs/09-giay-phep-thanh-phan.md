@@ -42,6 +42,7 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | EFCore.NamingConventions | 10.0.1 | Apache-2.0 | Tên bảng/cột snake_case |
 | Microsoft.AspNetCore.Identity.EntityFrameworkCore | 10.0.15 | MIT | ASP.NET Core Identity |
 | Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | 10.0.15 | MIT | Lưu khoá Data Protection trong PostgreSQL |
+| HtmlSanitizer | 11.0.26 | MIT | Lọc HTML thư đến phía máy chủ (PROMPT 1, 6.3); kéo theo AngleSharp 1.10.0 và AngleSharp.Css 1.4.0 (MIT) |
 | OpenIddict.AspNetCore | 7.9.0 | Apache-2.0 | Máy chủ OIDC (BlueID) |
 | OpenIddict.EntityFrameworkCore | 7.9.0 | Apache-2.0 | Lưu ứng dụng/thẻ OIDC |
 | Microsoft.AspNetCore.Authentication.JwtBearer | 10.0.15 | MIT | API kiểm thẻ truy cập |
@@ -62,6 +63,7 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | FluentAssertions | 7.2.0 | Apache-2.0 | Kiểm thử (bản ≥ 8 là thương mại) |
 | Testcontainers.PostgreSql | 4.17.0 | MIT | Kiểm thử tích hợp |
 | Microsoft.AspNetCore.Mvc.Testing | 10.0.15 | MIT | Kiểm thử tích hợp |
+| Microsoft.AspNetCore.SignalR.Client | 10.0.15 | MIT | Kiểm thử tích hợp: máy khách SignalR thật nối vào hub thư |
 | SharpFuzz | 2.3.0 | MIT | Fuzzing (libFuzzer/AFL) cho bộ phân tích tự viết |
 
 ## npm
@@ -69,6 +71,9 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | Gói | Phiên bản | Giấy phép | Lý do |
 |---|---|---|---|
 | @ant-design/icons | 5.6.1 | MIT | Biểu tượng |
+| @microsoft/signalr | 11.0.0 | MIT | Máy khách thời gian thực (PROMPT 1: SignalR) |
+| dompurify | 3.5.0 | MPL-2.0 OR Apache-2.0 (dùng theo Apache-2.0) | Lọc HTML thư lần hai phía trình duyệt (PROMPT 1) |
+| pdfjs-dist | 6.5.438 | Apache-2.0 | Xem trước PDF trong trình duyệt (PROMPT 1, 6.3) |
 | @tanstack/react-query | 5.108.3 | MIT | Gọi API, đệm |
 | antd | 5.29.3 | MIT | Thư viện giao diện |
 | i18next | 27.2.4 | MIT | Đa ngôn ngữ |
@@ -89,3 +94,9 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | typescript | 5.9.3 | Apache-2.0 | Build |
 | vite | 8.3.8 | MIT | Build |
 | vitest | 5.1.1 | MIT | Kiểm thử |
+
+## Cảnh báo bảo mật đã đánh giá
+
+| Gói | Cảnh báo | Đánh giá | Việc tiếp |
+|---|---|---|---|
+| react-router-dom 6.30.6 | GHSA-wrjc-x8rr-h8h6 (chuyển hướng mở qua `\` trong `<Link>`/`useNavigate`), GHSA-337j-9hxr-rhxg (SSR hydration) | Không khai thác được: web chỉ điều hướng tới đường dẫn nội bộ dựng từ id; không dùng SSR. Bản sửa là react-router 7 (đổi API) | Nâng lên 7 ở Phase 13 (hoàn thiện), chạy lại toàn bộ kiểm thử web |

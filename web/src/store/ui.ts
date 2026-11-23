@@ -3,11 +3,15 @@ import { persist } from "zustand/middleware";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type Density = "default" | "comfortable" | "compact";
+export type ReadingPane = "none" | "right" | "below";
 
 interface UiState {
   theme: ThemePreference;
   density: Density;
   sidebarCollapsed: boolean;
+  readingPane: ReadingPane;
+  threaded: boolean;
+  setReadingPane: (p: ReadingPane) => void;
   setTheme: (t: ThemePreference) => void;
   setDensity: (d: Density) => void;
   toggleSidebar: () => void;
@@ -20,6 +24,9 @@ export const useUi = create<UiState>()(
       theme: "system",
       density: "default",
       sidebarCollapsed: false,
+      readingPane: "none",
+      threaded: true,
+      setReadingPane: (readingPane) => set({ readingPane }),
       setTheme: (theme) => set({ theme }),
       setDensity: (density) => set({ density }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),

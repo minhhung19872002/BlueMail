@@ -51,6 +51,7 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<MailThread> Threads => Set<MailThread>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<LabelChange> LabelChanges => Set<LabelChange>();
+    public DbSet<TrustedImageSender> TrustedImageSenders => Set<TrustedImageSender>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

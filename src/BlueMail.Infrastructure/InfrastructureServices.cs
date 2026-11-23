@@ -40,7 +40,7 @@ public static class InfrastructureServices
         SelfLog.Enable(msg => Console.Error.WriteLine("[serilog-selflog] " + msg));
         var columns = new Dictionary<string, ColumnWriterBase>
         {
-            ["occurred_at"] = new TimestampColumnWriter(NpgsqlTypes.NpgsqlDbType.TimestampTz),
+            ["occurred_at"] = new UtcTimestampColumnWriter(),
             ["level"] = new LevelColumnWriter(true, NpgsqlTypes.NpgsqlDbType.Varchar),
             ["message"] = new RenderedMessageColumnWriter(NpgsqlTypes.NpgsqlDbType.Text),
             ["exception"] = new ExceptionColumnWriter(NpgsqlTypes.NpgsqlDbType.Text),
@@ -72,6 +72,8 @@ public static class InfrastructureServices
 
         services.AddSingleton(KeyService.FromBase64(settings.MasterKeyBase64));
         services.AddSingleton<TenantKeyProvider>();
+        services.AddSingleton<SignedUrls>();
+        services.AddSingleton<Net.SafeHttpFetcher>(_ => new Net.SafeHttpFetcher());
         services.AddSingleton<IPasswordHasher<User>, Argon2PasswordHasher>();
         services.AddScoped<AuditWriter>();
         services.AddScoped<AuditChainVerifier>();

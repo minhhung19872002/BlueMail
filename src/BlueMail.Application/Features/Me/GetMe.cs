@@ -22,7 +22,8 @@ public sealed record MeDto(
     bool TwoFactorEnabled,
     bool MustChangePassword,
     IReadOnlyCollection<string> Permissions,
-    string Branding);
+    string Branding,
+    IReadOnlyList<string> Domains);
 
 public sealed class GetMeHandler(BlueMailDbContext db, ICurrentUser me) : IRequestHandler<GetMeQuery, MeDto>
 {
@@ -38,10 +39,13 @@ public sealed class GetMeHandler(BlueMailDbContext db, ICurrentUser me) : IReque
             })
             .FirstOrDefaultAsync(ct) ?? throw AppException.NotFound();
 
+        // The tenant's own domains: the web tells "external sender" and look-alike domains from them (PROMPT 6.3).
+        var domains = await db.Domains.AsNoTracking().Where(d => d.TenantId == row.TenantId).OrderBy(d => d.Domain).Select(d => d.Domain).ToListAsync(ct);
+
         // Locale/time zone: user setting -> tenant default (PROMPT 0.2).
         return new MeDto(row.Id, row.PrimaryEmail, row.DisplayName, row.TenantId, row.Tenant.Name,
             row.Locale ?? row.Tenant.DefaultLocale, row.TimeZone ?? row.Tenant.DefaultTimeZone, row.HourCycle, row.WeekStart,
             row.IsPlatformAdmin, row.IsTenantAdmin, row.TwoFactorEnabled, row.MustChangePassword,
-            me.Permissions.OrderBy(p => p, StringComparer.Ordinal).ToList(), row.Tenant.Branding);
+            me.Permissions.OrderBy(p => p, StringComparer.Ordinal).ToList(), row.Tenant.Branding, domains);
     }
 }

@@ -50,3 +50,11 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
   the Valkey event `bm:mbx:<mailbox>`. Only `MessageFacts.Extract` decides what is indexed.
 - Integration tests start Garage too (StackFixture); the Garage image has no shell: wait on log lines, not port probes.
 - Acceptance: `sh scripts/dev-phase3-check.sh` (uses `tests/interop/mx_checks.py`).
+
+## Web reading (Phase 4)
+- Store reads/actions in `PgMailStore` (MailReading.cs, MailActions.cs): one modseq per action, new UIDs for added
+  labels, label_changes rows for every (label, UID) - keep this when adding actions (IMAP depends on it).
+- Content the browser loads without the bearer token goes through `SignedUrls` (`/api/v1/mail/p|img/{token}`).
+- Hub calls have no ICurrentUser: validate the session from `Context.User` (BUG-022).
+- Sample mail: `scripts/dev-seed-mail.py`; doitac.test senders must go via its Postfix (DMARC p=reject).
+- Check UI at 375 px with screenshots, not only measurements (BUG-023, BUG-024).
