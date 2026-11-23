@@ -70,7 +70,7 @@ AGPL-3.0; image cộng đồng không còn phát hành. Garage (`deuxfleurs-org/
 **Quyết định.** Dùng Garage, chạy **nguyên bản, không sửa mã, là dịch vụ riêng** nói chuyện qua giao thức S3 —
 nghĩa vụ AGPL-3.0 (công bố mã sửa đổi) không phát sinh với BlueMail. BlueMail chỉ dùng API S3 chuẩn
 (`PutObject`, `GetObject` có `Range`, `HeadObject`, `DeleteObject`, `ListObjectsV2`, multipart upload), nên đổi
-sang SeaweedFS hoặc S3 đám mây chỉ là đổi cấu hình. Khởi tạo: `scripts/dev-s3-init.sh` (idempotent).
+sang SeaweedFS hoặc S3 đám mây chỉ là đổi cấu hình. Khởi tạo: `scripts/s3-init.sh` (idempotent).
 
 Lưu ý Windows/Git Bash: chạy với `MSYS_NO_PATHCONV=1` để đường dẫn `/garage` không bị đổi.
 
@@ -165,3 +165,59 @@ thô. BlueMail chủ ý làm tốt hơn ở các điểm này (PROMPT 2.6.1: kh�
 Một image `bluemail/server` chứa mọi tiến trình .NET, chọn tiến trình bằng lệnh khởi động
 (`bluemail mx|submission|outbound|imap|api|identity|worker`). Lý do: một lần build, một bộ phụ thuộc, triển khai
 và quay lui đồng bộ; các tiến trình vẫn chạy ở container riêng (PROMPT 2).
+
+## D2. Băm mật khẩu Argon2id bằng Konscious.Security.Cryptography — **[CẦN CHỦ SẢN PHẨM xác nhận]**
+
+**Bối cảnh.** PROMPT 8.1 yêu cầu Argon2id; nguyên tắc 8 chỉ cho dùng mật mã của `System.Security.Cryptography`,
+nhưng BCL .NET 10 **chưa có Argon2**. Hai lựa chọn: (a) PBKDF2-SHA512 của BCL (mặc định ASP.NET Identity),
+(b) thư viện Argon2 đã kiểm chứng.
+
+**Quyết định.** Dùng `Konscious.Security.Cryptography.Argon2` 1.3.1 (MIT) — chỉ cho băm mật khẩu và mã khôi phục,
+không dùng trong đường xử lý thư. Định dạng chuỗi PHC `$argon2id$v=19$m=19456,t=2,p=1$…` (tham số tối thiểu của
+OWASP), đọc lại tham số khi kiểm nên tăng tham số về sau không phá thư cũ (`SuccessRehashNeeded`). Tham số bất thường
+từ dòng CSDL bị sửa (m > 1 GiB…) bị từ chối, không đốt CPU. Nếu chủ sản phẩm không chấp nhận thư viện ngoài BCL thì
+đổi sang PBKDF2 là thay `IPasswordHasher<User>` — một lớp.
+
+## D3. API kiểm thẻ bằng khoá công khai tĩnh, không gọi discovery
+
+BlueID ký access token (JWT `at+jwt`, RS256, khoá RSA 3072 từ `BM_OIDC_SIGNING_KEY`); API kiểm bằng phần công khai
+của cùng khoá (`Microsoft.AspNetCore.Authentication.JwtBearer`), không phụ thuộc mạng tới BlueID lúc kiểm. Access
+token sống 15 phút; **mọi yêu cầu** vẫn qua `ISessionValidator` (đệm 30 s, xoá đệm tức thì qua kênh Valkey
+`bm:invalidate-user`) nên khoá tài khoản/thu hồi phiên/đổi mật khẩu có tác dụng ngay với thẻ đang cầm. Thẻ mang
+`bm_sid` (phiên), `bm_stamp` (security stamp), `bm_tenant`.
+
+## D4. Một tenant "nền tảng"
+
+Quản trị viên nền tảng là người dùng của tenant duy nhất có `kind = PLATFORM` (ràng buộc duy nhất ở CSDL). Lỗi
+đăng nhập với địa chỉ không tồn tại được ghi `login_events` dưới tenant này (để mọi dòng vẫn có `tenant_id`).
+
+## D5. Bộ lọc tenant đóng mặc định
+
+Bộ lọc toàn cục EF Core: `tenant_id = tenant hiện tại AND deleted_at IS NULL`. Khi chưa đặt tenant thì **không dòng
+nào khớp** (có phép thử). Mã cấp nền tảng phải gọi `IgnoreQueryFilters()` tường minh: tra người dùng lúc đăng nhập
+(địa chỉ duy nhất toàn hệ thống), `ISessionValidator`, danh sách tenant của quản trị nền tảng (được canh bằng quyền),
+`IMailStore` (luôn ràng `tenant_id` tường minh từ `MailboxAccess`).
+
+## D6. Bảng thư phân vùng
+
+`mail.messages` và `mail.message_labels` phân vùng HASH(tenant_id) 16 phần, tạo bằng migration SQL viết tay
+(`MailStorePartitionedTables`, EF loại hai bảng khỏi migration sinh tự động). Khoá chính gồm `tenant_id`; ràng buộc
+UID duy nhất là `(tenant_id, label_id, imap_uid)` — tương đương `(label_id, imap_uid)` vì `label_id` là uuid toàn cục.
+Cấp UID/modseq bằng `UPDATE … RETURNING` nguyên tử (có phép thử 40 yêu cầu song song).
+
+## D7. Khoá Data Protection lưu trong PostgreSQL
+
+Cookie của BlueID và mã thiết lập 2FA được bảo vệ bằng ASP.NET Core Data Protection, vòng khoá lưu ở
+`identity.data_protection_keys` để mọi phiên bản BlueID dùng chung và khởi động lại không mất phiên.
+
+## D8. Thẻ của SPA nằm trong sessionStorage
+
+`oidc-client-ts` lưu thẻ trong `sessionStorage` của gốc web (không cookie đọc được từ nội dung thư); thư HTML luôn
+hiển thị trong iframe sandbox không `allow-same-origin` (Phase 4) nên không chạm được kho này. Làm mới bằng refresh
+token (`offline_access`), mỗi lần làm mới BlueID hỏi lại `ISessionValidator`.
+
+## D9. Proxy tin cậy
+
+Chỉ đọc `X-Forwarded-For/Proto` từ các dải `BM_TRUSTED_PROXIES` (mặc định 10/8, 172.16/12, 192.168/16 — mạng Docker).
+Bằng chứng cần thiết: lần chạy thật đầu tiên mạng Docker là 192.168.16.0/20, mặc định cũ chỉ có 172.16/12 nên BlueID
+coi yêu cầu là HTTP và OpenIddict trả `ID2083` (docs/08 BUG-004).

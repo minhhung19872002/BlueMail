@@ -15,18 +15,26 @@ namespace BlueMail.Application;
 
 public static class ApplicationServices
 {
-    public static IServiceCollection AddBlueMailApplication(this IServiceCollection services)
+    /// <summary>Services every process needs: mail store, provisioning, seeding.</summary>
+    public static IServiceCollection AddBlueMailApplicationCore(this IServiceCollection services)
     {
+        services.AddBlueMailMailStore();
+        services.AddScoped<UserProvisioning>();
+        services.AddScoped<TenantProvisioning>();
+        services.AddScoped<SampleDataSeeder>();
+        return services;
+    }
+
+    /// <summary>MediatR features of the web API. They need an authenticated <see cref="ICurrentUser"/>.</summary>
+    public static IServiceCollection AddBlueMailApiFeatures(this IServiceCollection services)
+    {
+        services.AddBlueMailApplicationCore();
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssembly(typeof(ApplicationServices).Assembly);
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
         services.AddValidatorsFromAssembly(typeof(ApplicationServices).Assembly, includeInternalTypes: true);
-        services.AddBlueMailMailStore();
-        services.AddScoped<UserProvisioning>();
-        services.AddScoped<TenantProvisioning>();
-        services.AddScoped<SampleDataSeeder>();
         return services;
     }
 

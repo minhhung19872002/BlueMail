@@ -15,3 +15,5 @@ deploy/.env
 # Runtime data
 deploy/data/
 *.log
+logs/
+deploy/.env.local

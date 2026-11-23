@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "BlueMail",
+    "titleUnread": "{count, plural, other {Hộp thư đến (#)}} · BlueMail"
+  },
+  "auth": {
+    "callbackFailed": "Không hoàn tất được đăng nhập. Vui lòng thử lại.",
+    "unreachable": "Không kết nối được dịch vụ đăng nhập. Vui lòng thử lại sau."
+  },
+  "errors": {
+    "loadProfile": "Không tải được tài khoản của bạn. Vui lòng tải lại trang.",
+    "generic": "Đã có lỗi xảy ra. Vui lòng thử lại."
+  },
+  "labels": {
+    "inbox": "Hộp thư đến",
+    "starred": "Có gắn dấu sao",
+    "snoozed": "Đã tạm ẩn",
+    "important": "Quan trọng",
+    "sent": "Đã gửi",
+    "drafts": "Thư nháp",
+    "scheduled": "Đã lên lịch",
+    "all": "Tất cả thư",
+    "spam": "Thư rác",
+    "trash": "Thùng rác",
+    "unreadCount": "{count, plural, other {# chưa đọc}}"
+  },
+  "nav": {
+    "adminUsers": "Người dùng",
+    "adminTenants": "Tổ chức",
+    "sessions": "Bảo mật và thiết bị",
+    "signOut": "Đăng xuất",
+    "toggleMenu": "Menu chính",
+    "account": "Tài khoản",
+    "labels": "Nhãn"
+  },
+  "theme": {
+    "title": "Chủ đề",
+    "system": "Theo hệ thống",
+    "light": "Sáng",
+    "dark": "Tối"
+  },
+  "density": {
+    "title": "Mật độ hiển thị",
+    "default": "Mặc định",
+    "comfortable": "Thoải mái",
+    "compact": "Gọn"
+  },
+  "storage": {
+    "tooltip": "Dung lượng hộp thư đã dùng",
+    "used": "Đã dùng {used} / {quota}"
+  },
+  "mail": {
+    "emptyLabel": "Không có hội thoại nào trong {label}",
+    "labelCount": "{count, plural, other {# thư}}"
+  },
+  "sessions": {
+    "title": "Bảo mật và thiết bị",
+    "twoFactorOn": "Đã bật xác minh hai bước.",
+    "twoFactorOff": "Chưa bật xác minh hai bước.",
+    "manageTwoFactor": "Thiết lập xác minh hai bước",
+    "changePassword": "Đổi mật khẩu",
+    "device": "Thiết bị",
+    "unknownDevice": "Thiết bị không xác định",
+    "thisDevice": "Thiết bị này",
+    "ip": "Địa chỉ IP",
+    "signedIn": "Đăng nhập lúc",
+    "lastSeen": "Hoạt động gần nhất",
+    "signOut": "Đăng xuất",
+    "revoked": "Đã đăng xuất thiết bị."
+  },
+  "common": {
+    "actions": "Thao tác",
+    "rangeOfTotal": "{from}–{to} trên {total}",
+    "create": "Tạo",
+    "cancel": "Huỷ"
+  },
+  "adminUsers": {
+    "title": "Người dùng",
+    "search": "Tìm theo tên hoặc địa chỉ",
+    "add": "Thêm người dùng",
+    "created": "Đã tạo người dùng.",
+    "name": "Tên",
+    "email": "Địa chỉ thư",
+    "status": "Trạng thái",
+    "admin": "Quản trị viên",
+    "twoFactor": "Đã bật 2 bước",
+    "lastLogin": "Đăng nhập gần nhất",
+    "never": "Chưa bao giờ",
+    "suspend": "Tạm khoá",
+    "reactivate": "Mở lại",
+    "initialPassword": "Mật khẩu ban đầu",
+    "mustChange": "Người dùng phải đặt mật khẩu mới ở lần đăng nhập đầu tiên.",
+    "makeAdmin": "Quản trị viên của tổ chức này"
+  },
+  "userStatus": {
+    "ACTIVE": "Đang hoạt động",
+    "SUSPENDED": "Đã tạm khoá",
+    "DELETED": "Đã xoá"
+  },
+  "validation": {
+    "required": "Trường này là bắt buộc.",
+    "passwordMin": "Hãy dùng ít nhất {min, number} ký tự."
+  },
+  "adminTenants": {
+    "title": "Tổ chức",
+    "code": "Mã",
+    "name": "Tên",
+    "domains": "Tên miền",
+    "users": "Người dùng",
+    "status": "Trạng thái",
+    "suspend": "Tạm khoá",
+    "reactivate": "Mở lại"
+  },
+  "tenantStatus": {
+    "ACTIVE": "Đang hoạt động",
+    "SUSPENDED": "Đã tạm khoá",
+    "TRIAL": "Dùng thử"
+  }
+}

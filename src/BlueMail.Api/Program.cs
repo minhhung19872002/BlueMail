@@ -22,7 +22,7 @@ var keys = OidcKeys.Load(builder.Configuration);
 
 builder.AddBlueMailLogging(settings, "api");
 builder.Services.AddBlueMailInfrastructure(settings);
-builder.Services.AddBlueMailApplication();
+builder.Services.AddBlueMailApiFeatures();
 builder.Services.AddBlueMailIdentityCore();
 builder.Services.AddApiAuthentication(settings, keys);
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();

@@ -1,15 +1,20 @@
 #!/bin/sh
-# Initialise the single-node Garage S3 of the dev stack: layout, buckets, access key.
-# Idempotent: safe to run again. Usage: scripts/dev-s3-init.sh [compose-env-file]
+# Initialise a single-node Garage S3: layout, buckets, access key. Idempotent: safe to run again.
+# Usage: scripts/s3-init.sh [compose-file] [env-file]   (defaults: the dev stack)
 set -eu
 
 main() {
-  env_file="${1:-deploy/.env.dev}"
-  # shellcheck disable=SC1090
-  . "./$env_file"
-  compose="docker compose -f deploy/docker-compose.dev.yml --env-file $env_file"
+  compose_file="${1:-deploy/docker-compose.dev.yml}"
+  env_file="${2:-deploy/.env.dev}"
+  BM_S3_ACCESS_KEY=$(grep '^BM_S3_ACCESS_KEY=' "$env_file" | cut -d= -f2-)
+  BM_S3_SECRET_KEY=$(grep '^BM_S3_SECRET_KEY=' "$env_file" | cut -d= -f2-)
+  compose="docker compose -f $compose_file --env-file $env_file"
   garage="$compose exec -T s3 /garage"
 
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    $garage status >/dev/null 2>&1 && break
+    sleep 2
+  done
   node_id=$($garage status 2>/dev/null | awk '/^[0-9a-f]{16}/ {print $1; exit}')
   if [ -z "$node_id" ]; then
     echo "Garage node not found; is the s3 service running?" >&2

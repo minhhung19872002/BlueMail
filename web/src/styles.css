@@ -1,0 +1,26 @@
+/* Layout uses logical properties only, so the UI mirrors for right-to-left languages (PROMPT 0.2). */
+html, body, #root { block-size: 100%; margin: 0; }
+body { background: var(--bm-bg); color: var(--bm-text); }
+
+.bm-shell { min-block-size: 100vh; }
+.bm-header {
+  display: flex; align-items: center; gap: 12px;
+  padding-inline: 12px; block-size: 64px;
+  background: var(--bm-bg); border-block-end: 1px solid var(--bm-border);
+}
+.bm-brand { font-weight: 700; font-size: 20px; color: var(--bm-text); white-space: nowrap; }
+.bm-header-spacer { flex: 1; }
+.bm-sider { background: var(--bm-bg); padding-block: 8px; }
+.bm-content { padding: 16px; min-inline-size: 0; }
+.bm-panel { background: var(--bm-surface); border-radius: 16px; padding: 16px; min-block-size: calc(100vh - 96px); }
+.bm-nav-count { margin-inline-start: auto; font-variant-numeric: tabular-nums; }
+.bm-nav-item { display: flex; align-items: center; gap: 8px; inline-size: 100%; }
+.bm-storage { padding-inline: 24px; padding-block: 16px; color: var(--bm-textMuted); font-size: 12px; }
+.bm-empty { color: var(--bm-textMuted); }
+.bm-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (max-width: 767px) {
+  .bm-sider-overlay { position: fixed !important; inset-block: 64px 0; inset-inline-start: 0; z-index: 20; box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--bm-text) 30%, transparent); }
+  .bm-content { padding: 0; }
+  .bm-panel { border-radius: 0; min-block-size: calc(100vh - 64px); }
+}

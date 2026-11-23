@@ -19,3 +19,14 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Host ports (localhost only): PostgreSQL 55432, S3 53900, Valkey 56379, DNS 55353.
 - Dev credentials: `deploy/.env.dev` (not secret). Dev DKIM keys: `deploy/dev/dkim/` (test domains only).
 - Heredocs with many quotes can trip the shell safety check; write files with the Write tool instead.
+
+## Layout (Phase 1)
+- `src/BlueMail.Domain` entities · `Infrastructure` (EF context, migrations, security, audit, localisation JSON)
+  · `MailStore` (IMailStore, the only writer of mail.*) · `Application` (MediatR features, provisioning, seeder,
+  web plumbing) · `Identity` (BlueID) · `Api`.
+- DI: every process `AddBlueMailApplicationCore()`; only the API `AddBlueMailApiFeatures()` (needs ICurrentUser).
+- Migrations: generated ones + hand-written `MailStorePartitionedTables` (partitioned tables, triggers). Never edit a
+  committed migration. `dotnet ef migrations add <Name> -p src/BlueMail.Infrastructure -s src/BlueMail.Infrastructure -o Persistence/Migrations`.
+- Stop host-run dev processes before `dotnet build/test` (they lock bin/). Integration tests need Docker.
+- Server strings: `src/BlueMail.Infrastructure/Localization/Resources/{en,vi}.json`; web: `web/src/i18n/locales`.
+- New endpoint: add `[RequirePermission]` or `[SelfGuarded("why")]`; new package: list it in docs/09.

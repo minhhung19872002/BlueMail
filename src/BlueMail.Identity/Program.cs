@@ -26,10 +26,12 @@ var builder = WebApplication.CreateBuilder(args);
 var settings = BmSettings.Load(builder.Configuration);
 var keys = OidcKeys.Load(builder.Configuration);
 var testing = builder.Environment.IsTesting();
+// Plain HTTP is accepted only for local development and tests; production requires HTTPS end to end.
+var plainHttpAllowed = testing || builder.Environment.IsDevelopment();
 
 builder.AddBlueMailLogging(settings, "identity");
 builder.Services.AddBlueMailInfrastructure(settings);
-builder.Services.AddBlueMailApplication();
+builder.Services.AddBlueMailApplicationCore();
 builder.Services.AddBlueMailIdentityCore();
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
 builder.Services.AddSingleton<IStringLocalizer, JsonStringLocalizer>();
@@ -44,7 +46,7 @@ builder.Services.ConfigureApplicationCookie(o =>
     o.Cookie.Name = "bm_id";
     o.Cookie.HttpOnly = true;
     o.Cookie.SameSite = SameSiteMode.Lax;
-    o.Cookie.SecurePolicy = testing ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+    o.Cookie.SecurePolicy = plainHttpAllowed ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
     o.LoginPath = "/account/login";
     o.ExpireTimeSpan = TimeSpan.FromDays(14);
     o.SlidingExpiration = true;
@@ -64,7 +66,7 @@ builder.Services.ConfigureApplicationCookie(o =>
     };
 });
 builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.FromMinutes(1));
-builder.Services.ConfigureExternalCookie(o => o.Cookie.SecurePolicy = testing ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always);
+builder.Services.ConfigureExternalCookie(o => o.Cookie.SecurePolicy = plainHttpAllowed ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always);
 
 builder.Services.AddOpenIddict()
     .AddCore(o => o.UseEntityFrameworkCore().UseDbContext<BlueMailDbContext>().ReplaceDefaultEntities<Guid>())
@@ -85,12 +87,15 @@ builder.Services.AddOpenIddict()
             .EnableTokenEndpointPassthrough()
             .EnableEndSessionEndpointPassthrough()
             .EnableUserInfoEndpointPassthrough();
-        if (testing)
+        if (plainHttpAllowed)
         {
             aspnet.DisableTransportSecurityRequirement();
         }
     });
 
+// The SPA (another origin) reads discovery/JWKS and calls the token endpoint; only the configured web origin.
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(settings.WebUrl).WithMethods("GET", "POST")
+    .WithHeaders("Content-Type", "Authorization").SetPreflightMaxAge(TimeSpan.FromHours(1))));
 builder.Services.AddControllers().AddJsonOptions(o => WebJson.Configure(o.JsonSerializerOptions));
 builder.Services.AddRazorPages();
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
@@ -134,6 +139,7 @@ app.UseRequestLocalization(o =>
     o.RequestCultureProviders.Insert(0, new Microsoft.AspNetCore.Localization.QueryStringRequestCultureProvider { QueryStringKey = "ui_locales", UIQueryStringKey = "ui_locales" });
 });
 app.UseRouting();
+app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

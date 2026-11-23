@@ -5,7 +5,7 @@
 ```sh
 # Khởi động (profile phase0 thêm bộ hứng thư ở 10.77.0.25 cho tới khi có BlueMail.Mx)
 docker compose -f deploy/docker-compose.dev.yml --env-file deploy/.env.dev --profile phase0 up -d --build
-MSYS_NO_PATHCONV=1 sh scripts/dev-s3-init.sh          # tạo bucket + khoá S3 (idempotent)
+MSYS_NO_PATHCONV=1 sh scripts/s3-init.sh          # tạo bucket + khoá S3 (idempotent)
 MSYS_NO_PATHCONV=1 sh scripts/dev-phase0-check.sh     # nghiệm thu Phase 0
 python scripts/dev-gen-zones.py                       # sinh lại vùng DNS khi đổi IP/khoá
 python tests/BlueMail.Corpus/generate.py              # sinh lại bộ thư mẫu
@@ -44,3 +44,27 @@ python tests/BlueMail.Corpus/generate.py              # sinh lại bộ thư m�
 | P0-09 | checkdmarc | `checkdmarc doitac.test -n 10.77.0.53` | đọc được `p=reject` | như mong đợi | ✅ |
 | P0-10 | Bộ thư mẫu | `generate.py` | ≥ 40 thư, đọc được bằng `email` của Python | 46 thư | ✅ |
 | P0-11 | imaptest, ClamAV | chạy container theo profile | chạy được | `imaptest` chạy; ClamAV 1.5.5/28191 | ✅ |
+
+## Phase 1
+
+Chạy: `dotnet test BlueMail.slnx` (unit + tích hợp với PostgreSQL và Valkey thật qua Testcontainers);
+`cd web && npm test`. Chạy tay: `scripts/dev-run.sh identity`, `scripts/dev-run.sh api`, `cd web && npm run dev`.
+
+| Mã | Chức năng | Bước | Kết quả mong đợi | Kết quả thực tế | Đạt |
+|---|---|---|---|---|---|
+| P1-01 | Đăng nhập web | Mở web → chuyển BlueID → nhập `lan@bluemail.test` | Về `/mail/inbox`, giao diện tiếng Việt, tên tổ chức trên thanh trên | Như mong đợi (Chrome, 1366×768, 2026-11-23) | ✅ |
+| P1-02 | Đăng nhập qua bản chạy thật | `docker compose -f deploy/docker-compose.yml` + `oidc_smoke.py` | `/api/v1/me` 200, HSTS, nosniff, CSP | Như mong đợi sau khi sửa BUG-004/005 | ✅ |
+| P1-03 | Sai mật khẩu | POST đăng nhập sai | Ở lại trang, ghi `login_events` reason `bad_password` | `Wrong_password_stays_on_login_page_and_is_recorded` | ✅ |
+| P1-04 | Khoá tài khoản tức thì | Quản trị viên tạm khoá người đang cầm thẻ | Thẻ đó nhận 401 ngay, đăng nhập lại bị từ chối | `Suspending_a_user_invalidates_the_token_already_held_immediately` | ✅ |
+| P1-05 | Cách ly tenant | Quản trị viên acme gọi các endpoint với mã của bluemail | 404 (hoặc 403 với endpoint nền tảng), dữ liệu không đổi | `Ids_of_another_tenant_answer_404_on_every_endpoint` | ✅ |
+| P1-06 | Bộ lọc đóng mặc định | Truy vấn khi chưa đặt tenant | 0 dòng | `Global_filter_returns_nothing_when_no_tenant_is_set` | ✅ |
+| P1-07 | UID/modseq song song | 40 yêu cầu thật song song | Không trùng, liên tục | `Parallel_uid…`, `Parallel_modseq…` | ✅ |
+| P1-08 | Một tên miền một tenant | 3 yêu cầu song song tạo cùng tên miền | 1 thành công, 2 `domain_taken` | `One_domain_belongs_to_one_tenant…` | ✅ |
+| P1-09 | Nhật ký chuỗi băm | 25 ghi song song, rồi `UPDATE`/`DELETE` | Chuỗi hợp lệ; sửa/xoá bị CSDL từ chối | `Audit_chain_stays_valid…` | ✅ |
+| P1-10 | NUL ở cửa vào | `?search=a%00b` | 400 `invalid_characters` | `Nul_characters_in_query_are_refused_at_the_door` | ✅ |
+| P1-11 | Lỗi theo ngôn ngữ người dùng | Người dùng tiếng Việt gọi endpoint quản trị | 403, `code` ổn định, `title` tiếng Việt | `Error_text_follows_the_user_language…` | ✅ |
+| P1-12 | CORS BlueID | Preflight từ gốc web và gốc lạ | Gốc web được phép, gốc lạ không | `BlueID_allows_cross_origin_calls…` | ✅ |
+| P1-13 | DI đầy đủ | Khởi động BlueID/API ở Development (ValidateOnBuild), khởi động lần hai | Không lỗi; nạp lại dữ liệu mẫu không trùng | `HostStartupTests` | ✅ |
+| P1-14 | Khổ 375×812 | Giả lập điện thoại, mở danh sách người dùng | Không cuộn ngang trang; cột nhãn đóng | `scrollWidth` 375, cột 0 px | ✅ |
+| P1-15 | Tương phản | Mọi cặp token chữ/nền, sáng và tối | ≥ 4,5:1 | `tokens.test.ts` (18 cặp) | ✅ |
+| P1-16 | Giờ theo múi người dùng | 20:30Z hiển thị cho Asia/Ho_Chi_Minh | 03:30 ngày hôm sau, không giờ UTC; đúng cả ngày đổi giờ châu Âu | `format.test.ts` | ✅ |

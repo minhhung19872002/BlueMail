@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "BlueMail",
+    "titleUnread": "{count, plural, one {Inbox (#)} other {Inbox (#)}} · BlueMail"
+  },
+  "auth": {
+    "callbackFailed": "Sign-in could not be completed. Please try again.",
+    "unreachable": "The sign-in service cannot be reached. Please try again later."
+  },
+  "errors": {
+    "loadProfile": "Your account could not be loaded. Please reload the page.",
+    "generic": "Something went wrong. Please try again."
+  },
+  "labels": {
+    "inbox": "Inbox",
+    "starred": "Starred",
+    "snoozed": "Snoozed",
+    "important": "Important",
+    "sent": "Sent",
+    "drafts": "Drafts",
+    "scheduled": "Scheduled",
+    "all": "All mail",
+    "spam": "Spam",
+    "trash": "Trash",
+    "unreadCount": "{count, plural, one {# unread} other {# unread}}"
+  },
+  "nav": {
+    "adminUsers": "Users",
+    "adminTenants": "Organisations",
+    "sessions": "Security and devices",
+    "signOut": "Sign out",
+    "toggleMenu": "Main menu",
+    "account": "Account",
+    "labels": "Labels"
+  },
+  "theme": {
+    "title": "Theme",
+    "system": "Use system setting",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "density": {
+    "title": "Density",
+    "default": "Default",
+    "comfortable": "Comfortable",
+    "compact": "Compact"
+  },
+  "storage": {
+    "tooltip": "Storage used by your mailbox",
+    "used": "{used} of {quota} used"
+  },
+  "mail": {
+    "emptyLabel": "No conversations in {label}",
+    "labelCount": "{count, plural, one {# message} other {# messages}}"
+  },
+  "sessions": {
+    "title": "Security and devices",
+    "twoFactorOn": "Two-step verification is on.",
+    "twoFactorOff": "Two-step verification is off.",
+    "manageTwoFactor": "Set up two-step verification",
+    "changePassword": "Change password",
+    "device": "Device",
+    "unknownDevice": "Unknown device",
+    "thisDevice": "This device",
+    "ip": "IP address",
+    "signedIn": "Signed in",
+    "lastSeen": "Last activity",
+    "signOut": "Sign out",
+    "revoked": "The device was signed out."
+  },
+  "common": {
+    "actions": "Actions",
+    "rangeOfTotal": "{from}–{to} of {total}",
+    "create": "Create",
+    "cancel": "Cancel"
+  },
+  "adminUsers": {
+    "title": "Users",
+    "search": "Search by name or address",
+    "add": "Add user",
+    "created": "User created.",
+    "name": "Name",
+    "email": "Email address",
+    "status": "Status",
+    "admin": "Administrator",
+    "twoFactor": "2-step on",
+    "lastLogin": "Last sign-in",
+    "never": "Never",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "initialPassword": "Initial password",
+    "mustChange": "The user must choose a new password at first sign-in.",
+    "makeAdmin": "Administrator of this organisation"
+  },
+  "userStatus": {
+    "ACTIVE": "Active",
+    "SUSPENDED": "Suspended",
+    "DELETED": "Deleted"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "passwordMin": "Use at least {min, number} characters."
+  },
+  "adminTenants": {
+    "title": "Organisations",
+    "code": "Code",
+    "name": "Name",
+    "domains": "Domains",
+    "users": "Users",
+    "status": "Status",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate"
+  },
+  "tenantStatus": {
+    "ACTIVE": "Active",
+    "SUSPENDED": "Suspended",
+    "TRIAL": "Trial"
+  }
+}

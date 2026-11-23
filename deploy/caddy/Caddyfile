@@ -1,0 +1,44 @@
+# Edge reverse proxy: HTTPS for the web app, the API and BlueID. Mail ports (25/465/587/993) do not pass
+# through Caddy. BM_TLS is "internal" (self-signed, test/dev) or the ACME account email (production).
+{
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+}
+
+{$BM_WEB_HOST} {
+	tls {$BM_TLS}
+	import security_headers
+	encode zstd gzip
+
+	# The API answers in JSON even when it is down: a proxy error must not become an HTML page (PROMPT 14.10).
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+	handle {
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://{$BM_ID_HOST}; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action https://{$BM_ID_HOST}"
+		reverse_proxy web:8080
+	}
+	handle_errors {
+		@api path /api/*
+		header @api Content-Type "application/problem+json; charset=utf-8"
+		respond @api `{"success":false,"type":"https://bluemail.dev/errors/service_unavailable","title":"The service is temporarily unavailable.","status":{err.status_code},"code":"service_unavailable","errors":[]}` {err.status_code}
+	}
+}
+
+{$BM_ID_HOST} {
+	tls {$BM_TLS}
+	import security_headers
+	encode zstd gzip
+	reverse_proxy identity:8080
+}

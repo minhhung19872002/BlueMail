@@ -40,6 +40,29 @@ public sealed class LoginTests(StackFixture stack)
         events.Should().BeGreaterThan(0);
     }
 
+    [Theory]
+    [InlineData("/.well-known/openid-configuration", "GET")]
+    [InlineData("/connect/token", "POST")]
+    public async Task BlueID_allows_cross_origin_calls_from_the_web_app_only(string path, string method)
+    {
+        using var client = stack.Identity.CreateClient();
+        async Task<HttpResponseMessage> Preflight(string origin)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Options, path);
+            req.Headers.Add("Origin", origin);
+            req.Headers.Add("Access-Control-Request-Method", method);
+            req.Headers.Add("Access-Control-Request-Headers", "content-type");
+            return await client.SendAsync(req);
+        }
+
+        var ok = await Preflight(StackFixture.WebUrl);
+        ok.Headers.TryGetValues("Access-Control-Allow-Origin", out var allowed).Should().BeTrue();
+        allowed!.Single().Should().Be(StackFixture.WebUrl);
+
+        var other = await Preflight("http://evil.test");
+        other.Headers.Contains("Access-Control-Allow-Origin").Should().BeFalse();
+    }
+
     [Fact]
     public async Task Api_without_token_answers_401_problem_json()
     {

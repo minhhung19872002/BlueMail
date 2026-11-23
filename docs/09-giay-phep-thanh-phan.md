@@ -64,3 +64,27 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | Microsoft.AspNetCore.Mvc.Testing | 10.0.15 | MIT | Kiểm thử tích hợp |
 
 ## npm
+
+| Gói | Phiên bản | Giấy phép | Lý do |
+|---|---|---|---|
+| @ant-design/icons | 5.6.1 | MIT | Biểu tượng |
+| @tanstack/react-query | 5.108.3 | MIT | Gọi API, đệm |
+| antd | 5.29.3 | MIT | Thư viện giao diện |
+| i18next | 27.2.4 | MIT | Đa ngôn ngữ |
+| i18next-icu | 2.7.1 | MIT | Cú pháp ICU (số nhiều, biến) |
+| intl-messageformat | 12.2.1 | BSD-3-Clause | Bộ dịch ICU cho i18next-icu |
+| oidc-client-ts | 3.5.0 | Apache-2.0 | Đăng nhập OIDC code + PKCE |
+| react | 18.3.1 | MIT | UI |
+| react-dom | 18.3.1 | MIT | UI |
+| react-i18next | 18.0.3 | MIT | Đa ngôn ngữ cho React |
+| react-router-dom | 6.30.6 | MIT | Định tuyến |
+| zustand | 5.1.0 | MIT | Trạng thái giao diện |
+| @testing-library/react | 16.3.3 | MIT | Kiểm thử |
+| @types/node | 24.19.2 | MIT | Kiểu cho phép thử quét |
+| @types/react | 18.3.31 | MIT | Kiểu |
+| @types/react-dom | 18.3.7 | MIT | Kiểu |
+| @vitejs/plugin-react | 6.3.0 | MIT | Build |
+| jsdom | 31.0.1 | MIT | Kiểm thử |
+| typescript | 5.9.3 | Apache-2.0 | Build |
+| vite | 8.3.8 | MIT | Build |
+| vitest | 5.1.1 | MIT | Kiểm thử |
