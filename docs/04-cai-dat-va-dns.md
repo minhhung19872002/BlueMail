@@ -94,6 +94,7 @@ Danh sách đầy đủ có chú thích trong `deploy/.env.example`. Thiếu bi�
 - Chạy: `docker compose --env-file deploy/.env -f deploy/docker-compose.yml -f deploy/vm/docker-compose.vm.yml up -d --no-build`
   với `BM_IMAGE_REPO=ghcr.io/minhhung19872002`, `BM_VERSION=<sha>`, `BM_PLATFORM_DOMAIN=bm.bluestar.com.vn`,
   `BM_MAIL_HOSTNAME=mail.bm.bluestar.com.vn`, `BM_WEB_HOST=bm.bluestar.com.vn`, `BM_ID_HOST=id.bm.bluestar.com.vn`.
+- Gói GHCR công khai; trên VM kéo bằng cấu hình docker trống (`docker --config "$(mktemp -d)" pull …`), vì `~/.docker` của VM giữ thông tin đăng nhập ghcr cũ làm truy vấn manifest thất bại (đã kiểm 2026-11-24).
 - Overlay `deploy/vm/docker-compose.vm.yml`: tắt Caddy riêng; mx/submission/imap đọc chứng chỉ từ volume của Caddy chung
   (`bluedental_caddy_data`, chỉ đọc); giới hạn RAM tổng ~4 GB, Postgres `shared_buffers=256MB`.
 - Caddy chung: chép `deploy/vm/bluemail.caddy` vào `~/proxy/sites/`, `docker network connect bluemail_default proxy-caddy`,
