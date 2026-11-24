@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       "/api": { target: process.env.BM_DEV_API ?? "http://localhost:5080", changeOrigin: true },
       "/hubs": { target: process.env.BM_DEV_API ?? "http://localhost:5080", changeOrigin: true, ws: true },
+      "/hangfire": { target: process.env.BM_DEV_API ?? "http://localhost:5080", changeOrigin: true },
     },
   },
   build: { sourcemap: true, target: "es2022" },

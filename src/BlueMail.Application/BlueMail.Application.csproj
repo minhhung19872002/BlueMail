@@ -11,6 +11,9 @@
     <ProjectReference Include="..\BlueMail.Infrastructure\BlueMail.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" />
+    <PackageReference Include="Hangfire.PostgreSql" />
+    <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="MediatR" />
     <PackageReference Include="HtmlSanitizer" />
     <PackageReference Include="FluentValidation" />

@@ -17,6 +17,9 @@ bm.bluestar.com.vn {
 	handle /hubs/* {
 		reverse_proxy bluemail-api-1:8080
 	}
+	handle /hangfire* {
+		reverse_proxy bluemail-api-1:8080
+	}
 	handle {
 		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://id.bm.bluestar.com.vn; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action https://id.bm.bluestar.com.vn"
 		reverse_proxy bluemail-web-1:8080

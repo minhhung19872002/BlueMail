@@ -39,6 +39,9 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | Microsoft.EntityFrameworkCore.Relational | 10.0.15 | MIT | ORM |
 | Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.4 | PostgreSQL License | Trình cung cấp EF cho PostgreSQL |
 | Npgsql | 10.0.4 | PostgreSQL License | Trình kết nối PostgreSQL (đường nóng SMTP/IMAP) |
+| Hangfire.AspNetCore | 1.8.25 | LGPL-3.0 (dùng như thư viện, không sửa) | Việc nền định kỳ + Dashboard (spec mục 1; docs/00 D35) |
+| Hangfire.PostgreSql | 1.21.1 | LGPL-3.0 | Lưu việc Hangfire trong PostgreSQL, schema `hangfire` |
+| Newtonsoft.Json | 13.0.4 | MIT | Phụ thuộc của Hangfire; ghim bản vá (11.0.1 có GHSA-5crp-9r3c-p9vr) |
 | EFCore.NamingConventions | 10.0.1 | Apache-2.0 | Tên bảng/cột snake_case |
 | Microsoft.AspNetCore.Identity.EntityFrameworkCore | 10.0.15 | MIT | ASP.NET Core Identity |
 | Microsoft.AspNetCore.DataProtection.EntityFrameworkCore | 10.0.15 | MIT | Lưu khoá Data Protection trong PostgreSQL |

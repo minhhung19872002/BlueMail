@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.DataProtection;
+using Hangfire;
 using System.Net;
 using System.Threading.RateLimiting;
 using BlueMail.Api.Auth;
@@ -28,12 +30,12 @@ builder.Services.AddBlueMailInfrastructure(settings);
 builder.Services.AddBlueMailApiFeatures();
 BlueMail.Application.Features.Admin.Domains.DomainServiceRegistration.AddBlueMailDomainAdmin(builder.Services, builder.Configuration);
 builder.Services.AddScoped<BlueMail.Application.Features.Admin.Domains.MtaStsPolicy>();
-if (runJobs)
-{
-    builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Admin.Domains.DomainWatchWorker>());
-}
+// Periodic jobs (purge, blob collection, domain DNS checks) run on Hangfire; the dashboard is for platform admins.
+BlueMail.Application.Jobs.JobsRegistration.AddBlueMailHangfire(builder.Services, settings.DbConnection, runServer: runJobs);
 
 builder.Services.AddBlueMailIdentityCore();
+// One key ring with BlueID (signed dashboard cookies must read in every API instance).
+builder.Services.AddDataProtection().SetApplicationName("bluemail").PersistKeysToDbContext<BlueMail.Infrastructure.Persistence.BlueMailDbContext>();
 builder.Services.AddApiAuthentication(settings, keys);
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
 
@@ -111,6 +113,17 @@ app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();   // request logging before the exception handler (PROMPT 12)
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>("default-src 'none'; frame-ancestors 'none'");
+// The Hangfire dashboard is a page of its own (scripts and styles from /hangfire only, no inline scripts).
+app.Use((http, next) =>
+{
+    if (http.Request.Path.StartsWithSegments(BlueMail.Api.Auth.JobsDashboard.Path))
+    {
+        http.Response.Headers.ContentSecurityPolicy =
+            "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+    }
+
+    return next(http);
+});
 app.UseResponseCompression();
 app.UseMiddleware<NulQueryFilterMiddleware>();
 app.UseRateLimiter();
@@ -159,6 +172,20 @@ async Task<IResult> Autodiscover(HttpContext http)
 
 app.MapPost("/autodiscover/autodiscover.xml", (Delegate)Autodiscover).AllowAnonymous(); // routes ignore case: also /Autodiscover/Autodiscover.xml
 app.MapControllers();
+app.MapHangfireDashboard(BlueMail.Api.Auth.JobsDashboard.Path, new DashboardOptions
+{
+    // Only our filter decides (the default one allows local requests, which behind a proxy means everyone).
+    Authorization = [],
+    AsyncAuthorization = [new BlueMail.Api.Auth.JobsDashboard()],
+    AppPath = settings.WebUrl + "/admin/platform",
+    DisplayStorageConnectionString = false,
+    DashboardTitle = "BlueMail jobs",
+}).AllowAnonymous(); // no bearer token in a browser tab: JobsDashboard checks the signed session cookie instead
+if (runJobs)
+{
+    BlueMail.Application.Jobs.JobsRegistration.RegisterRecurring(app.Services.GetRequiredService<IRecurringJobManager>());
+}
+
 app.MapHub<BlueMail.Api.Realtime.MailHub>("/hubs/mail");
 
 app.Run();

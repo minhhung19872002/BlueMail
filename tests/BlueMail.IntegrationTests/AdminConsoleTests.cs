@@ -343,6 +343,43 @@ public class AdminConsoleTests(StackFixture stack)
     }
 
     [Fact]
+    public async Task Jobs_run_on_hangfire_and_only_platform_admins_open_the_dashboard()
+    {
+        // The periodic jobs are registered in Hangfire's PostgreSQL storage.
+        using (var conn = Hangfire.JobStorage.Current.GetConnection())
+        {
+            Hangfire.Storage.StorageConnectionExtensions.GetRecurringJobs(conn).Select(j => j.Id).Should().Contain(
+                [Application.Jobs.PeriodicJobs.PurgeId, Application.Jobs.PeriodicJobs.BlobsId, Application.Jobs.PeriodicJobs.DomainsId]);
+        }
+
+        var jobs = stack.Api.Services.GetRequiredService<Application.Jobs.PeriodicJobs>();
+        await jobs.PurgeTrashAndSpamAsync(default);
+        await jobs.CollectBlobsAsync(default);
+
+        // Without the cookie, and for a tenant administrator, the dashboard stays closed.
+        using var anon = stack.Api.CreateClient();
+        (await anon.GetAsync("/hangfire")).StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
+        using var tenantAdmin = await Client("lan@bluemail.test");
+        (await tenantAdmin.PostAsync("/api/v1/admin/platform/jobs-dashboard", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        anon.DefaultRequestHeaders.Add("Cookie", "bm_jobs=forged");
+        (await anon.GetAsync("/hangfire")).StatusCode.Should().BeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
+
+        // A platform administrator gets a cookie bound to the session; the dashboard opens with it.
+        await Db(db => db.Users.IgnoreQueryFilters().Where(u => u.PrimaryEmail == StackFixture.PlatformAdmin).ExecuteUpdateAsync(u => u.SetProperty(x => x.TwoFactorEnabled, false).SetProperty(x => x.MustChangePassword, false)));
+        using var platform = await Client(StackFixture.PlatformAdmin, StackFixture.PlatformAdminPassword);
+        var issued = await platform.PostAsync("/api/v1/admin/platform/jobs-dashboard", null);
+        issued.StatusCode.Should().Be(HttpStatusCode.OK);
+        var cookie = issued.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("bm_jobs=", StringComparison.Ordinal));
+        cookie.Should().Contain("httponly").And.Contain("path=/hangfire").And.Contain("samesite=strict");
+        using var browser = stack.Api.CreateClient();
+        browser.DefaultRequestHeaders.Add("Cookie", cookie.Split(';')[0]);
+        var page = await browser.GetAsync("/hangfire/recurring");
+        page.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await page.Content.ReadAsStringAsync()).Should().Contain(Application.Jobs.PeriodicJobs.PurgeId);
+        page.Headers.GetValues("Content-Security-Policy").Single().Should().Contain("script-src 'self'").And.NotContain("'unsafe-inline'; script");
+    }
+
+    [Fact]
     public async Task Platform_admin_manages_tenants_and_support_sign_in_is_audited_and_announced()
     {
         // Another test turns on two-step verification for the platform administrator; this one signs in with the password only.

@@ -444,3 +444,23 @@ cách ly, thư bảo mật, ảnh danh bạ. Trước đây không bao giờ xo�
   thấy object thiếu và PUT lại (`BlobCollectionTests`).
 - Object ghi trước bản này mà không có dòng `mail.blobs` (thư hệ thống gửi ra ngoài, ảnh danh bạ) không bao giờ bị
   dọn: thà sót còn hơn xoá nhầm.
+
+## D35. Hangfire cho việc định kỳ; hàng đợi cần độ trễ thấp giữ worker thuê bao
+
+Spec (mục 1, 8.3, 9) chọn Hangfire cho việc nền nghiệp vụ, lưu trong PostgreSQL (schema `hangfire`), Dashboard chỉ cho quản
+trị nền tảng. Các phase đầu đã viết các hàng đợi bằng worker thuê bao (`FOR UPDATE SKIP LOCKED` + lease, như D13), có tiến độ,
+chống chạy trùng và tự nhận lại việc chết, và đã được kiểm kỹ.
+
+- Hangfire (`Jobs/PeriodicJobs`) chạy việc **định kỳ**: dọn Thùng rác/Thư rác 30 ngày (mỗi giờ), dọn blob S3 (D34, mỗi giờ),
+  kiểm DNS tên miền (mỗi 30 phút, mỗi tên miền 6 giờ một lần). `DisableConcurrentExecution` (khoá phân tán) nên nhiều
+  tiến trình worker không chạy trùng; việc an toàn khi chạy lại. Server Hangfire chỉ chạy ở vai trò `worker`/`all`;
+  vai trò `api` chỉ mở storage cho Dashboard.
+- Giữ worker thuê bao cho hàng đợi cần **độ trễ vài giây** và có trạng thái riêng mà giao diện đọc: thao tác hàng loạt,
+  áp bộ lọc cho thư cũ, nhập/xuất và eDiscovery, trả thư tạm ẩn; và hàng đợi gửi thư (spec đã loại khỏi Hangfire).
+  Lịch tối thiểu của Hangfire là 1 phút và trạng thái của nó không thay được bảng tiến độ người dùng xem.
+- Dashboard `/hangfire`: trình duyệt không gửi bearer token, nên quản trị nền tảng gọi `POST /api/v1/admin/platform/jobs-dashboard`
+  để nhận cookie `bm_jobs` (ký bằng Data Protection chung khoá với BlueID, HttpOnly, SameSite=Strict, Path=/hangfire, 1 giờ,
+  gắn phiên). Mỗi request Dashboard kiểm cookie và kiểm lại phiên qua `ISessionValidator` (đăng xuất, bị khoá, mất quyền,
+  phiên hỗ trợ → không vào được). Bộ lọc "chỉ request nội bộ" mặc định của Hangfire bị tắt vì sau proxy nó cho mọi người vào.
+  CSP riêng cho `/hangfire`: script chỉ từ chính nó, không inline.
+- Newtonsoft.Json (phụ thuộc của Hangfire) được ghim bản vá 13.0.4.

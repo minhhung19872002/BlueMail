@@ -284,7 +284,8 @@
     "users": "Users",
     "status": "Status",
     "suspend": "Suspend",
-    "reactivate": "Reactivate"
+    "reactivate": "Reactivate",
+    "jobs": "Background jobs"
   },
   "tenantStatus": {
     "ACTIVE": "Active",

@@ -284,7 +284,8 @@
     "users": "Người dùng",
     "status": "Trạng thái",
     "suspend": "Tạm khoá",
-    "reactivate": "Mở lại"
+    "reactivate": "Mở lại",
+    "jobs": "Việc nền"
   },
   "tenantStatus": {
     "ACTIVE": "Đang hoạt động",

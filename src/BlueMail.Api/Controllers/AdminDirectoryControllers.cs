@@ -267,3 +267,29 @@ public sealed class PlatformSendingController(ISender mediator) : ControllerBase
     public async Task<ApiResponse<IReadOnlyList<TlsSummaryDto>>> Tls([FromQuery] int days = 7, CancellationToken ct = default) =>
         ApiResponses.Ok(await mediator.Send(new TlsSummaryQuery(days), ct));
 }
+
+/// <summary>The Hangfire dashboard of background jobs (PROMPT 9): platform administrators only.</summary>
+[ApiController]
+[Route("api/v1/admin/platform")]
+public sealed class PlatformJobsController(ICurrentUser me, Microsoft.AspNetCore.DataProtection.IDataProtectionProvider dp) : ControllerBase
+{
+    /// <summary>Sets the short-lived cookie that opens /hangfire in this browser (bound to the current session).</summary>
+    [HttpPost("jobs-dashboard")]
+    [RequirePermission(Permissions.PlatformTenantsView)]
+    public ApiResponse<string> JobsDashboard()
+    {
+        if (!me.IsPlatformAdmin || User.FindFirst(BlueMail.Infrastructure.Security.OidcKeys.StampClaim)?.Value is not { Length: > 0 } stamp)
+        {
+            throw AppException.Forbidden("forbidden");
+        }
+
+        Response.Cookies.Append(Auth.JobsDashboard.CookieName, Auth.JobsDashboard.Issue(dp, me.UserId, me.SessionId, stamp, DateTimeOffset.UtcNow),
+            new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                HttpOnly = true, Secure = Request.IsHttps, SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
+                Path = Auth.JobsDashboard.Path, MaxAge = Auth.JobsDashboard.Lifetime,
+            });
+        return ApiResponses.Ok(Auth.JobsDashboard.Path);
+    }
+}
+

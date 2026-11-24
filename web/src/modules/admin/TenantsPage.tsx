@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { App, Button, Table, Tag, Typography } from "antd";
+import { App, Space, Button, Table, Tag, Typography } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, ApiError } from "../../api/client";
@@ -24,9 +24,22 @@ export function TenantsPage() {
     onError: (e) => void message.error(e instanceof ApiError ? e.title : t("errors.generic")),
   });
 
+  // Background jobs (Hangfire): the API sets a short-lived cookie for this browser, then the dashboard opens.
+  const openJobs = async () => {
+    try {
+      const path = await api.post<string>("/api/v1/admin/platform/jobs-dashboard", {});
+      window.open(path, "_blank", "noopener");
+    } catch (e) {
+      message.error(e instanceof ApiError ? e.title : t("errors.generic"));
+    }
+  };
+
   return (
     <section aria-labelledby="tenants-title">
-      <Typography.Title level={4} id="tenants-title">{t("adminTenants.title")}</Typography.Title>
+      <Space className="bm-settings-gap" wrap style={{ justifyContent: "space-between", inlineSize: "100%" }}>
+        <Typography.Title level={4} id="tenants-title" style={{ margin: 0 }}>{t("adminTenants.title")}</Typography.Title>
+        <Button onClick={() => void openJobs()}>{t("adminTenants.jobs")}</Button>
+      </Space>
       <Table<Tenant>
         rowKey="id"
         loading={tenants.isPending}

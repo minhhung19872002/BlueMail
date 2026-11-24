@@ -71,12 +71,11 @@ public sealed class SnoozeService(BlueMailDbContext db, PgMailStore store)
 
 /// <summary>
 /// Background mailbox housekeeping in the API process: wakes due snoozes (claimed with SKIP LOCKED so several
-/// instances share the work), deletes forever what stayed 30 days in Trash or Spam (PROMPT 6.5) and collects unreferenced blobs.
+/// instances share the work). Purging Trash/Spam and collecting blobs are Hangfire jobs (Jobs/PeriodicJobs).
 /// </summary>
 public sealed class MailMaintenanceWorker(IServiceScopeFactory scopes, ILogger<MailMaintenanceWorker> log) : BackgroundService
 {
     public static readonly TimeSpan TrashRetention = TimeSpan.FromDays(30);
-    private DateTimeOffset _nextPurge = DateTimeOffset.MinValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -85,21 +84,6 @@ public sealed class MailMaintenanceWorker(IServiceScopeFactory scopes, ILogger<M
             try
             {
                 await WakeDueAsync(stoppingToken);
-                if (DateTimeOffset.UtcNow >= _nextPurge)
-                {
-                    await using var scope = scopes.CreateAsyncScope();
-                    var n = await scope.ServiceProvider.GetRequiredService<PgMailStore>().PurgeTrashAndSpamAsync(TrashRetention, 5000, stoppingToken);
-                    if (n > 0)
-                    {
-                        log.LogInformation("Deleted {Count} messages kept over 30 days in Trash or Spam", n);
-                    }
-
-                    // S3 objects nothing refers to any more (expunged messages, sent queue rows, old photos).
-                    await BlobRefs.CollectAsync(scope.ServiceProvider.GetRequiredService<BlueMailDbContext>(),
-                        scope.ServiceProvider.GetRequiredService<BlobStore>(), BlobRefs.Grace, 1000, log, stoppingToken);
-                    _nextPurge = DateTimeOffset.UtcNow.AddHours(1);
-                }
-
                 await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
