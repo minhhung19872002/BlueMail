@@ -161,7 +161,8 @@
       "done": "{count, plural, one {# conversation changed.} other {# conversations changed.}}",
       "failed": "The task stopped after {done, number} of {total, number} conversations.",
       "allSelected": "All {count, number} conversations of this list are selected.",
-      "selectFirst": "Select the first {max, number} conversations of this list"
+      "selectFirst": "Select the first {max, number} conversations of this list",
+      "preparing": "Finding the conversations…"
     }
   },
   "sessions": {

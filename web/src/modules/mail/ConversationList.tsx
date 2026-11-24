@@ -69,7 +69,7 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
         snoozeUntil: snoozeUntil?.toISOString(), scopeLabelId: scope.labelId, query: scope.q });
       setSelected(new Set());
       while (job.status === "QUEUED" || job.status === "RUNNING") {
-        void message.open({ key, type: "loading", content: t("mail.bulk.running", { done: job.done, total: job.total }), duration: 0 });
+        void message.open({ key, type: "loading", content: job.total === 0 ? t("mail.bulk.preparing") : t("mail.bulk.running", { done: job.done, total: job.total }), duration: 0 });
         await new Promise((r) => window.setTimeout(r, 1500));
         job = await getBulkJob(job.id);
       }

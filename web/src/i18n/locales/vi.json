@@ -161,7 +161,8 @@
       "done": "Đã xử lý {count, number} hội thoại.",
       "failed": "Tác vụ dừng sau {done, number}/{total, number} hội thoại.",
       "allSelected": "Đã chọn tất cả {count, number} hội thoại trong danh sách này.",
-      "selectFirst": "Chọn {max, number} hội thoại đầu tiên trong danh sách này"
+      "selectFirst": "Chọn {max, number} hội thoại đầu tiên trong danh sách này",
+      "preparing": "Đang tìm các hội thoại…"
     }
   },
   "sessions": {
