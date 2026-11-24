@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueState, followUpDue, inputOf, type TaskItem } from "./tasksApi";
+import { dueState, dueTaskReminders, followUpDue, inputOf, taskReminderKey, type TaskItem } from "./tasksApi";
 
 describe("tasks", () => {
   it("classifies due dates by calendar day", () => {
@@ -10,8 +10,8 @@ describe("tasks", () => {
   });
 
   it("keeps every field when one changes", () => {
-    const t: TaskItem = { id: "1", title: "A", notes: "n", dueDate: "2026-12-01", important: true, completedAt: null, messageId: null, threadId: null, createdAt: "", category: "green", assignedTo: null, assignedBy: null };
-    expect(inputOf(t, { completed: true })).toEqual({ title: "A", notes: "n", dueDate: "2026-12-01", important: true, completed: true, category: "green" });
+    const t: TaskItem = { id: "1", title: "A", notes: "n", dueDate: "2026-12-01", important: true, completedAt: null, messageId: null, threadId: null, createdAt: "", category: "green", assignedTo: null, assignedBy: null, reminderAt: null };
+    expect(inputOf(t, { completed: true })).toEqual({ title: "A", notes: "n", dueDate: "2026-12-01", important: true, completed: true, category: "green", reminderAt: null });
   });
 });
 
@@ -27,5 +27,19 @@ describe("follow-up flags", () => {
     expect(followUpDue("nextWeek", "2026-11-28")).toBe("2026-12-04");
     expect(followUpDue("nextWeek", "2026-11-29")).toBe("2026-12-04");
     expect(followUpDue("noDate", "2026-11-24")).toBeNull();
+  });
+});
+
+describe("task reminders", () => {
+  const base = { id: "a", title: "A", notes: null, dueDate: null, important: false, completedAt: null, messageId: null, threadId: null, createdAt: "",
+    category: null, assignedTo: null, assignedBy: null } as const;
+  it("are due once their time has come, for a day, unless done or shown", () => {
+    const now = Date.parse("2026-12-01T10:00:00Z");
+    const due = { ...base, reminderAt: "2026-12-01T09:59:00Z" };
+    const later = { ...base, id: "b", reminderAt: "2026-12-01T10:01:00Z" };
+    const old = { ...base, id: "c", reminderAt: "2026-11-29T09:00:00Z" };
+    const done = { ...base, id: "d", reminderAt: "2026-12-01T09:00:00Z", completedAt: "2026-12-01T09:30:00Z" };
+    expect(dueTaskReminders([later, due, old, done], now, new Set()).map((t) => t.id)).toEqual(["a"]);
+    expect(dueTaskReminders([due], now, new Set([taskReminderKey(due)]))).toEqual([]);
   });
 });

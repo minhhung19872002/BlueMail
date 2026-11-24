@@ -19,8 +19,17 @@ public sealed class ContactsController(ISender mediator) : ControllerBase
     [HttpGet]
     [SelfGuarded(Own)]
     public async Task<ApiResponse<Paged<ContactDto>>> List([FromQuery] string? q, [FromQuery] Guid? groupId, [FromQuery] bool other = false, [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50, CancellationToken ct = default) =>
-        ApiResponses.Ok(await mediator.Send(new ListContactsQuery(q, groupId, other, page, pageSize), ct));
+        [FromQuery] int pageSize = 50, [FromQuery] Guid? owner = null, CancellationToken ct = default) =>
+        ApiResponses.Ok(await mediator.Send(new ListContactsQuery(q, groupId, other, page, pageSize, owner), ct));
+
+    /// <summary>Who may read my contacts, and whose contacts I may open (Outlook "Share Contacts").</summary>
+    [HttpGet("shares")]
+    [SelfGuarded(Own)]
+    public async Task<ApiResponse<ContactSharesDto>> Shares(CancellationToken ct) => ApiResponses.Ok(await mediator.Send(new ListContactSharesQuery(), ct));
+
+    [HttpPut("shares")]
+    [SelfGuarded(Own)]
+    public async Task<ApiResponse<ContactSharesDto>> SetShare([FromBody] SetContactShareCommand body, CancellationToken ct) => ApiResponses.Ok(await mediator.Send(body, ct));
 
     [HttpPost]
     [SelfGuarded(Own)]

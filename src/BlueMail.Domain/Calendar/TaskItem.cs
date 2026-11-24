@@ -26,6 +26,9 @@ public class TaskItem : TenantEntity
     /// <summary>Outlook "Categorize": a colour name (the calendar palette), or null.</summary>
     public string? Category { get; set; }
 
+    /// <summary>Outlook task reminder: when to remind the user (shown by the web app while it is open).</summary>
+    public DateTimeOffset? ReminderAt { get; set; }
+
     /// <summary>Outlook "Assign task" (same organisation): on the assigner's task, who it was given to.</summary>
     public Guid? AssignedToId { get; set; }
 

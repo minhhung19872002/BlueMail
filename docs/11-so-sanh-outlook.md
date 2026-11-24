@@ -23,7 +23,7 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Ignore conversation | ✅ | "Tắt tiếng" |
 | Categorize | ✅ | Nhãn màu, lồng nhau |
 | Rules | ✅ | Bộ lọc với ngôn ngữ tìm kiếm |
-| Filter Email (Unread, Has attachments, Flagged…) | ⚠️ | Tất cả / Chưa đọc / Gắn sao / Có tệp; các lọc khác qua ô tìm kiếm |
+| Filter Email (Unread, Has attachments, Flagged…) | ✅ | Menu "Lọc": Tất cả / Chưa đọc / Gắn sao / Gửi cho tôi / Quan trọng / Có tệp |
 | Follow Up (cờ có hạn: Hôm nay, Ngày mai, Tuần này, Tuần sau, Không hạn) | ✅ | Gắn cờ (sao, đồng bộ IMAP `\Flagged`) và tạo việc có hạn liên kết thư; hạn tuần này/tuần sau là thứ Sáu như Outlook |
 | Snooze, Schedule send, Undo send | ✅ | |
 | Encrypt / không chuyển tiếp | ✅ | Chế độ bảo mật |
@@ -48,12 +48,12 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Lặp lại (hằng ngày, ngày làm việc, tuần, tháng, năm) | ✅ | RRULE, EXDATE; xoá một lần hoặc cả chuỗi |
 | Nhắc (reminder) | ✅ | Trong trang và thông báo máy tính khi BlueMail đang mở |
 | Huỷ cuộc họp (thông báo khách) | ✅ | iMIP CANCEL |
-| Next 7 Days, Schedule view | ❌ | |
+| Next 7 Days, Schedule view | ✅ | Chế độ "Lịch biểu": 7 ngày tới dạng danh sách theo ngày |
 | Scheduling Assistant (rảnh/bận khi mời họp) | ✅ | Người trong tổ chức: rảnh / bận giờ này; ngoài tổ chức: không xem được lịch; chỉ thời gian, không lộ tiêu đề |
 | Share Calendar, Open Calendar, Permissions | ✅ | Chia sẻ cho đồng nghiệp với quyền Được xem / Được sửa; hiện lịch của người khác chồng lên lịch mình; cuộc họp có khách chỉ người tổ chức sửa |
 | Publish Online | ✅ | Đường dẫn ICS bí mật (chỉ giờ bận, hoặc đầy đủ trừ khách mời), tạo lại để thu hồi; iPhone/Google/Outlook đăng ký được |
 | Calendar Groups | ✅ | Lưu các lịch được chia sẻ đang hiện thành nhóm có tên (cài đặt người dùng, tối đa 20 nhóm × 30 lịch), mở lại một lần |
-| E-mail Calendar | ❌ | |
+| E-mail Calendar | ✅ | Chọn khoảng ngày (tối đa 30 ngày) và mức chi tiết: thư mới có bảng lịch và tệp calendar.ics |
 | Teams / Skype meeting | — | Không có dịch vụ họp trực tuyến |
 
 ## Danh bạ
@@ -64,9 +64,9 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Address Book (danh bạ tổ chức) | ✅ | |
 | Forward Contact (vCard), nhập/xuất | ✅ | vCard 2.1–4.0, CSV Google/Outlook |
 | Gộp liên hệ trùng | ✅ | |
-| Share Contacts, Open Shared Contacts | ❌ | |
+| Share Contacts, Open Shared Contacts | ✅ | Chia sẻ chỉ xem cho đồng nghiệp cùng tổ chức; ô "Danh bạ của" để mở danh bạ được chia sẻ |
 | Mail Merge | ✅ | Từ một nhóm danh bạ: mỗi người một thư riêng ({{name}}, {{fullName}}, {{email}}), gửi qua đường gửi thường, tối đa 100 |
-| Meeting / Follow Up từ liên hệ | ❌ | |
+| Meeting / Follow Up từ liên hệ | ✅ | Nút Họp (sự kiện mới mời liên hệ) và Theo dõi (việc cần làm hạn ngày mai) |
 
 ## Việc cần làm
 
@@ -78,7 +78,7 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Việc tạo từ thư, mở lại thư | ✅ | |
 | Categorize task | ✅ | Nhóm màu (cùng bảng màu với Lịch) |
 | Giao việc (Assign task) | ✅ | Trong cùng tổ chức: người nhận có bản riêng trong Việc cần làm; việc của người giao tự xong khi người nhận làm xong (không gửi VTODO ra ngoài) |
-| Nhắc cho việc | ❌ | |
+| Nhắc cho việc | ✅ | "Nhắc tôi lúc": thông báo trong trang và trên desktop (nếu cho phép) khi web đang mở |
 
 ## Việc nên làm tiếp (theo mức dùng thường gặp)
 

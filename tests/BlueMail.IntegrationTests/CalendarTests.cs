@@ -199,6 +199,20 @@ public class CalendarTests(StackFixture stack)
         await Data(await priya.PutAsJsonAsync("/api/v1/calendar/feed", new { detail = (string?)null }));
         (await anon.GetAsync(new Uri(full.GetProperty("url").GetString()!).PathAndQuery)).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await anon.GetAsync("/api/v1/calendar/feed/not-a-real-token-at-all-xxxxxxxx.ics")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // "E-mail Calendar": the signed-in user's days as a file (busy only or full), limited range, never anonymous.
+        string Export(DateTime from, DateTime to, string detail) =>
+            $"/api/v1/calendar/export.ics?from={Uri.EscapeDataString(new DateTimeOffset(from, TimeSpan.Zero).ToString("O"))}&to={Uri.EscapeDataString(new DateTimeOffset(to, TimeSpan.Zero).ToString("O"))}&detail={detail}";
+        var exported = await priya.GetAsync(Export(day, day.AddDays(1), "BUSY"));
+        exported.StatusCode.Should().Be(HttpStatusCode.OK);
+        exported.Content.Headers.ContentType!.MediaType.Should().Be("text/calendar");
+        (await exported.Content.ReadAsStringAsync()).Should().Contain("SUMMARY:Busy").And.NotContain(title);
+        (await priya.GetStringAsync(Export(day, day.AddDays(1), "FULL"))).Should().Contain("SUMMARY:" + title).And.Contain("LOCATION:Room 9");
+        (await priya.GetStringAsync(Export(day.AddDays(30), day.AddDays(31), "FULL"))).Should().NotContain(title, "outside the chosen days");
+        (await priya.GetAsync(Export(day, day.AddDays(90), "FULL"))).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await anon.GetAsync(Export(day, day.AddDays(1), "FULL"))).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        using var amara = await Client("amara@acme.test");
+        (await amara.GetStringAsync(Export(day, day.AddDays(1), "FULL"))).Should().NotContain(title, "only one's own calendar");
     }
 }
 

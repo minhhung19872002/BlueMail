@@ -45,3 +45,10 @@ public class DirectoryOverride : ITenantOwned
     public Guid UserId { get; set; }
     public bool HideFromDirectory { get; set; }
 }
+
+/// <summary>Outlook "Share Contacts" within the organisation: the grantee may read the owner's contacts.</summary>
+public class ContactShare : TenantEntity
+{
+    public Guid OwnerUserId { get; set; }
+    public Guid GranteeUserId { get; set; }
+}

@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { App, Avatar, Button, Dropdown, Empty, Input, List, Modal, Pagination, Select, Space, Tabs, Tag, Typography, Upload } from "antd";
-import { DeleteOutlined, DownloadOutlined, EditOutlined, MailOutlined, MergeCellsOutlined, MinusCircleOutlined, PlusOutlined, TeamOutlined, UploadOutlined, UserOutlined } from "@ant-design/icons";
+import { CalendarOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, FlagOutlined, MailOutlined, MergeCellsOutlined, MinusCircleOutlined, PlusOutlined, TeamOutlined, UploadOutlined, UserOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api/client";
 import { useCompose } from "../compose/composeStore";
 import { emptyDraft } from "../compose/composeApi";
+import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
+import { tasksApi } from "../tasks/tasksApi";
+import { ContactSharing } from "./ContactSharing";
 import { MailMerge } from "./MailMerge";
 import { contactKeys, contactsApi, type Contact, type ContactInput, type LabeledValue } from "./contactsApi";
 
@@ -43,7 +47,21 @@ function ContactList({ other }: { other: boolean }) {
   const [group, setGroup] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [edit, setEdit] = useState<{ id: string | null; value: ContactInput } | null>(null);
-  const list = useQuery({ queryKey: [...contactKeys.all, q, group, other, page], queryFn: () => contactsApi.list(q, group, other, page) });
+  // Contacts a colleague shared with me (read only), chosen in "Contacts of".
+  const [owner, setOwner] = useState<string | null>(null);
+  const shares = useQuery({ queryKey: contactKeys.shares, queryFn: contactsApi.shares, enabled: !other });
+  const readOnly = owner !== null;
+  const navigate = useNavigate();
+  const list = useQuery({ queryKey: [...contactKeys.all, q, group, other, page, owner], queryFn: () => contactsApi.list(q, readOnly ? null : group, other, page, owner) });
+  const followUp = async (c: Contact) => {
+    try {
+      await tasksApi.create({ title: t("contacts.followUpTitle", { name: c.displayName }), notes: c.emails[0]?.value ?? null,
+        dueDate: dayjs().add(1, "day").format("YYYY-MM-DD"), important: false, completed: false });
+      message.success(t("contacts.followUpDone"));
+    } catch (e) {
+      fail(e);
+    }
+  };
   const groups = useQuery({ queryKey: contactKeys.groups, queryFn: contactsApi.groups, enabled: !other });
   const refresh = () => qc.invalidateQueries({ queryKey: contactKeys.all });
   const fail = (e: unknown) => message.error(e instanceof ApiError ? e.title : t("errors.generic"));
@@ -82,7 +100,11 @@ function ContactList({ other }: { other: boolean }) {
     <>
       <Space wrap className="bm-contacts-bar">
         <Input.Search allowClear placeholder={t("contacts.search")} aria-label={t("contacts.search")} onSearch={(v) => { setQ(v); setPage(1); }} />
-        {!other && (
+        {!other && (shares.data?.withMe.length ?? 0) > 0 && (
+          <Select className="bm-filter-select" value={owner ?? ""} onChange={(v: string) => { setOwner(v || null); setPage(1); }} aria-label={t("contacts.share.of")}
+            options={[{ value: "", label: t("contacts.share.mine") }, ...(shares.data?.withMe ?? []).map((s) => ({ value: s.userId, label: t("contacts.share.theirs", { name: s.name }) }))]} />
+        )}
+        {!other && !readOnly && (
           <>
             <Select className="bm-filter-select" value={group ?? ""} onChange={(v: string) => { setGroup(v || null); setPage(1); }} aria-label={t("contacts.group")}
               options={[{ value: "", label: t("contacts.allContacts") }, ...(groups.data ?? []).map((g) => ({ value: g.id, label: `${g.name} (${g.members})` }))]} />
@@ -104,6 +126,7 @@ function ContactList({ other }: { other: boolean }) {
               onClick: ({ key }) => void contactsApi.exportFile(key as "vcf" | "csv", group).then((b) => download(b, `contacts.${key}`), fail) }}>
               <Button icon={<DownloadOutlined />}>{t("contacts.export")}</Button>
             </Dropdown>
+            <ContactSharing />
             <Button icon={<MergeCellsOutlined />} onClick={() => void contactsApi.mergeDuplicates().then(async (n) => { message.success(t("contacts.merged", { count: n })); await refresh(); }, fail)}>
               {t("contacts.mergeDuplicates")}
             </Button>
@@ -115,13 +138,19 @@ function ContactList({ other }: { other: boolean }) {
         <List.Item actions={[
           ...(c.emails[0] ? [<Button key="m" type="text" icon={<MailOutlined />} aria-label={t("contacts.write", { name: c.displayName })}
             onClick={() => openCompose({ initial: { ...emptyDraft(), to: [{ name: c.displayName, address: c.emails[0]!.value }] } })} />] : []),
-          <Button key="e" type="text" icon={<EditOutlined />} aria-label={other ? t("contacts.save") : t("contacts.edit")} onClick={() => setEdit({ id: c.id, value: toInput(c) })} />,
-          <Button key="d" type="text" danger icon={<DeleteOutlined />} aria-label={t("contacts.delete")}
-            onClick={() => modal.confirm({ title: t("contacts.deleteConfirm", { name: c.displayName }), okButtonProps: { danger: true },
-              onOk: async () => { await contactsApi.remove([c.id]); await refresh(); } })} />,
+          // Outlook: "Meeting" and "Follow Up" from a contact.
+          ...(c.emails[0] ? [<Button key="meet" type="text" icon={<CalendarOutlined />} aria-label={t("contacts.meet", { name: c.displayName })}
+            onClick={() => navigate(`/calendar?meet=1&title=&guests=${encodeURIComponent(c.emails[0]!.value)}`)} />] : []),
+          <Button key="follow" type="text" icon={<FlagOutlined />} aria-label={t("contacts.followUp", { name: c.displayName })} onClick={() => void followUp(c)} />,
+          ...(readOnly ? [] : [
+            <Button key="e" type="text" icon={<EditOutlined />} aria-label={other ? t("contacts.save") : t("contacts.edit")} onClick={() => setEdit({ id: c.id, value: toInput(c) })} />,
+            <Button key="d" type="text" danger icon={<DeleteOutlined />} aria-label={t("contacts.delete")}
+              onClick={() => modal.confirm({ title: t("contacts.deleteConfirm", { name: c.displayName }), okButtonProps: { danger: true },
+                onOk: async () => { await contactsApi.remove([c.id]); await refresh(); } })} />,
+          ]),
         ]}>
           <List.Item.Meta
-            avatar={<ContactAvatar c={c} />}
+            avatar={<ContactAvatar c={c} photo={!readOnly} />}
             title={c.displayName}
             description={[c.emails.map((e) => e.value).join(", "), c.phones[0]?.value, [c.title, c.org].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
           />
@@ -139,14 +168,14 @@ function ContactList({ other }: { other: boolean }) {
   );
 }
 
-function ContactAvatar({ c }: { c: Contact }) {
+function ContactAvatar({ c, photo = true }: { c: Contact; photo?: boolean }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
-    if (!c.hasPhoto) return;
+    if (!c.hasPhoto || !photo) return;
     let url: string | null = null;
     void contactsApi.photo(c.id).then((b) => { url = URL.createObjectURL(b); setSrc(url); }, () => setSrc(null));
     return () => { if (url) URL.revokeObjectURL(url); };
-  }, [c.id, c.hasPhoto]);
+  }, [c.id, c.hasPhoto, photo]);
   return src ? <Avatar src={src} alt="" /> : <Avatar icon={<UserOutlined />} />;
 }
 

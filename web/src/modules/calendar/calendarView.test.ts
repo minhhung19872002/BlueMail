@@ -15,6 +15,11 @@ describe("calendar views", () => {
     expect(month).toHaveLength(42);
     expect(month[0]!.format("YYYY-MM-DD")).toBe("2026-10-26");
     expect(visibleDays("day", anchor, 1).map((d) => d.format("YYYY-MM-DD"))).toEqual(["2026-11-26"]);
+    // Schedule: the seven days from the anchor, moved a week at a time.
+    const agenda = visibleDays("agenda", anchor, 1).map((d) => d.format("YYYY-MM-DD"));
+    expect(agenda).toHaveLength(7);
+    expect([agenda[0], agenda[6]]).toEqual(["2026-11-26", "2026-12-02"]);
+    expect(step("agenda", anchor, 1).format("YYYY-MM-DD")).toBe("2026-12-03");
     expect(step("month", anchor, -1).format("YYYY-MM")).toBe("2026-10");
   });
 

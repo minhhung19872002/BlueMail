@@ -534,6 +534,10 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("origin_task_id");
 
+                    b.Property<DateTimeOffset?>("ReminderAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reminder_at");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
@@ -1063,6 +1067,64 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasName("pk_contact_group_members");
 
                     b.ToTable("contact_group_members", "contact");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Contacts.ContactShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
+                    b.Property<Guid>("GranteeUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grantee_user_id");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_contact_shares");
+
+                    b.HasIndex("GranteeUserId")
+                        .HasDatabaseName("ix_contact_shares_grantee_user_id");
+
+                    b.HasIndex("OwnerUserId", "GranteeUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_contact_shares_owner_user_id_grantee_user_id")
+                        .HasFilter("deleted_at IS NULL");
+
+                    b.ToTable("contact_shares", "contact");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Contacts.DirectoryOverride", b =>

@@ -5,12 +5,16 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export type CalendarView = "day" | "workweek" | "week" | "month";
+export type CalendarView = "day" | "workweek" | "week" | "month" | "agenda";
+
+/** Outlook "Schedule" view: the next days as one list. */
+export const AgendaDays = 7;
 
 /** The days a view shows around `anchor` (in the user's zone); weeks start on `weekStart` (0 = Sunday, 1 = Monday). */
 export function visibleDays(view: CalendarView, anchor: Dayjs, weekStart: number): Dayjs[] {
   const day = anchor.startOf("day");
   if (view === "day") return [day];
+  if (view === "agenda") return Array.from({ length: AgendaDays }, (_, i) => day.add(i, "day"));
   if (view === "week" || view === "workweek") {
     const first = day.subtract((day.day() - weekStart + 7) % 7, "day");
     const week = Array.from({ length: 7 }, (_, i) => first.add(i, "day"));
@@ -24,6 +28,7 @@ export function visibleDays(view: CalendarView, anchor: Dayjs, weekStart: number
 
 /** Moves the anchor one view forward (+1) or back (-1). */
 export function step(view: CalendarView, anchor: Dayjs, direction: 1 | -1): Dayjs {
+  if (view === "agenda") return anchor.add(direction * AgendaDays, "day");
   return anchor.add(direction, view === "workweek" ? "week" : view);
 }
 

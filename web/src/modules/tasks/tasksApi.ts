@@ -20,6 +20,8 @@ export interface TaskItem {
   /** Assigned within the organisation: the assignee's name on the assigner's task, the assigner's on the copy. */
   assignedTo: string | null;
   assignedBy: string | null;
+  /** ISO time to be reminded at (Outlook task reminder). */
+  reminderAt: string | null;
 }
 
 export interface TaskInput {
@@ -30,6 +32,7 @@ export interface TaskInput {
   completed: boolean;
   messageId?: string | null;
   category?: string | null;
+  reminderAt?: string | null;
 }
 
 export const taskKeys = { all: ["tasks"] as const, view: (v: TaskView) => ["tasks", v] as const };
@@ -45,7 +48,7 @@ export const tasksApi = {
 };
 
 export const inputOf = (t: TaskItem, change: Partial<TaskInput> = {}): TaskInput => ({
-  title: t.title, notes: t.notes, dueDate: t.dueDate, important: t.important, completed: t.completedAt !== null, category: t.category, ...change,
+  title: t.title, notes: t.notes, dueDate: t.dueDate, important: t.important, completed: t.completedAt !== null, category: t.category, reminderAt: t.reminderAt, ...change,
 });
 
 /** "overdue", "today", "soon" (within 7 days) or "later", by calendar date in the user's zone. */
@@ -74,3 +77,12 @@ export function followUpDue(kind: FollowUp, today: string): string | null {
     default: return null;
   }
 }
+
+/** Open tasks whose reminder time has come (within the last day) and that were not shown yet. */
+export function dueTaskReminders(tasks: TaskItem[], now: number, shown: ReadonlySet<string>): TaskItem[] {
+  return tasks
+    .filter((t) => t.reminderAt && !t.completedAt && Date.parse(t.reminderAt) <= now && Date.parse(t.reminderAt) > now - 86_400_000 && !shown.has(taskReminderKey(t)))
+    .sort((a, b) => a.reminderAt!.localeCompare(b.reminderAt!));
+}
+
+export const taskReminderKey = (t: { id: string; reminderAt: string | null }) => `task|${t.id}|${t.reminderAt}`;

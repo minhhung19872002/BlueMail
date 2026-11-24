@@ -220,3 +220,8 @@ Draft state gains `confidential: { expiresDays: 1|7|30|90|365, requireCode }`. S
 | PUT / DELETE | `/api/v1/tasks/{id}` | self | Change (same body, no messageId) or delete |
 
 | POST | `/api/v1/tasks/{id}/assign` `{ email }` | self | Assign an open, unassigned task to a colleague of the same organisation; their copy completes yours |
+| GET | `/api/v1/calendar/export.ics?from=&to=&detail=BUSY\|FULL` | self | "E-mail Calendar": my events of at most 62 days as an ICS file (no attendees) |
+| GET | `/api/v1/contacts/shares` | self | Who may read my contacts (`mine`), whose I may open (`withMe`) |
+| PUT | `/api/v1/contacts/shares` `{ email, shared }` | self | Share my contacts read-only with a colleague of the organisation, or stop |
+| GET | `/api/v1/contacts?owner=` | self | A colleague's shared contacts (read only; not shared = 404) |
+| PUT | `/api/v1/tasks/{id}` `reminderAt` | self | Task reminder time (UTC); null clears it |

@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BlueMail.Application.Features.Calendar;
 
 public sealed record TaskDto(Guid Id, string Title, string? Notes, DateOnly? DueDate, bool Important, DateTimeOffset? CompletedAt, Guid? MessageId,
-    Guid? ThreadId, DateTimeOffset CreatedAt, string? Category = null, string? AssignedTo = null, string? AssignedBy = null);
+    Guid? ThreadId, DateTimeOffset CreatedAt, string? Category = null, string? AssignedTo = null, string? AssignedBy = null, DateTimeOffset? ReminderAt = null);
 
 public static class TaskViews
 {
@@ -20,7 +20,7 @@ public static class TaskViews
 
     public static TaskDto Dto(TaskItem t, IReadOnlyDictionary<Guid, string>? names = null) =>
         new(t.Id, t.Title, t.Notes, t.DueDate, t.Important, t.CompletedAt, t.MessageId, t.ThreadId, t.CreatedAt, t.Category,
-            t.AssignedToId is { } to ? names?.GetValueOrDefault(to) : null, t.AssignedById is { } by ? names?.GetValueOrDefault(by) : null);
+            t.AssignedToId is { } to ? names?.GetValueOrDefault(to) : null, t.AssignedById is { } by ? names?.GetValueOrDefault(by) : null, t.ReminderAt);
 
     /// <summary>Display names (or addresses) of the people tasks were assigned to or by, in the user's organisation.</summary>
     public static async Task<IReadOnlyDictionary<Guid, string>> NamesAsync(BlueMailDbContext db, IEnumerable<TaskItem> tasks, CancellationToken ct)
@@ -64,7 +64,7 @@ public sealed class ListTasksHandler(BlueMailDbContext db, ICurrentUser me) : IR
 }
 
 public sealed record SaveTaskCommand(Guid? Id, string? Title, string? Notes, DateOnly? DueDate, bool Important, bool Completed, Guid? MessageId,
-    string? Category = null) : IRequest<TaskDto>;
+    string? Category = null, DateTimeOffset? ReminderAt = null) : IRequest<TaskDto>;
 
 public sealed class SaveTaskValidator : AbstractValidator<SaveTaskCommand>
 {
@@ -75,6 +75,7 @@ public sealed class SaveTaskValidator : AbstractValidator<SaveTaskCommand>
         RuleFor(x => x.Notes).MaximumLength(8000);
         RuleFor(x => x.DueDate).Must(d => d is null || (d.Value.Year >= 2000 && d.Value.Year <= 2200)).WithErrorCode("invalid_date");
         RuleFor(x => x.Category).Must(c => c is null || CalendarLimits.Colors.Contains(c)).WithErrorCode("invalid_color");
+        RuleFor(x => x.ReminderAt).Must(r => r is null || (r.Value.Year >= 2000 && r.Value.Year <= 2200)).WithErrorCode("invalid_date");
     }
 }
 
@@ -119,6 +120,7 @@ public sealed class SaveTaskHandler(BlueMailDbContext db, ICurrentUser me, Mailb
         t.DueDate = c.DueDate;
         t.Important = c.Important;
         t.Category = c.Category;
+        t.ReminderAt = c.ReminderAt?.ToUniversalTime();
         t.CompletedAt = c.Completed ? t.CompletedAt ?? DateTimeOffset.UtcNow : null;
         if (t.OriginTaskId is { } origin)
         {

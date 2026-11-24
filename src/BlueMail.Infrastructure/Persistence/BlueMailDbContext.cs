@@ -99,6 +99,7 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<BlueMail.Domain.Contacts.Contact> Contacts => Set<BlueMail.Domain.Contacts.Contact>();
     public DbSet<BlueMail.Domain.Contacts.ContactGroup> ContactGroups => Set<BlueMail.Domain.Contacts.ContactGroup>();
     public DbSet<BlueMail.Domain.Contacts.ContactGroupMember> ContactGroupMembers => Set<BlueMail.Domain.Contacts.ContactGroupMember>();
+    public DbSet<BlueMail.Domain.Contacts.ContactShare> ContactShares => Set<BlueMail.Domain.Contacts.ContactShare>();
     public DbSet<BlueMail.Domain.Contacts.DirectoryOverride> DirectoryOverrides => Set<BlueMail.Domain.Contacts.DirectoryOverride>();
     public DbSet<BlueMail.Domain.Compliance.LegalHold> LegalHolds => Set<BlueMail.Domain.Compliance.LegalHold>();
     public DbSet<BlueMail.Domain.Compliance.HoldMessage> HoldMessages => Set<BlueMail.Domain.Compliance.HoldMessage>();

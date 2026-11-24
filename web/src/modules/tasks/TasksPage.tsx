@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { App, Button, Checkbox, DatePicker, Drawer, Empty, Form, Input, Modal, Segmented, Select, Space, Spin, Tag, Tooltip, Typography } from "antd";
-import { CalendarOutlined, DeleteOutlined, MailOutlined, PlusOutlined, StarFilled, StarOutlined, UserOutlined } from "@ant-design/icons";
+import { BellOutlined, CalendarOutlined, DeleteOutlined, MailOutlined, PlusOutlined, StarFilled, StarOutlined, UserOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -80,6 +80,7 @@ export function TasksPage() {
                         {due === "today" ? t("tasks.today") : dueLabel(task.dueDate)}
                       </Tag>
                     )}
+                    {task.reminderAt && !task.completedAt && <Tag icon={<BellOutlined />}>{dayjs(task.reminderAt).format("YYYY-MM-DD HH:mm")}</Tag>}
                     {task.notes && <span className="bm-muted">{t("tasks.hasNotes")}</span>}
                   </span>
                 </button>
@@ -106,10 +107,11 @@ function TaskDrawer({ task, onClose, onSaved, onOpenMail }: { task: TaskItem; on
   const { message, modal } = App.useApp();
   const [assigning, setAssigning] = useState(false);
   const [assignee, setAssignee] = useState("");
-  const [form] = Form.useForm<{ title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null }>();
-  const save = async (v: { title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null }) => {
+  const [form] = Form.useForm<{ title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null; remind: dayjs.Dayjs | null }>();
+  const save = async (v: { title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null; remind: dayjs.Dayjs | null }) => {
     try {
-      await tasksApi.update(task.id, inputOf(task, { title: v.title.trim(), notes: v.notes?.trim() || null, dueDate: v.due ? v.due.format("YYYY-MM-DD") : null, category: v.category ?? null }));
+      await tasksApi.update(task.id, inputOf(task, { title: v.title.trim(), notes: v.notes?.trim() || null, dueDate: v.due ? v.due.format("YYYY-MM-DD") : null, category: v.category ?? null,
+        reminderAt: v.remind ? v.remind.toISOString() : null }));
       onSaved();
     } catch (e) {
       message.error(e instanceof ApiError ? e.title : t("errors.actionFailed"));
@@ -127,11 +129,12 @@ function TaskDrawer({ task, onClose, onSaved, onOpenMail }: { task: TaskItem; on
       </Space>
     }>
       <Form form={form} layout="vertical" onFinish={(v) => void save(v)} requiredMark={false}
-        initialValues={{ title: task.title, notes: task.notes ?? undefined, due: task.dueDate ? dayjs(task.dueDate) : null, category: task.category }}>
+        initialValues={{ title: task.title, notes: task.notes ?? undefined, due: task.dueDate ? dayjs(task.dueDate) : null, category: task.category, remind: task.reminderAt ? dayjs(task.reminderAt) : null }}>
         <Form.Item name="title" label={t("tasks.fields.title")} rules={[{ required: true, whitespace: true, message: t("tasks.fields.titleRequired") }, { max: 500 }]}>
           <Input dir="auto" />
         </Form.Item>
         <Form.Item name="due" label={t("tasks.fields.due")}><DatePicker format="YYYY-MM-DD" /></Form.Item>
+        <Form.Item name="remind" label={t("tasks.fields.remind")}><DatePicker showTime={{ format: "HH:mm", minuteStep: 5 }} format="YYYY-MM-DD HH:mm" /></Form.Item>
         <Form.Item name="category" label={t("tasks.fields.category")}>
           <Select allowClear placeholder={t("tasks.noCategory")} options={Object.entries(eventColors).map(([k, c]) => ({
             value: k, label: <span><span className="bm-cal-swatch" style={{ background: c }} aria-hidden /> {t(`calendar.colors.${k}`)}</span>,

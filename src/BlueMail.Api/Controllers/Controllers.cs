@@ -357,6 +357,15 @@ public sealed class CalendarController(ISender mediator) : ControllerBase
         CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(body, ct));
 
+    /// <summary>"E-mail Calendar": my events of a range as an ICS file to attach to a message.</summary>
+    [HttpGet("export.ics")]
+    [SelfGuarded("own calendar of the signed-in user")]
+    public async Task<IActionResult> ExportIcs([FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to, [FromQuery] string detail = "BUSY", CancellationToken ct = default)
+    {
+        var ics = await mediator.Send(new BlueMail.Application.Features.Calendar.ExportCalendarQuery(from, to, detail), ct);
+        return File(System.Text.Encoding.UTF8.GetBytes(ics), "text/calendar; charset=utf-8", "calendar.ics");
+    }
+
     /// <summary>The published calendar as ICS for other calendar apps; the secret in the link is the credential.</summary>
     [HttpGet("feed/{token}.ics")]
     [Microsoft.AspNetCore.Authorization.AllowAnonymous]
@@ -420,7 +429,8 @@ public sealed class TasksController(ISender mediator) : ControllerBase
 {
     private const string Guarded = "own tasks of the signed-in user";
 
-    public sealed record TaskBody(string? Title, string? Notes, DateOnly? DueDate, bool Important, bool Completed, Guid? MessageId, string? Category = null);
+    public sealed record TaskBody(string? Title, string? Notes, DateOnly? DueDate, bool Important, bool Completed, Guid? MessageId, string? Category = null,
+        DateTimeOffset? ReminderAt = null);
 
     [HttpGet]
     [SelfGuarded(Guarded)]
@@ -430,12 +440,12 @@ public sealed class TasksController(ISender mediator) : ControllerBase
     [HttpPost]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.Application.Features.Calendar.TaskDto>> Create([FromBody] TaskBody b, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.SaveTaskCommand(null, b.Title, b.Notes, b.DueDate, b.Important, b.Completed, b.MessageId, b.Category), ct));
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.SaveTaskCommand(null, b.Title, b.Notes, b.DueDate, b.Important, b.Completed, b.MessageId, b.Category, b.ReminderAt), ct));
 
     [HttpPut("{id:guid}")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.Application.Features.Calendar.TaskDto>> Update(Guid id, [FromBody] TaskBody b, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.SaveTaskCommand(id, b.Title, b.Notes, b.DueDate, b.Important, b.Completed, null, b.Category), ct));
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.SaveTaskCommand(id, b.Title, b.Notes, b.DueDate, b.Important, b.Completed, null, b.Category, b.ReminderAt), ct));
 
     [HttpDelete("{id:guid}")]
     [SelfGuarded(Guarded)]

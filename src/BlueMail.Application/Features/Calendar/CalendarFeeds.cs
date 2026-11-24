@@ -117,3 +117,46 @@ public sealed class CalendarFeedIcsHandler(BlueMailDbContext db) : IRequestHandl
         return ICalendar.Publish(user.DisplayName, events, now);
     }
 }
+
+/// <summary>
+/// Outlook "E-mail Calendar": the signed-in user's events of a date range as an ICS file to attach to a message
+/// (busy times only, or with titles, places and notes). Attendees are never included.
+/// </summary>
+public sealed record ExportCalendarQuery(DateTimeOffset From, DateTimeOffset To, string Detail) : IRequest<string>;
+
+public sealed class ExportCalendarValidator : AbstractValidator<ExportCalendarQuery>
+{
+    public static readonly TimeSpan MaxRange = TimeSpan.FromDays(62);
+
+    public ExportCalendarValidator()
+    {
+        RuleFor(x => x.Detail).Must(d => d is CalendarFeedRules.Busy or CalendarFeedRules.Full).WithErrorCode("invalid_detail");
+        RuleFor(x => x).Must(x => x.To > x.From && x.To - x.From <= MaxRange).WithErrorCode("invalid_period");
+    }
+}
+
+public sealed class ExportCalendarHandler(BlueMailDbContext db, ICurrentUser me) : IRequestHandler<ExportCalendarQuery, string>
+{
+    public async Task<string> Handle(ExportCalendarQuery q, CancellationToken ct)
+    {
+        var (from, to) = (q.From.ToUniversalTime(), q.To.ToUniversalTime());
+        var user = await db.Users.AsNoTracking().Where(u => u.Id == me.UserId).Select(u => u.DisplayName).FirstAsync(ct);
+        var items = await db.CalendarItems.AsNoTracking()
+            .Where(e => e.UserId == me.UserId && e.Status != "CANCELLED" && e.MyResponse != "DECLINED"
+                        && e.StartAt < to && (e.RecurrenceRule != null || e.EndAt > from))
+            .OrderBy(e => e.StartAt).Take(2000).ToListAsync(ct);
+        // A series goes in only when one of its occurrences falls on the chosen days.
+        items = items.Where(e => e.RecurrenceRule is null
+                                 || Recurrence.Expand(e.StartAt, e.EndAt - e.StartAt, RecurrenceRule.Parse(e.RecurrenceRule), CalendarLimits.Zone(e.TimeZone), from, to, e.ExceptionDates).Count > 0)
+            .ToList();
+        var full = q.Detail == CalendarFeedRules.Full;
+        var events = items.Select(e => (Calendars.ToEvent(e, "PUBLISH", []) with
+        {
+            Organizer = null,
+            Summary = full ? e.Summary : "Busy",
+            Location = full ? e.Location : null,
+            Description = full ? e.Description : null,
+        }, CalendarLimits.Zone(e.TimeZone)));
+        return ICalendar.Publish(user, events, DateTimeOffset.UtcNow);
+    }
+}

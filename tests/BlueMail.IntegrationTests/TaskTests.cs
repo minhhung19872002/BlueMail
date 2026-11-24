@@ -66,6 +66,12 @@ public class TaskTests(StackFixture stack)
         // Categorize (a colour of the calendar palette).
         var coloured = await Data(await joao.PutAsJsonAsync($"/api/v1/tasks/{id}", new { title = "Call the bank " + tag, category = "green" }));
         coloured.GetProperty("category").GetString().Should().Be("green");
+        // Reminder time (kept as UTC); clearing it.
+        var reminded = await Data(await joao.PutAsJsonAsync($"/api/v1/tasks/{id}", new { title = "Call the bank " + tag, category = "green", reminderAt = "2026-12-01T09:30:00+07:00" }));
+        DateTimeOffset.Parse(reminded.GetProperty("reminderAt").GetString()!, System.Globalization.CultureInfo.InvariantCulture)
+            .Should().Be(new DateTimeOffset(2026, 12, 1, 2, 30, 0, TimeSpan.Zero));
+        (await Data(await joao.PutAsJsonAsync($"/api/v1/tasks/{id}", new { title = "Call the bank " + tag, category = "green" })))
+            .GetProperty("reminderAt").ValueKind.Should().Be(JsonValueKind.Null);
         (await joao.PutAsJsonAsync($"/api/v1/tasks/{id}", new { title = "x", category = "pink" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Assign (same organisation): amara gets a copy; completing it completes joao's task.

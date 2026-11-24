@@ -717,7 +717,23 @@
       "GROUP": "Group",
       "SHARED": "Shared mailbox"
     },
-    "noneDirectory": "Nobody matches."
+    "noneDirectory": "Nobody matches.",
+    "share": {
+      "button": "Share contacts",
+      "title": "Share my contacts",
+      "help": "Colleagues of your organisation you add here can read your contacts; they cannot change them.",
+      "email": "Colleague's email address",
+      "add": "Share",
+      "none": "Not shared with anyone.",
+      "stop": "Stop sharing with {name}",
+      "of": "Contacts of",
+      "mine": "My contacts",
+      "theirs": "Contacts of {name}"
+    },
+    "meet": "Meeting with {name}",
+    "followUp": "Follow up {name}",
+    "followUpTitle": "Follow up with {name}",
+    "followUpDone": "Added to To Do for tomorrow."
   },
   "settings": {
     "title": "Settings",
@@ -1508,7 +1524,8 @@
       "day": "Day",
       "week": "Week",
       "month": "Month",
-      "workweek": "Work week"
+      "workweek": "Work week",
+      "agenda": "Schedule"
     },
     "allDay": "All day",
     "more": "{count, plural, one {# more} other {# more}}",
@@ -1608,6 +1625,27 @@
       "delete": "Delete a group",
       "name": "Group name",
       "deleteOne": "Delete the group \"{name}\"?"
+    },
+    "nothingPlanned": "Nothing planned",
+    "email": {
+      "button": "E-mail calendar",
+      "title": "E-mail calendar",
+      "create": "Create message",
+      "range": "Days",
+      "detail": "Detail",
+      "ranges": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "next7": "Next 7 days",
+        "next30": "Next 30 days"
+      },
+      "details": {
+        "BUSY": "Availability only",
+        "FULL": "Titles and places"
+      },
+      "busy": "Busy",
+      "subject": "Calendar of {name}",
+      "intro": "My calendar from {from} to {to}:"
     }
   },
   "tasks": {
@@ -1646,7 +1684,8 @@
       "titleRequired": "Give the task a title.",
       "due": "Due date",
       "notes": "Notes",
-      "category": "Category"
+      "category": "Category",
+      "remind": "Remind me"
     },
     "addFromMail": "Add to To Do",
     "addedFromMail": "Added to To Do.",
@@ -1656,7 +1695,9 @@
     "assignHelp": "They get the task in their To Do; yours completes when they complete it.",
     "assignedTo": "Assigned to {name}",
     "assignedBy": "From {name}",
-    "assignedNote": "Assigned to {name}: this task completes when they complete it."
+    "assignedNote": "Assigned to {name}: this task completes when they complete it.",
+    "remindBody": "Task reminder",
+    "remindOpen": "Open To Do"
   },
   "quickSteps": {
     "title": "Quick Steps",

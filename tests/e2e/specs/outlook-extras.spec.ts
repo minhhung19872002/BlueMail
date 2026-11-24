@@ -44,3 +44,46 @@ test("an assigned task completes for the assigner when the assignee completes it
   await page.getByText("Đã xong", { exact: true }).click();
   await expect(page.getByText(title)).toBeVisible();
 });
+
+test("filter To me, the Schedule view and E-mail calendar", async ({ page }) => {
+  await signIn(page, "minh@bluemail.test");
+  await page.locator(".bm-list-filter").click();
+  const filtered = page.waitForResponse((r) => r.url().includes("/api/v1/mail/conversations") && decodeURIComponent(r.url()).includes("to:me"));
+  await page.getByTitle("Gửi cho tôi").click();
+  expect((await filtered).ok()).toBeTruthy();
+  await expect(page).toHaveURL(/[?&]f=toMe/);
+
+  await page.goto("/calendar");
+  await page.getByText("Lịch biểu", { exact: true }).click();
+  await expect(page.locator(".bm-cal-agenda > li")).toHaveCount(7);
+  await expectNoHorizontalScroll(page);
+
+  await page.getByRole("button", { name: "Gửi lịch qua email" }).click();
+  const ics = page.waitForResponse((r) => r.url().includes("/api/v1/calendar/export.ics"));
+  await page.getByRole("button", { name: "Tạo thư" }).click();
+  expect((await ics).ok()).toBeTruthy();
+  await expect(page.getByText(/^calendar\.ics/)).toBeVisible({ timeout: 20_000 });
+});
+
+test("a contact can be shared, and a meeting started from a contact", async ({ page }) => {
+  const name = `Đối tác ${tag()}`;
+  await signIn(page, "hoa@bluemail.test", "/contacts");
+  await page.getByRole("button", { name: "Liên hệ mới" }).click();
+  await page.getByRole("dialog").getByRole("textbox").first().fill(name);
+  await page.getByRole("dialog").locator("input[type=email]").first().fill(`${tag()}@doitac.test`);
+  await page.getByRole("dialog").getByRole("button", { name: "Lưu" }).click();
+  await expect(page.getByText(name)).toBeVisible();
+
+  await page.getByRole("button", { name: "Chia sẻ danh bạ" }).click();
+  const dialog = page.getByRole("dialog", { name: "Chia sẻ danh bạ của tôi" });
+  await dialog.getByRole("textbox", { name: "Địa chỉ email đồng nghiệp" }).fill("minh@bluemail.test");
+  const shared = page.waitForResponse((r) => r.url().endsWith("/api/v1/contacts/shares") && r.request().method() === "PUT");
+  await dialog.getByRole("button", { name: "Chia sẻ", exact: true }).click();
+  expect((await shared).ok()).toBeTruthy();
+  await expect(dialog.getByText("minh@bluemail.test")).toBeVisible();
+  await dialog.getByRole("button", { name: "Close" }).click().catch(() => page.keyboard.press("Escape"));
+
+  await page.getByRole("button", { name: `Họp với ${name}` }).click();
+  await expect(page).toHaveURL(/\/calendar/);
+  await expect(page.getByRole("dialog", { name: "Sự kiện mới" })).toBeVisible();
+});

@@ -28,6 +28,18 @@ export interface ContactPage {
   pageSize: number;
 }
 
+export interface ContactShare {
+  userId: string;
+  email: string;
+  name: string;
+}
+
+/** Outlook "Share Contacts": who may read mine, whose I may open. */
+export interface ContactShares {
+  mine: ContactShare[];
+  withMe: ContactShare[];
+}
+
 export interface ContactGroup {
   id: string;
   name: string;
@@ -55,13 +67,15 @@ export interface ContactInput {
 export const contactKeys = {
   all: ["contacts"] as const,
   groups: ["contact-groups"] as const,
+  shares: ["contact-shares"] as const,
 };
 
 export const contactsApi = {
-  list: (q: string, groupId: string | null, other: boolean, page: number) => {
+  list: (q: string, groupId: string | null, other: boolean, page: number, owner: string | null = null) => {
     const p = new URLSearchParams({ page: String(page), pageSize: "50", other: String(other) });
     if (q) p.set("q", q);
     if (groupId) p.set("groupId", groupId);
+    if (owner) p.set("owner", owner);
     return api.get<ContactPage>(`/api/v1/contacts?${p.toString()}`);
   },
   save: (id: string | null, c: ContactInput) => (id ? api.put<string>(`/api/v1/contacts/${id}`, c) : api.post<string>("/api/v1/contacts", c)),
@@ -73,6 +87,8 @@ export const contactsApi = {
     return api.form<boolean>(`/api/v1/contacts/${id}/photo`, form, "PUT");
   },
   groups: () => api.get<ContactGroup[]>("/api/v1/contacts/groups"),
+  shares: () => api.get<ContactShares>("/api/v1/contacts/shares"),
+  setShare: (email: string, shared: boolean) => api.put<ContactShares>("/api/v1/contacts/shares", { email, shared }),
   saveGroup: (id: string | null, name: string) => (id ? api.put<string>(`/api/v1/contacts/groups/${id}`, { name }) : api.post<string>("/api/v1/contacts/groups", { name })),
   deleteGroup: (id: string) => api.delete<boolean>(`/api/v1/contacts/groups/${id}`),
   importFile: (file: File, groupId: string | null) => {

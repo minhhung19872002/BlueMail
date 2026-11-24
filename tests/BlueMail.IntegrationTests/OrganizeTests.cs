@@ -259,4 +259,30 @@ public class OrganizeTests(StackFixture stack)
         (await Db(db => db.Messages.IgnoreQueryFilters().SingleAsync(m => m.Id == fresh.Message))).ExpungedAt.Should().BeNull("not 30 days yet");
         await Db(db => db.Messages.IgnoreQueryFilters().Where(m => m.Id == held.Message).ExecuteUpdateAsync(m => m.SetProperty(x => x.LegalHoldCount, 0)));
     }
+
+    [Fact]
+    public async Task Shared_contacts_can_be_read_by_the_colleague_only_and_never_changed()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        using var priya = await Client("priya@acme.test");
+        var id = (await Data(await priya.PostAsJsonAsync("/api/v1/contacts", new { displayName = "Supplier " + tag, emails = new[] { new { value = $"s.{tag}@shop.test" } }, phones = Array.Empty<object>() }))).GetGuid();
+        (await Data(await priya.PutAsJsonAsync("/api/v1/contacts/shares", new { email = "amara@acme.test", shared = true })))
+            .GetProperty("mine").EnumerateArray().Should().ContainSingle(x => x.GetProperty("email").GetString() == "amara@acme.test");
+        (await priya.PutAsJsonAsync("/api/v1/contacts/shares", new { email = "priya@acme.test", shared = true })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await priya.PutAsJsonAsync("/api/v1/contacts/shares", new { email = "thao@bluemail.test", shared = true })).StatusCode.Should().Be(HttpStatusCode.NotFound, "other organisations look unknown");
+
+        using var amara = await Client("amara@acme.test");
+        var owner = (await Data(await amara.GetAsync("/api/v1/contacts/shares"))).GetProperty("withMe").EnumerateArray()
+            .Single(x => x.GetProperty("email").GetString() == "priya@acme.test").GetProperty("userId").GetGuid();
+        var list = await Data(await amara.GetAsync($"/api/v1/contacts?owner={owner}&q={tag}"));
+        list.GetProperty("items").EnumerateArray().Select(x => x.GetProperty("displayName").GetString()).Should().Equal("Supplier " + tag);
+        (await amara.PutAsJsonAsync($"/api/v1/contacts/{id}", new { displayName = "x", emails = Array.Empty<object>(), phones = Array.Empty<object>() })).StatusCode
+            .Should().Be(HttpStatusCode.NotFound, "read only");
+
+        // Nobody else, and nothing after the share ends.
+        using var joao = await Client("joao@acme.test");
+        (await joao.GetAsync($"/api/v1/contacts?owner={owner}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await Data(await priya.PutAsJsonAsync("/api/v1/contacts/shares", new { email = "amara@acme.test", shared = false }));
+        (await amara.GetAsync($"/api/v1/contacts?owner={owner}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

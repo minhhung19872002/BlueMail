@@ -337,3 +337,15 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 .bm-merge-preview { padding: 8px 12px; border: 1px dashed var(--bm-border); border-radius: 8px; }
 
 .bm-mt-8 { margin-block-start: 8px; }
+
+.bm-cal-agenda { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.bm-cal-agenda > li { padding: 8px 4px 12px; border-block-end: 1px solid var(--bm-border); }
+.bm-cal-agenda-today .bm-cal-agenda-day { color: var(--ant-color-primary, #0b57d0); }
+.bm-cal-agenda-day { font-size: 15px; margin: 0 0 6px; }
+.bm-cal-agenda-day::first-letter { text-transform: uppercase; }
+.bm-cal-agenda ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bm-cal-agenda-item { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; inline-size: 100%; text-align: start;
+  background: transparent; border: 0; border-inline-start: 4px solid; padding: 4px 10px; cursor: pointer; font: inherit; color: inherit; border-radius: 4px; }
+.bm-cal-agenda-item:hover, .bm-cal-agenda-item:focus-visible { background: var(--bm-hover, rgba(0, 0, 0, 0.04)); }
+.bm-cal-agenda-time { min-inline-size: 120px; font-variant-numeric: tabular-nums; }
+.bm-cal-agenda-title { font-weight: 600; }

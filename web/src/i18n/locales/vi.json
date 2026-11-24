@@ -717,7 +717,23 @@
       "GROUP": "Nhóm",
       "SHARED": "Hộp thư dùng chung"
     },
-    "noneDirectory": "Không có ai khớp."
+    "noneDirectory": "Không có ai khớp.",
+    "share": {
+      "button": "Chia sẻ danh bạ",
+      "title": "Chia sẻ danh bạ của tôi",
+      "help": "Đồng nghiệp cùng tổ chức được thêm ở đây xem được danh bạ của bạn, nhưng không sửa được.",
+      "email": "Địa chỉ email đồng nghiệp",
+      "add": "Chia sẻ",
+      "none": "Chưa chia sẻ với ai.",
+      "stop": "Ngừng chia sẻ với {name}",
+      "of": "Danh bạ của",
+      "mine": "Danh bạ của tôi",
+      "theirs": "Danh bạ của {name}"
+    },
+    "meet": "Họp với {name}",
+    "followUp": "Theo dõi {name}",
+    "followUpTitle": "Liên hệ lại với {name}",
+    "followUpDone": "Đã thêm vào Việc cần làm, hạn ngày mai."
   },
   "settings": {
     "title": "Cài đặt",
@@ -1508,7 +1524,8 @@
       "day": "Ngày",
       "week": "Tuần",
       "month": "Tháng",
-      "workweek": "Tuần làm việc"
+      "workweek": "Tuần làm việc",
+      "agenda": "Lịch biểu"
     },
     "allDay": "Cả ngày",
     "more": "{count, plural, other {+# nữa}}",
@@ -1608,6 +1625,27 @@
       "delete": "Xoá nhóm",
       "name": "Tên nhóm",
       "deleteOne": "Xoá nhóm \"{name}\"?"
+    },
+    "nothingPlanned": "Không có sự kiện",
+    "email": {
+      "button": "Gửi lịch qua email",
+      "title": "Gửi lịch qua email",
+      "create": "Tạo thư",
+      "range": "Khoảng ngày",
+      "detail": "Mức chi tiết",
+      "ranges": {
+        "today": "Hôm nay",
+        "tomorrow": "Ngày mai",
+        "next7": "7 ngày tới",
+        "next30": "30 ngày tới"
+      },
+      "details": {
+        "BUSY": "Chỉ giờ bận",
+        "FULL": "Tiêu đề và địa điểm"
+      },
+      "busy": "Bận",
+      "subject": "Lịch của {name}",
+      "intro": "Lịch của tôi từ {from} đến {to}:"
     }
   },
   "tasks": {
@@ -1646,7 +1684,8 @@
       "titleRequired": "Hãy đặt tiêu đề cho việc.",
       "due": "Hạn",
       "notes": "Ghi chú",
-      "category": "Nhóm màu"
+      "category": "Nhóm màu",
+      "remind": "Nhắc tôi lúc"
     },
     "addFromMail": "Thêm vào Việc cần làm",
     "addedFromMail": "Đã thêm vào Việc cần làm.",
@@ -1656,7 +1695,9 @@
     "assignHelp": "Người đó nhận việc trong Việc cần làm của họ; việc của bạn tự xong khi họ làm xong.",
     "assignedTo": "Đã giao cho {name}",
     "assignedBy": "Từ {name}",
-    "assignedNote": "Đã giao cho {name}: việc này tự đánh dấu xong khi họ làm xong."
+    "assignedNote": "Đã giao cho {name}: việc này tự đánh dấu xong khi họ làm xong.",
+    "remindBody": "Nhắc việc cần làm",
+    "remindOpen": "Mở Việc cần làm"
   },
   "quickSteps": {
     "title": "Quick Steps",

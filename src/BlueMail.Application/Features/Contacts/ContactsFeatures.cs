@@ -50,15 +50,18 @@ public static class ContactMapping
 
 // ---------- list / get / save / delete ----------
 
-public sealed record ListContactsQuery(string? Q, Guid? GroupId, bool Other, int Page, int PageSize) : IRequest<Paged<ContactDto>>;
+public sealed record ListContactsQuery(string? Q, Guid? GroupId, bool Other, int Page, int PageSize, Guid? Owner = null) : IRequest<Paged<ContactDto>>;
 
 public sealed class ListContactsHandler(BlueMailDbContext db, ICurrentUser me) : IRequestHandler<ListContactsQuery, Paged<ContactDto>>
 {
     public async Task<Paged<ContactDto>> Handle(ListContactsQuery q, CancellationToken ct)
     {
         var (page, size) = Paging.Clamp(q.Page, q.PageSize);
-        var query = db.Contacts.AsNoTracking().Where(c => c.UserId == me.UserId && c.IsAutoSaved == q.Other);
-        if (q.GroupId is { } g)
+        // A colleague's shared contacts: their saved contacts only, without their groups.
+        var owner = await ContactShares.ResolveAsync(db, me, q.Owner, ct);
+        var shared = owner != me.UserId;
+        var query = db.Contacts.AsNoTracking().Where(c => c.UserId == owner && c.IsAutoSaved == (q.Other && !shared));
+        if (q.GroupId is { } g && !shared)
         {
             query = query.Where(c => db.ContactGroupMembers.Any(m => m.GroupId == g && m.ContactId == c.Id));
         }
@@ -73,7 +76,7 @@ public sealed class ListContactsHandler(BlueMailDbContext db, ICurrentUser me) :
         var total = await query.CountAsync(ct);
         var rows = await query.OrderBy(c => c.DisplayName).Skip((page - 1) * size).Take(size).ToListAsync(ct);
         var ids = rows.Select(r => r.Id).ToList();
-        var groups = await db.ContactGroupMembers.AsNoTracking().Where(m => ids.Contains(m.ContactId)).ToListAsync(ct);
+        var groups = shared ? [] : await db.ContactGroupMembers.AsNoTracking().Where(m => ids.Contains(m.ContactId)).ToListAsync(ct);
         return new Paged<ContactDto>(rows.Select(r => ContactMapping.ToDto(r, groups.Where(x => x.ContactId == r.Id).Select(x => x.GroupId).ToList())).ToList(),
             total, page, size);
     }

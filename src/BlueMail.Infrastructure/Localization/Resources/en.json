@@ -289,10 +289,12 @@
   "error.calendar_not_shared": "This calendar is not shared with you.",
   "error.shared_calendar_no_guests": "Meetings with guests can only be planned and changed by their organizer.",
   "error.cannot_share_with_self": "This is your own calendar.",
-  "error.too_many_shares": "A calendar can be shared with at most 50 people.",
+  "error.too_many_shares": "You can share with at most 50 people.",
   "error.invalid_permission": "Choose view, edit or stop sharing.",
   "error.invalid_detail": "Choose times only or full details.",
   "error.invalid_sort": "Unknown sort order.",
   "error.task_not_assignable": "This task is already assigned or completed.",
-  "error.cannot_assign_to_self": "This task is already yours."
+  "error.cannot_assign_to_self": "This task is already yours.",
+  "error.contacts_not_shared": "These contacts are not shared with you.",
+  "error.invalid_period": "The end must be after the start, at most 62 days later."
 }

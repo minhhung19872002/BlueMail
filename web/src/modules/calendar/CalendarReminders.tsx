@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useUserFormat } from "../../session";
 import { useSettings } from "../settings/settingsApi";
 import { calendarApi } from "./calendarApi";
+import { dueTaskReminders, taskReminderKey, tasksApi } from "../tasks/tasksApi";
 import { dueReminders, reminderKey } from "./calendarView";
 
 const ShownKey = "bm-cal-reminders";
@@ -42,6 +43,21 @@ export function CalendarReminders() {
           });
           if (desktop.current && "Notification" in window && Notification.permission === "granted") {
             new Notification(r.event.summary, { body, tag: reminderKey(r.event) });
+          }
+        }
+        // Task reminders (Outlook To Do): open tasks whose reminder time has come.
+        const tasks = await tasksApi.list("my");
+        if (stopped) return;
+        for (const task of dueTaskReminders(tasks, now, shown)) {
+          const key = taskReminderKey(task);
+          shown.add(key);
+          const body = t("tasks.remindBody");
+          notification.info({
+            key, message: task.title, description: body, duration: 0, placement: "bottomRight",
+            btn: <Button size="small" onClick={() => { notification.destroy(key); navigate("/tasks"); }}>{t("tasks.remindOpen")}</Button>,
+          });
+          if (desktop.current && "Notification" in window && Notification.permission === "granted") {
+            new Notification(task.title, { body, tag: key });
           }
         }
         sessionStorage.setItem(ShownKey, JSON.stringify([...shown].slice(-200)));

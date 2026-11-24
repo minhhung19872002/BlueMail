@@ -11,6 +11,7 @@ import { useMe, useUserFormat } from "../../session";
 import { calendarApi, calendarKeys, type CalendarEvent, type EventInput, type SharedCalendar } from "./calendarApi";
 import { CalendarSharing } from "./CalendarSharing";
 import { CalendarGroups } from "./CalendarGroups";
+import { EmailCalendar } from "./EmailCalendar";
 import { availability, eventColors, eventDates, layoutDay, repeatKind, ruleFor, step, visibleDays, type CalendarView, type RepeatKind } from "./calendarView";
 
 const HourPx = 48;
@@ -93,10 +94,13 @@ export function CalendarPage() {
           <CalendarGroups shown={shown} available={(shares.data?.withMe ?? []).map((s) => s.userId)} onOpen={setShown} />
         )}
         <CalendarSharing />
+        <EmailCalendar tz={tz} />
         <Segmented value={view} onChange={(v) => setView(v as CalendarView)} aria-label={t("calendar.view")}
-          options={(["day", "workweek", "week", "month"] as const).map((v) => ({ value: v, label: t(`calendar.views.${v}`) }))} />
+          options={(["day", "workweek", "week", "month", "agenda"] as const).map((v) => ({ value: v, label: t(`calendar.views.${v}`) }))} />
       </div>
-      {events.isPending ? <Spin /> : view === "month" ? (
+      {events.isPending ? <Spin /> : view === "agenda" ? (
+        <Agenda days={days} byDate={byDate} tz={tz} onOpen={setOpen} />
+      ) : view === "month" ? (
         <MonthGrid days={days} anchor={anchor} byDate={byDate} tz={tz} onOpen={setOpen} onDay={(d) => { setAnchor(d); setView("day"); }} onNew={(d) => newAt(d, true)} />
       ) : (
         <TimeGrid days={days} byDate={byDate} events={events.data ?? []} tz={tz} onOpen={setOpen} onNew={newAt} />
@@ -120,6 +124,43 @@ function Chip({ e, onOpen }: { e: CalendarEvent; onOpen: (e: CalendarEvent) => v
       onClick={(ev) => { ev.stopPropagation(); onOpen(e); }}>
       {!e.allDay && <span className="bm-cal-chip-time">{time(e.start)}</span>} {e.summary}
     </button>
+  );
+}
+
+/** Outlook "Schedule": the next seven days as a list, every day with its events (or "Nothing planned"). */
+function Agenda({ days, byDate, tz, onOpen }: { days: Dayjs[]; byDate: Map<string, CalendarEvent[]>; tz: string; onOpen: (e: CalendarEvent) => void }) {
+  const { t } = useTranslation();
+  const fmt = useUserFormat();
+  const time = useTimeLabel();
+  const today = dayjs().tz(tz).format("YYYY-MM-DD");
+  const dayName = new Intl.DateTimeFormat(fmt.locale, { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" });
+  return (
+    <ol className="bm-cal-agenda" aria-label={t("calendar.views.agenda")}>
+      {days.map((d) => {
+        const key = d.format("YYYY-MM-DD");
+        const list = byDate.get(key) ?? [];
+        return (
+          <li key={key} className={key === today ? "bm-cal-agenda-today" : undefined}>
+            <h3 className="bm-cal-agenda-day">{dayName.format(new Date(key + "T12:00:00Z"))}</h3>
+            {list.length === 0 ? <Typography.Text type="secondary">{t("calendar.nothingPlanned")}</Typography.Text> : (
+              <ul>
+                {list.map((e) => (
+                  <li key={e.id + e.start}>
+                    <button type="button" className="bm-cal-agenda-item" onClick={() => onOpen(e)}
+                      style={{ borderInlineStartColor: eventColors[e.color ?? "blue"] ?? eventColors.blue }}>
+                      <span className="bm-cal-agenda-time">{e.allDay ? t("calendar.allDay") : `${time(e.start)} – ${time(e.end)}`}</span>
+                      <span className="bm-cal-agenda-title" dir="auto">{e.summary}</span>
+                      {e.location && <span className="bm-muted" dir="auto"><EnvironmentOutlined /> {e.location}</span>}
+                      {e.owner && <Tag>{e.owner.name}</Tag>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
