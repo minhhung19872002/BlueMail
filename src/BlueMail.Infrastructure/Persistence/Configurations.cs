@@ -781,6 +781,17 @@ internal sealed class CalendarItemConfig : IEntityTypeConfiguration<BlueMail.Dom
     }
 }
 
+internal sealed class TaskItemConfig : IEntityTypeConfiguration<BlueMail.Domain.Calendar.TaskItem>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Calendar.TaskItem> b)
+    {
+        b.ToTable("tasks", "cal");
+        b.Property(x => x.Title).HasMaxLength(500);
+        b.Property(x => x.Notes).HasMaxLength(8000);
+        b.HasIndex(x => new { x.UserId, x.CompletedAt, x.DueDate });
+    }
+}
+
 internal sealed class InviteResponseConfig : IEntityTypeConfiguration<InviteResponse>
 {
     public void Configure(EntityTypeBuilder<InviteResponse> b)

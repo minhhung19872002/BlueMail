@@ -282,5 +282,8 @@
   "error.invalid_reminder": "Choose one of the offered reminder times.",
   "error.invalid_color": "Choose one of the offered colours.",
   "error.event_not_found": "This event no longer exists.",
-  "error.invalid_address": "This is not a valid email address."
+  "error.invalid_address": "This is not a valid email address.",
+  "error.task_not_found": "This task no longer exists.",
+  "error.too_many_tasks": "You have too many open tasks; complete or delete some first.",
+  "error.invalid_date": "This date is not valid."
 }

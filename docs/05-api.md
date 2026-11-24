@@ -206,3 +206,11 @@ Draft state gains `confidential: { expiresDays: 1|7|30|90|365, requireCode }`. S
 | PUT | `/api/v1/calendar/events/{id}` | self | Same body; SEQUENCE + 1, guests get the update, removed guests a CANCEL. For an invitation from someone else only reminder and colour change |
 | DELETE | `/api/v1/calendar/events/{id}?occurrence=` | self | Whole event (guests get CANCEL) or one occurrence (EXDATE, guests get the updated series) |
 
+## Tasks
+
+| Method | Path | Guard | Notes |
+|---|---|---|---|
+| GET | `/api/v1/tasks?view=my\|important\|planned\|completed` | self | Open tasks (important first, then by due date), important, with a due date, completed (latest 500) |
+| POST | `/api/v1/tasks` | self | `{ title, notes?, dueDate? (YYYY-MM-DD), important, completed, messageId? }`; with `messageId` (own mailbox) the subject is the default title and the task links to the conversation; ≤ 2,000 open tasks |
+| PUT / DELETE | `/api/v1/tasks/{id}` | self | Change (same body, no messageId) or delete |
+

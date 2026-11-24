@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Alert, App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
-  BulbOutlined, CalendarOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
+  BulbOutlined, CalendarOutlined, CheckSquareOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
   MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined, StarOutlined, StarFilled, MailOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -176,6 +176,7 @@ export function AppShell() {
       // Phones have no app rail: the other apps are reached from the menu.
       items.unshift(
         { key: "/calendar", icon: <CalendarOutlined />, label: t("nav.calendar") },
+        { key: "/tasks", icon: <CheckSquareOutlined />, label: t("nav.tasks") },
         { key: "/contacts", icon: <ContactsOutlined />, label: t("nav.contacts") },
         { type: "divider" },
       );
@@ -284,13 +285,17 @@ export function AppShell() {
               <Button type="text" icon={<CalendarOutlined />} aria-label={t("nav.calendar")} aria-current={location.pathname.startsWith("/calendar") ? "page" : undefined}
                 onClick={() => navigate("/calendar")} />
             </Tooltip>
+            <Tooltip title={t("nav.tasks")} placement="right">
+              <Button type="text" icon={<CheckSquareOutlined />} aria-label={t("nav.tasks")} aria-current={location.pathname.startsWith("/tasks") ? "page" : undefined}
+                onClick={() => navigate("/tasks")} />
+            </Tooltip>
             <Tooltip title={t("nav.contacts")} placement="right">
               <Button type="text" icon={<ContactsOutlined />} aria-label={t("nav.contacts")} aria-current={location.pathname.startsWith("/contacts") ? "page" : undefined}
                 onClick={() => navigate("/contacts")} />
             </Tooltip>
           </nav>
         )}
-        {!(location.pathname.startsWith("/calendar") && !narrow) && <Sider
+        {!(/^/(calendar|tasks)/.test(location.pathname) && !narrow) && <Sider
           className={narrow ? "bm-sider bm-sider-overlay" : "bm-sider"}
           width={256}
           collapsedWidth={narrow ? 0 : 72}

@@ -83,6 +83,7 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<BulkMailJob> BulkMailJobs => Set<BulkMailJob>();
     public DbSet<InviteResponse> InviteResponses => Set<InviteResponse>();
     public DbSet<BlueMail.Domain.Calendar.CalendarItem> CalendarItems => Set<BlueMail.Domain.Calendar.CalendarItem>();
+    public DbSet<BlueMail.Domain.Calendar.TaskItem> Tasks => Set<BlueMail.Domain.Calendar.TaskItem>();
     public DbSet<BlockedSender> BlockedSenders => Set<BlockedSender>();
     public DbSet<Vacation> Vacations => Set<Vacation>();
     public DbSet<VacationReply> VacationReplies => Set<VacationReply>();

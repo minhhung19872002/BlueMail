@@ -14,6 +14,7 @@ import { act, getBody, getOriginal, getThread, mailKeys, trustImages, unsubscrib
 import { SnoozeMenu } from "./SnoozeMenu";
 import { SweepButton } from "./Sweep";
 import { InviteCard } from "./InviteCard";
+import { taskKeys, tasksApi } from "../tasks/tasksApi";
 import { useShortcuts } from "./ShortcutHost";
 import { ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike, senderDetails } from "./mailView";
@@ -260,6 +261,7 @@ function MessageItem({ m, open, toggle, inSpam, fromHere, onlyOne, onChanged }: 
       { type: "divider" },
       { key: "deleteOne", label: t("mail.deleteThisMessage") },
       { key: "unreadFromHere", label: t("mail.markUnreadFromHere") },
+      { key: "toTask", label: t("tasks.addFromMail") },
       { type: "divider" },
       { key: "original", label: t("mail.showOriginal") },
       { key: "eml", label: <a href={m.rawUrl} download>{t("mail.downloadEml")}</a> },
@@ -274,6 +276,10 @@ function MessageItem({ m, open, toggle, inSpam, fromHere, onlyOne, onChanged }: 
       }
       if (key === "unreadFromHere") {
         void act({ action: "markUnread", messageIds: fromHere }).then(() => onChanged(true), () => message.error(t("errors.actionFailed")));
+      }
+      if (key === "toTask") {
+        void tasksApi.fromMessage(msg.id).then(() => { void qc.invalidateQueries({ queryKey: taskKeys.all }); message.success(t("tasks.addedFromMail")); },
+          () => message.error(t("errors.actionFailed")));
       }
       if (key === "original") setOriginal(true);
       if (key === "block" && sender) {

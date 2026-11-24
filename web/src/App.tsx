@@ -23,6 +23,7 @@ const FiltersPage = lazy(() => import("./modules/settings/FiltersPage").then((m)
 const VacationPage = lazy(() => import("./modules/settings/VacationPage").then((m) => ({ default: m.VacationPage })));
 const ForwardingPage = lazy(() => import("./modules/settings/ForwardingPage").then((m) => ({ default: m.ForwardingPage })));
 const CalendarPage = lazy(() => import("./modules/calendar/CalendarPage").then((m) => ({ default: m.CalendarPage })));
+const TasksPage = lazy(() => import("./modules/tasks/TasksPage").then((m) => ({ default: m.TasksPage })));
 const ContactsPage = lazy(() => import("./modules/contacts/ContactsPage").then((m) => ({ default: m.ContactsPage })));
 const SettingsPage = lazy(() => import("./modules/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const AdminConsole = lazy(() => import("./modules/admin/AdminConsole").then((m) => ({ default: m.AdminConsole })));
@@ -81,6 +82,7 @@ function Authenticated() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/contacts" element={<ContactsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
           <Route path="/admin" element={<AdminConsole />} />
           <Route path="/admin/:section" element={<AdminConsole />} />
           <Route path="*" element={<Navigate to="/mail/inbox" replace />} />

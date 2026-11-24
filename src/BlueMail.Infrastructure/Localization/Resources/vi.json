@@ -282,5 +282,8 @@
   "error.invalid_reminder": "Chọn một thời điểm nhắc có sẵn.",
   "error.invalid_color": "Chọn một màu có sẵn.",
   "error.event_not_found": "Sự kiện này không còn nữa.",
-  "error.invalid_address": "Địa chỉ email không hợp lệ."
+  "error.invalid_address": "Địa chỉ email không hợp lệ.",
+  "error.task_not_found": "Việc này không còn nữa.",
+  "error.too_many_tasks": "Bạn có quá nhiều việc chưa xong; hãy hoàn thành hoặc xoá bớt.",
+  "error.invalid_date": "Ngày không hợp lệ."
 }

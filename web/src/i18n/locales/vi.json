@@ -43,7 +43,8 @@
     "admin": "Quản trị",
     "apps": "Ứng dụng",
     "mail": "Thư",
-    "calendar": "Lịch"
+    "calendar": "Lịch",
+    "tasks": "Việc cần làm"
   },
   "theme": {
     "title": "Chủ đề",
@@ -1525,5 +1526,43 @@
       "teal": "Xanh ngọc",
       "gray": "Xám"
     }
+  },
+  "tasks": {
+    "title": "Việc cần làm",
+    "lists": "Danh sách",
+    "views": {
+      "my": "Việc của tôi",
+      "important": "Quan trọng",
+      "planned": "Có hạn",
+      "completed": "Đã xong"
+    },
+    "add": "Thêm",
+    "addPlaceholder": "Thêm việc",
+    "today": "Hôm nay",
+    "fromMail": "Từ thư",
+    "hasNotes": "Có ghi chú",
+    "important": "Đánh dấu quan trọng",
+    "unimportant": "Bỏ quan trọng",
+    "markDone": "Hoàn thành: {title}",
+    "markOpen": "Chưa xong: {title}",
+    "empty": {
+      "my": "Không có việc nào. Thêm việc ở ô phía trên.",
+      "important": "Không có việc quan trọng.",
+      "planned": "Không có việc nào có hạn.",
+      "completed": "Chưa có việc nào xong."
+    },
+    "details": "Việc",
+    "save": "Lưu",
+    "delete": "Xoá việc",
+    "deleteTitle": "Xoá “{title}”?",
+    "openMail": "Mở thư",
+    "fields": {
+      "title": "Tiêu đề",
+      "titleRequired": "Hãy đặt tiêu đề cho việc.",
+      "due": "Hạn",
+      "notes": "Ghi chú"
+    },
+    "addFromMail": "Thêm vào Việc cần làm",
+    "addedFromMail": "Đã thêm vào Việc cần làm."
   }
 }

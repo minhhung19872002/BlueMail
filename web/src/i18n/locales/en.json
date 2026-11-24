@@ -43,7 +43,8 @@
     "admin": "Administration",
     "apps": "Apps",
     "mail": "Mail",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "tasks": "To Do"
   },
   "theme": {
     "title": "Theme",
@@ -1525,5 +1526,43 @@
       "teal": "Teal",
       "gray": "Grey"
     }
+  },
+  "tasks": {
+    "title": "To Do",
+    "lists": "Lists",
+    "views": {
+      "my": "My tasks",
+      "important": "Important",
+      "planned": "Planned",
+      "completed": "Completed"
+    },
+    "add": "Add",
+    "addPlaceholder": "Add a task",
+    "today": "Today",
+    "fromMail": "From an email",
+    "hasNotes": "Notes",
+    "important": "Mark as important",
+    "unimportant": "Remove importance",
+    "markDone": "Complete: {title}",
+    "markOpen": "Not completed: {title}",
+    "empty": {
+      "my": "Nothing to do. Add a task above.",
+      "important": "No important tasks.",
+      "planned": "No tasks with a due date.",
+      "completed": "No completed tasks yet."
+    },
+    "details": "Task",
+    "save": "Save",
+    "delete": "Delete task",
+    "deleteTitle": "Delete “{title}”?",
+    "openMail": "Open the email",
+    "fields": {
+      "title": "Title",
+      "titleRequired": "Give the task a title.",
+      "due": "Due date",
+      "notes": "Notes"
+    },
+    "addFromMail": "Add to To Do",
+    "addedFromMail": "Added to To Do."
   }
 }
