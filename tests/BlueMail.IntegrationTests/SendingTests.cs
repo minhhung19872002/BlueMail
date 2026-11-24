@@ -514,6 +514,46 @@ public class SendingTests(StackFixture stack)
     }
 
     [Fact]
+    public async Task Clean_up_finds_the_message_a_reply_quotes_in_full()
+    {
+        var subject = "Clean up " + Guid.NewGuid().ToString("N")[..6];
+        using var ivan = await Client("ivan@acme.test");
+        var d = await SaveDraft(ivan, new
+        {
+            to = new[] { new { address = "jiwoo@acme.test" } }, subject, html = "<p>Please review the network equipment quote for Q4 before Friday.</p>",
+            attachments = Array.Empty<object>(),
+        });
+        var s = await Data(await ivan.PostAsJsonAsync($"/api/v1/mail/drafts/{d}/send", new { }));
+        await MakeDue(s.GetProperty("outgoingId").GetGuid());
+        await Dispatcher.RunOnceAsync(default);
+
+        // jiwoo replies; the reply quotes ivan's message (blockquote prefilled by the server).
+        using var jiwoo = await Client("jiwoo@acme.test");
+        var original = (await Data(await jiwoo.GetAsync("/api/v1/mail/conversations?view=all&limit=100"))).GetProperty("items").EnumerateArray()
+            .First(c => c.GetProperty("subject").GetString() == subject).GetProperty("latestMessageId").GetGuid();
+        var reply = await Data(await jiwoo.GetAsync($"/api/v1/mail/compose/from-message/{original}?mode=reply"));
+        reply.GetProperty("html").GetString().Should().Contain("network equipment quote", "the reply is prefilled with the quoted original");
+        var state = JsonSerializer.Deserialize<Dictionary<string, object?>>(reply.GetRawText())!;
+        state["html"] = "<p>Looks good, approved.</p>" + reply.GetProperty("html").GetString();
+        var rd = await Data(await jiwoo.PostAsJsonAsync("/api/v1/mail/drafts", new { state }));
+        var rs = await Data(await jiwoo.PostAsJsonAsync($"/api/v1/mail/drafts/{rd.GetProperty("id").GetGuid()}/send", new { }));
+        await MakeDue(rs.GetProperty("outgoingId").GetGuid());
+        await Dispatcher.RunOnceAsync(default);
+
+        var conv = (await Data(await ivan.GetAsync("/api/v1/mail/conversations?view=all&limit=100"))).GetProperty("items").EnumerateArray()
+            .First(c => c.GetProperty("subject").GetString()!.EndsWith(subject, StringComparison.Ordinal));
+        var threadId = conv.GetProperty("threadId").GetGuid();
+        var messages = (await Data(await ivan.GetAsync($"/api/v1/mail/threads/{threadId}"))).GetProperty("messages").EnumerateArray()
+            .Select(m => m.GetProperty("message").GetProperty("id").GetGuid()).ToList();
+        messages.Should().HaveCount(2);
+        var redundant = (await Data(await ivan.GetAsync($"/api/v1/mail/threads/{threadId}/redundant"))).EnumerateArray().Select(x => x.GetGuid()).ToList();
+        redundant.Should().Equal(messages[0]);
+
+        using var david = await Client("david@acme.test");
+        (await david.GetAsync($"/api/v1/mail/threads/{threadId}/redundant")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task Forward_as_attachment_carries_the_whole_original_and_only_from_my_own_mailbox()
     {
         using var ivan = await Client("ivan@acme.test");

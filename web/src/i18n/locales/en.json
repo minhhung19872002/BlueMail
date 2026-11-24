@@ -224,6 +224,11 @@
       "nextWeek": "Next week",
       "noDate": "No date",
       "done": "Flagged and added to To Do."
+    },
+    "cleanUp": {
+      "menu": "Clean up conversation",
+      "none": "Nothing to clean up: no message is quoted in full by a later one.",
+      "done": "{count, plural, one {# redundant message} other {# redundant messages}} moved to Trash."
     }
   },
   "sessions": {

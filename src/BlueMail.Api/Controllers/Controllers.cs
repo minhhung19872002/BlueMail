@@ -138,6 +138,12 @@ public sealed class MailController(ISender mediator) : ControllerBase
     public async Task<ApiResponse<BlueMail.Application.Features.Mail.BulkJobDto>> BulkJob(Guid id, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.GetBulkJobQuery(id), ct));
 
+    /// <summary>Clean Up Conversation: messages quoted in full by a later one (the web moves them to Trash).</summary>
+    [HttpGet("threads/{id:guid}/redundant")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<IReadOnlyList<Guid>>> Redundant(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new FindRedundantQuery(mailboxId, id), ct));
+
     /// <summary>The mailboxes the user can open: their own and granted shared ones (pass the id as mailboxId to the mail endpoints).</summary>
     [HttpGet("mailboxes")]
     [SelfGuarded(Guarded)]

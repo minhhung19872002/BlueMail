@@ -17,7 +17,7 @@ import { QuickStepsMenu } from "./QuickSteps";
 import { InviteCard } from "./InviteCard";
 import { followUpDue, taskKeys, tasksApi, type FollowUp } from "../tasks/tasksApi";
 import { useShortcuts } from "./ShortcutHost";
-import { ApiError } from "../../api/client";
+import { api, ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike, senderDetails } from "./mailView";
 const PdfPreview = lazy(() => import("./PdfPreview").then((m) => ({ default: m.PdfPreview })));
 import { SpamReasons } from "./SpamReasons";
@@ -153,12 +153,27 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
         <Tooltip title={t("mail.print")}><Button type="text" icon={<PrinterOutlined />} aria-label={t("mail.print")} onClick={() => window.print()} /></Tooltip>
         <Dropdown trigger={["click"]} menu={{
           items: [
+            { key: "cleanUp", label: t("mail.cleanUp.menu") },
             { key: "mute", label: thread.data.muted ? t("mail.unmute") : t("mail.mute") },
             { key: "important", label: t("mail.important") },
             { key: "notImportant", label: t("mail.notImportant") },
             { key: "reportPhishing", label: t("mail.reportPhishing"), danger: true },
           ],
           onClick: ({ key }) => {
+            if (key === "cleanUp") {
+              // Outlook "Clean Up Conversation": messages a later reply quotes in full go to Trash (undoable like any delete).
+              void api.get<string[]>(`/api/v1/mail/threads/${threadId}/redundant`).then(async (ids) => {
+                if (ids.length === 0) {
+                  message.info(t("mail.cleanUp.none"));
+                  return;
+                }
+                await act({ action: "trash", messageIds: ids });
+                await qc.invalidateQueries({ queryKey: mailKeys.thread(threadId) });
+                await qc.invalidateQueries({ queryKey: mailKeys.lists });
+                message.success(t("mail.cleanUp.done", { count: ids.length }));
+              }, () => message.error(t("errors.actionFailed")));
+              return;
+            }
             if (key === "reportPhishing") {
               void run("reportPhishing").then(() => message.success(t("mail.phishingDone")));
               return;

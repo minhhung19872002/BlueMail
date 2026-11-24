@@ -224,6 +224,11 @@
       "nextWeek": "Tuần sau",
       "noDate": "Không đặt hạn",
       "done": "Đã gắn cờ và thêm vào Việc cần làm."
+    },
+    "cleanUp": {
+      "menu": "Dọn dẹp hội thoại",
+      "none": "Không có gì để dọn: không thư nào được trích nguyên văn trong thư sau.",
+      "done": "Đã chuyển {count, number} thư thừa vào Thùng rác."
     }
   },
   "sessions": {

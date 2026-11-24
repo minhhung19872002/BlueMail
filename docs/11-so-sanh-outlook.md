@@ -33,7 +33,7 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Hộp thư dùng chung (mở, gửi với tư cách, gửi thay mặt) | ✅ | Chọn hộp thư ở đầu cột thư mục; From/Sender đúng RFC 5322 |
 | Sort by From / Size / Subject | ❌ | Chỉ theo ngày (D30: danh sách lớn) |
 | Quick Steps | ✅ | Tạo/sửa trong "Quản lý Quick Steps…" (tối đa 20 bước, mỗi bước 5 thao tác có thể hoàn tác); chạy từ thanh công cụ thư |
-| Clean Up (xoá thư lặp trong hội thoại) | ❌ | |
+| Clean Up (xoá thư lặp trong hội thoại) | ✅ | Menu "…" của hội thoại → Dọn dẹp hội thoại: thư được thư sau trích nguyên văn vào Thùng rác (hoàn tác được); giữ thư có tệp, nháp, thư rất ngắn |
 | Reply with Meeting | ❌ | |
 | Read Aloud, Zoom | — | Dùng tính năng của trình duyệt |
 | Send to OneNote | — | |
@@ -79,5 +79,4 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 ## Việc nên làm tiếp (theo mức dùng thường gặp)
 
 1. Sắp xếp danh sách thư theo người gửi / kích thước / tiêu đề (cần đường truy vấn riêng giữ được hiệu năng D30).
-2. Clean Up hội thoại.
-3. Lịch dùng chung giữa người trong tổ chức (xem rảnh/bận, chia sẻ quyền).
+2. Lịch dùng chung giữa người trong tổ chức (xem rảnh/bận, chia sẻ quyền).
