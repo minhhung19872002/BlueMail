@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Checkbox, Col, Grid, Input, Modal, Popover, Row, Select, Space } from "antd";
-import { FilterOutlined, SearchOutlined } from "@ant-design/icons";
+import { AutoComplete, Button, Checkbox, Col, Grid, Input, Modal, Popover, Row, Select, Space } from "antd";
+import { FilterOutlined, HistoryOutlined, SearchOutlined, TagOutlined, UserOutlined } from "@ant-design/icons";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { buildQuery, emptySearch, type AdvancedSearch, type Within } from "./search";
+import { buildQuery, emptySearch, readRecent, rememberSearch, searchSuggestions, type AdvancedSearch, type SearchSuggestion, type Within } from "./search";
+import { mailKeys } from "./mailApi";
+import { api } from "../../api/client";
+import type { Labels } from "../../api/types";
+import { composeApi, type Suggestion } from "../compose/composeApi";
 
 /** Search box with Gmail operators and an advanced form that writes the operators for you (PROMPT 6.7). */
 export function SearchBox() {
@@ -19,10 +24,36 @@ export function SearchBox() {
   const narrow = Grid.useBreakpoint().md === false;
   useEffect(() => setText(current), [current]);
 
+  // Suggestions while typing (PROMPT 6.7): recent searches, labels, contacts.
+  const labels = useQuery({ queryKey: mailKeys.labels, queryFn: () => api.get<Labels>("/api/v1/mail/labels") });
+  const mailboxId = labels.data?.mailboxId ?? "";
+  const [recent, setRecent] = useState<string[]>([]);
+  const [contacts, setContacts] = useState<Suggestion[]>([]);
+  const timer = useRef<number>(undefined);
+  useEffect(() => setRecent(mailboxId ? readRecent(mailboxId) : []), [mailboxId]);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const onType = (q: string) => {
+    setText(q);
+    window.clearTimeout(timer.current);
+    if (q.trim().length < 2) {
+      setContacts([]);
+      return;
+    }
+    timer.current = window.setTimeout(() => {
+      void composeApi.suggest(q.trim()).then(setContacts, () => setContacts([]));
+    }, 200);
+  };
+  const suggestions = useMemo(
+    () => searchSuggestions(text, { recent, labels: labels.data?.labels ?? [], contacts: contacts.filter((c) => c.kind !== "group") }),
+    [text, recent, labels.data, contacts],
+  );
+  const icons: Record<SearchSuggestion["kind"], React.ReactNode> = { recent: <HistoryOutlined />, label: <TagOutlined />, contact: <UserOutlined /> };
+
   const go = (q: string) => {
     const query = q.trim();
     if (!query) return;
     setOpen(false);
+    if (mailboxId) setRecent(rememberSearch(mailboxId, query));
     navigate(`/mail/search?q=${encodeURIComponent(query)}`);
   };
   const set = (patch: Partial<AdvancedSearch>) => setForm((f) => ({ ...f, ...patch }));
@@ -76,9 +107,23 @@ export function SearchBox() {
 
   return (
     <form role="search" className="bm-search" onSubmit={(e) => { e.preventDefault(); go(text); }}>
-      <Input
+      <AutoComplete
+        className="bm-full"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onSearch={onType}
+        onChange={(v) => setText(v)}
+        onSelect={(_, o) => { const q = (o as { query: string }).query; setText(q); go(q); }}
+        options={suggestions.map((s) => ({
+          value: s.query,
+          query: s.query,
+          label: (
+            <span className="bm-suggest" title={t(`search.suggest.${s.kind}`)}>
+              <span aria-hidden>{icons[s.kind]}</span> <span className="bm-visually-hidden">{t(`search.suggest.${s.kind}`)}: </span>{s.label}
+            </span>
+          ),
+        }))}
+      >
+      <Input
         placeholder={t("search.placeholder")}
         aria-label={t("search.placeholder")}
         maxLength={2000}
@@ -92,6 +137,7 @@ export function SearchBox() {
           </Popover>
         )}
       />
+      </AutoComplete>
       {narrow && (
         <Modal open={open} title={t("search.advanced")} footer={null} onCancel={() => setOpen(false)} destroyOnHidden>
           {advanced}

@@ -450,6 +450,11 @@
       "spam": "Thư rác",
       "trash": "Thùng rác",
       "anywhere": "Thư, Thư rác và Thùng rác"
+    },
+    "suggest": {
+      "recent": "Tìm gần đây",
+      "label": "Nhãn",
+      "contact": "Người liên hệ"
     }
   },
   "filters": {

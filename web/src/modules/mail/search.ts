@@ -71,3 +71,77 @@ export function buildQuery(a: AdvancedSearch): string {
   if (a.unread) parts.push("is:unread");
   return parts.join(" ");
 }
+
+/** Lower case without diacritics, so "hop dong" finds "Hợp đồng" (PROMPT 0.2). */
+export function fold(s: string): string {
+  return s.normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+}
+
+export type SuggestionKind = "recent" | "contact" | "label";
+
+export interface SearchSuggestion {
+  kind: SuggestionKind;
+  /** What the list shows. */
+  label: string;
+  /** The query that runs when the suggestion is chosen. */
+  query: string;
+}
+
+export interface SuggestionSources {
+  recent: string[];
+  labels: { name: string; systemKey: string | null }[];
+  contacts: { name: string | null; address: string }[];
+}
+
+/**
+ * Suggestions while typing in the search box (PROMPT 6.7): recent searches, labels and contacts that contain the
+ * typed text, accents ignored. Recent searches come first (they show even for an empty box); at most `max` in all.
+ */
+export function searchSuggestions(text: string, src: SuggestionSources, max = 8): SearchSuggestion[] {
+  const t = fold(text.trim());
+  const out: SearchSuggestion[] = [];
+  const seen = new Set<string>();
+  const add = (s: SearchSuggestion) => {
+    if (out.length < max && !seen.has(s.query)) {
+      seen.add(s.query);
+      out.push(s);
+    }
+  };
+  for (const r of src.recent) {
+    if (!t || fold(r).includes(t)) add({ kind: "recent", label: r, query: r });
+  }
+  if (!t) return out;
+  for (const l of src.labels) {
+    if (l.systemKey === null && fold(l.name).includes(t)) add({ kind: "label", label: l.name, query: `label:${operand(l.name)}` });
+  }
+  for (const c of src.contacts) {
+    if (fold(c.address).includes(t) || (c.name && fold(c.name).includes(t))) {
+      add({ kind: "contact", label: c.name ? `${c.name} <${c.address}>` : c.address, query: `from:${c.address}` });
+    }
+  }
+  return out;
+}
+
+const recentKey = (mailboxId: string) => `bm.search.recent.${mailboxId}`;
+export const RecentMax = 10;
+
+/** Recent searches of this mailbox on this device, newest first. */
+export function readRecent(mailboxId: string, storage: Pick<Storage, "getItem"> = localStorage): string[] {
+  try {
+    const v = JSON.parse(storage.getItem(recentKey(mailboxId)) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, RecentMax) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function rememberSearch(mailboxId: string, query: string, storage: Pick<Storage, "getItem" | "setItem"> = localStorage): string[] {
+  const q = query.trim();
+  const next = [q, ...readRecent(mailboxId, storage).filter((x) => x !== q)].slice(0, RecentMax);
+  try {
+    storage.setItem(recentKey(mailboxId), JSON.stringify(next));
+  } catch {
+    // storage full or disabled: suggestions just lack history
+  }
+  return next;
+}

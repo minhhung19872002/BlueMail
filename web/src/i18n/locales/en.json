@@ -450,6 +450,11 @@
       "spam": "Spam",
       "trash": "Trash",
       "anywhere": "Mail & Spam & Trash"
+    },
+    "suggest": {
+      "recent": "Recent search",
+      "label": "Label",
+      "contact": "Contact"
     }
   },
   "filters": {
