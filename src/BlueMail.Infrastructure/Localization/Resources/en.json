@@ -259,5 +259,15 @@
   "error.invite_not_found": "This message has no meeting invitation.",
   "error.invite_cannot_respond": "This invitation cannot be answered (it is not a request, or you organised it).",
   "error.invite_cancelled": "This meeting has been cancelled.",
-  "error.invite_organizer_unreachable": "The organiser's address cannot receive mail."
+  "error.invite_organizer_unreachable": "The organiser's address cannot receive mail.",
+  "id.login.forgot": "Forgot password?",
+  "id.forgot.title": "Forgot your password",
+  "id.forgot.intro": "Enter your work email address. Your organisation's administrators will be asked to reset your password and will give you a new one.",
+  "id.forgot.submit": "Ask for a new password",
+  "id.forgot.sent": "If this address belongs to an account, its administrators have been told. They will contact you with a new password.",
+  "id.forgot.back": "Back to sign in",
+  "account.newSignIn.subject": "New sign-in to {email}",
+  "account.newSignIn.body": "Your account {email} was just signed in to from a browser and network not used before.\r\n\r\nDevice: {device}\r\nIP address: {ip}\r\nTime: {time}\r\n\r\nIf this was you, there is nothing to do.\r\nIf not, change your password now and sign out the other sessions in Settings > Account.\r\n",
+  "account.resetRequest.subject": "Password reset requested for {email}",
+  "account.resetRequest.body": "{name} <{email}> says they forgot their password (request from IP {ip}).\r\n\r\nIf you can confirm it is them, open Administration > Users > {email} > Reset password and give them the new password in person or by phone.\r\nIf nobody asked, you can ignore this message.\r\n"
 }

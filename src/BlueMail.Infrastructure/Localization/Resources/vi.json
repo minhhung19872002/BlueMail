@@ -259,5 +259,15 @@
   "error.invite_not_found": "Thư này không có lời mời họp.",
   "error.invite_cannot_respond": "Không thể trả lời lời mời này (không phải lời mời, hoặc bạn là người tổ chức).",
   "error.invite_cancelled": "Cuộc họp này đã bị huỷ.",
-  "error.invite_organizer_unreachable": "Địa chỉ của người tổ chức không nhận được thư."
+  "error.invite_organizer_unreachable": "Địa chỉ của người tổ chức không nhận được thư.",
+  "id.login.forgot": "Quên mật khẩu?",
+  "id.forgot.title": "Quên mật khẩu",
+  "id.forgot.intro": "Nhập địa chỉ email công việc của bạn. Quản trị viên của tổ chức sẽ được báo để đặt lại mật khẩu và đưa mật khẩu mới cho bạn.",
+  "id.forgot.submit": "Yêu cầu mật khẩu mới",
+  "id.forgot.sent": "Nếu địa chỉ này thuộc một tài khoản, quản trị viên của tài khoản đã được báo. Họ sẽ liên hệ với bạn để đưa mật khẩu mới.",
+  "id.forgot.back": "Quay lại đăng nhập",
+  "account.newSignIn.subject": "Đăng nhập mới vào {email}",
+  "account.newSignIn.body": "Tài khoản {email} vừa được đăng nhập từ một trình duyệt và mạng chưa từng dùng.\r\n\r\nThiết bị: {device}\r\nĐịa chỉ IP: {ip}\r\nThời gian: {time}\r\n\r\nNếu đó là bạn, không cần làm gì.\r\nNếu không phải, hãy đổi mật khẩu ngay và đăng xuất các phiên khác trong Cài đặt > Tài khoản.\r\n",
+  "account.resetRequest.subject": "Yêu cầu đặt lại mật khẩu cho {email}",
+  "account.resetRequest.body": "{name} <{email}> báo quên mật khẩu (yêu cầu từ IP {ip}).\r\n\r\nNếu xác nhận được đúng là người đó, mở Quản trị > Người dùng > {email} > Đặt lại mật khẩu và đưa mật khẩu mới trực tiếp hoặc qua điện thoại.\r\nNếu không ai yêu cầu, có thể bỏ qua thư này.\r\n"
 }

@@ -26,7 +26,8 @@ public sealed class SignInService(
     ITenantContext tenant,
     AuditWriter audit,
     IHttpContextAccessor http,
-    BlueMail.Application.Features.Admin.Policies.PolicyService policies)
+    BlueMail.Application.Features.Admin.Policies.PolicyService policies,
+    BlueMail.Application.Features.Security.AccountNotices notices)
 {
     public async Task<PasswordCheckResult> CheckPasswordAsync(string email, string password, CancellationToken ct)
     {
@@ -92,7 +93,14 @@ public sealed class SignInService(
         user.LastLoginAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         await users.ResetAccessFailedCountAsync(user);
+        // New browser and new network: tell the owner (decided before this sign-in is recorded).
+        var isNew = await notices.IsNewAsync(user.Id, session.Ip, session.UserAgent, ct);
         await RecordAsync(user.Id, user.TenantId, LoginResult.Success, method, ct);
+        if (isNew)
+        {
+            await notices.SendNewSignInAsync(user, session.Ip, session.Device, DateTimeOffset.UtcNow, ct);
+        }
+
         await audit.WriteAsync(new AuditEntry("auth.login", AuditResult.Success, user.TenantId, user.Id, user.PrimaryEmail,
             session.Ip, session.UserAgent, "session", session.Id.ToString()), ct);
         await signIn.SignInWithClaimsAsync(user, new Microsoft.AspNetCore.Authentication.AuthenticationProperties { IsPersistent = persistent },

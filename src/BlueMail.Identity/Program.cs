@@ -114,6 +114,9 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy(IdentityRateLimits.Login, http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = testing ? 1000 : 20, Window = TimeSpan.FromMinutes(1) }));
+    o.AddPolicy(IdentityRateLimits.ForgotPassword, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = testing ? 1000 : 5, Window = TimeSpan.FromMinutes(15) }));
     o.OnRejected = (ctx, _) => new ValueTask(Problems.WriteAsync(ctx.HttpContext, HttpStatusCode.TooManyRequests, "rate_limited"));
 });
 
