@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
+import { useNavigate } from "react-router-dom";
 import { Alert, App, Button, Card, Descriptions, Dropdown, Modal, Popover, Space, Spin, Table, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
   ArrowLeftOutlined, CaretDownOutlined, DeleteOutlined, FlagOutlined, DownloadOutlined, ExclamationCircleOutlined, EyeOutlined, FileZipOutlined, InboxOutlined,
@@ -44,6 +45,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
   const markedRead = useRef<string | null>(null);
   const me = useMe();
   const userFmt = useUserFormat();
+  const navigate = useNavigate();
 
   const msgs = thread.data?.messages ?? [];
   // Open by default: unread messages and the last one (PROMPT 6.3).
@@ -153,6 +155,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
         <Tooltip title={t("mail.print")}><Button type="text" icon={<PrinterOutlined />} aria-label={t("mail.print")} onClick={() => window.print()} /></Tooltip>
         <Dropdown trigger={["click"]} menu={{
           items: [
+            { key: "meeting", label: t("mail.replyWithMeeting") },
             { key: "cleanUp", label: t("mail.cleanUp.menu") },
             { key: "mute", label: thread.data.muted ? t("mail.unmute") : t("mail.mute") },
             { key: "important", label: t("mail.important") },
@@ -160,6 +163,18 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
             { key: "reportPhishing", label: t("mail.reportPhishing"), danger: true },
           ],
           onClick: ({ key }) => {
+            if (key === "meeting") {
+              // Outlook "Reply with Meeting": a new event titled like the conversation, everyone in it invited.
+              const people = new Set<string>();
+              for (const m of msgs) {
+                for (const a of [m.message.from, ...m.message.to, ...m.message.cc]) {
+                  if (a && a.address.toLowerCase() !== me.email.toLowerCase()) people.add(a.address.toLowerCase());
+                }
+              }
+              const subject = (thread.data?.subject ?? "").replace(/^((re|fwd?|tr|aw|sv)\s*:\s*)+/i, "");
+              navigate(`/calendar?meet=1&title=${encodeURIComponent(subject)}&guests=${encodeURIComponent([...people].join(","))}`);
+              return;
+            }
             if (key === "cleanUp") {
               // Outlook "Clean Up Conversation": messages a later reply quotes in full go to Trash (undoable like any delete).
               void api.get<string[]>(`/api/v1/mail/threads/${threadId}/redundant`).then(async (ids) => {

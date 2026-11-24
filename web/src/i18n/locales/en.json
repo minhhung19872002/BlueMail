@@ -248,7 +248,8 @@
         "desc": "Size (largest on top)",
         "asc": "Size (smallest on top)"
       }
-    }
+    },
+    "replyWithMeeting": "Reply with meeting"
   },
   "sessions": {
     "title": "Security and devices",

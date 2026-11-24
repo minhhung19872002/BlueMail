@@ -248,7 +248,8 @@
         "desc": "Kích thước (lớn nhất trên cùng)",
         "asc": "Kích thước (nhỏ nhất trên cùng)"
       }
-    }
+    },
+    "replyWithMeeting": "Trả lời bằng cuộc họp"
   },
   "sessions": {
     "title": "Bảo mật và thiết bị",

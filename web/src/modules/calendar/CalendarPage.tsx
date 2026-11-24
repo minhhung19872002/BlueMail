@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { App, Button, DatePicker, Form, Input, Modal, Segmented, Select, Space, Spin, Switch, Tag, Tooltip, Typography } from "antd";
 import { CalendarOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, LeftOutlined, PlusOutlined, RightOutlined, SyncOutlined, TeamOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,7 +24,17 @@ export function CalendarPage() {
   const [view, setView] = useState<CalendarView>(() => (window.innerWidth < 768 ? "day" : "week"));
   const [anchor, setAnchor] = useState<Dayjs>(() => dayjs().tz(tz));
   const [open, setOpen] = useState<CalendarEvent | null>(null);
-  const [editing, setEditing] = useState<{ event: CalendarEvent | null; start: Dayjs; allDay: boolean } | null>(null);
+  const [editing, setEditing] = useState<EditorInit | null>(null);
+  // "Reply with meeting" from a conversation: /calendar?meet=1&title=…&guests=a,b opens a prefilled new event.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (params.get("meet") !== "1") return;
+    setEditing({
+      event: null, start: dayjs().tz(tz).add(1, "hour").startOf("hour"), allDay: false,
+      prefill: { summary: params.get("title") ?? "", guests: (params.get("guests") ?? "").split(",").filter(Boolean).slice(0, 100) },
+    });
+    setParams({}, { replace: true });
+  }, [params, setParams, tz]);
 
   const days = useMemo(() => visibleDays(view, anchor, weekStart), [view, anchor, weekStart]);
   const from = days[0]!.toISOString();
@@ -293,7 +304,14 @@ interface EditorValues {
 const toPicker = (d: Dayjs, tz: string) => dayjs(d.tz(tz).format("YYYY-MM-DDTHH:mm"));
 const fromPicker = (d: Dayjs, tz: string) => dayjs.tz(d.format("YYYY-MM-DDTHH:mm"), tz);
 
-function EventEditor({ initial, tz, onClose }: { initial: { event: CalendarEvent | null; start: Dayjs; allDay: boolean }; tz: string; onClose: () => void }) {
+interface EditorInit {
+  event: CalendarEvent | null;
+  start: Dayjs;
+  allDay: boolean;
+  prefill?: { summary: string; guests: string[] };
+}
+
+function EventEditor({ initial, tz, onClose }: { initial: EditorInit; tz: string; onClose: () => void }) {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const qc = useQueryClient();
@@ -315,9 +333,9 @@ function EventEditor({ initial, tz, onClose }: { initial: { event: CalendarEvent
   const start = e ? (e.allDay ? dayjs.utc(e.start) : dayjs(e.start).tz(tz)) : initial.start;
   const end = e ? (e.allDay ? dayjs.utc(e.end).subtract(1, "day") : dayjs(e.end).tz(tz)) : initial.allDay ? initial.start : initial.start.add(30, "minute");
   const initialValues: EditorValues = {
-    summary: e?.summary ?? "", allDay: initial.allDay,
+    summary: e?.summary ?? initial.prefill?.summary ?? "", allDay: initial.allDay,
     start: e?.allDay ? dayjs(start.format("YYYY-MM-DD")) : toPicker(start, tz), end: e?.allDay ? dayjs(end.format("YYYY-MM-DD")) : toPicker(end, tz),
-    repeat: repeatKind(e?.recurrenceRule ?? null), location: e?.location ?? undefined, guests: e?.attendees.map((a) => a.address) ?? [],
+    repeat: repeatKind(e?.recurrenceRule ?? null), location: e?.location ?? undefined, guests: e?.attendees.map((a) => a.address) ?? initial.prefill?.guests ?? [],
     reminder: e ? e.reminderMinutes : 10, color: e?.color ?? "blue", description: e?.description ?? undefined,
   };
 
