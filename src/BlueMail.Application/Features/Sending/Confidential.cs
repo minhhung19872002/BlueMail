@@ -56,10 +56,7 @@ public sealed class ConfidentialService(IServiceProvider sp, BlueMailDbContext d
         {
             var stream = new MemoryStream(content, writable: false);
             var sha = await BlobStore.HashAsync(stream, ct);
-            if (!await blobs.ExistsAsync(o.TenantId, sha, ct))
-            {
-                await blobs.PutAsync(o.TenantId, sha, stream, ct);
-            }
+            await BlobRefs.EnsureAsync(db, blobs, o.TenantId, sha, stream, ct);
 
             var days = DraftConfidential.AllowedDays.Contains(mode.ExpiresDays) ? mode.ExpiresDays : 7;
             msg = new ConfidentialMessage

@@ -167,10 +167,7 @@ public sealed class SetContactPhotoHandler(BlueMailDbContext db, ICurrentUser me
 
             var stream = new MemoryStream(c.Content, writable: false);
             var sha = await BlobStore.HashAsync(stream, ct);
-            if (!await blobs.ExistsAsync(me.TenantId, sha, ct))
-            {
-                await blobs.PutAsync(me.TenantId, sha, stream, ct);
-            }
+            await BlobRefs.EnsureAsync(db, blobs, me.TenantId, sha, stream, ct);
 
             row.PhotoSha256 = sha;
             row.PhotoContentType = type;
@@ -317,10 +314,7 @@ public sealed class ImportContactsHandler(BlueMailDbContext db, ICurrentUser me,
             {
                 var stream = new MemoryStream(card.Photo, writable: false);
                 var sha = await BlobStore.HashAsync(stream, ct);
-                if (!await blobs.ExistsAsync(me.TenantId, sha, ct))
-                {
-                    await blobs.PutAsync(me.TenantId, sha, stream, ct);
-                }
+                await BlobRefs.EnsureAsync(db, blobs, me.TenantId, sha, stream, ct);
 
                 existing.PhotoSha256 = sha;
                 existing.PhotoContentType = card.PhotoType;

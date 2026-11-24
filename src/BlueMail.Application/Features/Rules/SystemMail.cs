@@ -69,10 +69,7 @@ public sealed class SystemMail(BlueMailDbContext db, PgMailStore store, BlobStor
 
         var stream = new MemoryStream(message, writable: false);
         var sha = await BlobStore.HashAsync(stream, ct);
-        if (!await blobs.ExistsAsync(tenant, sha, ct))
-        {
-            await blobs.PutAsync(tenant, sha, stream, ct);
-        }
+        await BlobRefs.EnsureAsync(db, blobs, tenant, sha, stream, ct);
 
         var id = Guid.NewGuid();
         var domain = rcpt[(rcpt.LastIndexOf('@') + 1)..].ToLowerInvariant();

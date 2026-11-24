@@ -258,10 +258,7 @@ public sealed class OutgoingDispatcher(IServiceScopeFactory scopes, BmSettings s
         var blobs = sp.GetRequiredService<BlobStore>();
         var stream = new MemoryStream(signed, writable: false);
         var sha = await BlobStore.HashAsync(stream, ct);
-        if (!await blobs.ExistsAsync(tenant, sha, ct))
-        {
-            await blobs.PutAsync(tenant, sha, stream, ct);
-        }
+        await BlobRefs.EnsureAsync(db, blobs, tenant, sha, stream, ct);
 
         var msgId = Guid.NewGuid();
         var smtpUtf8 = !System.Text.Ascii.IsValid(from) || rcpts.Any(r => !System.Text.Ascii.IsValid(r));

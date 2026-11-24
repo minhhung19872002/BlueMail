@@ -427,3 +427,20 @@ trong cùng giao dịch. `MailboxCountCache` (mỗi tiến trình) nhớ số đ
 cùng modseq thì đúng bằng kết quả đếm lại, nên vẫn giữ "số đếm lấy từ chính các hàng" (PROMPT 14.7); các yêu cầu đồng
 thời cùng modseq dùng chung một lần tính. Mỗi lượt xem chỉ còn một truy vấn đọc `highest_modseq`.
 
+
+## D34. Dọn blob S3 không còn tham chiếu
+
+Blob đánh địa chỉ theo nội dung (một object cho mỗi tenant + SHA-256), nhiều nơi cùng dùng: thư, hàng đợi gửi đi,
+cách ly, thư bảo mật, ảnh danh bạ. Trước đây không bao giờ xoá, nên thư bị xoá hẳn vẫn chiếm dung lượng S3.
+
+- Mọi nơi ghi gọi `BlobRefs.EnsureAsync`: cập nhật `mail.blobs.last_used_at` (UPDATE trước, nên chờ nếu bộ dọn đang
+  giữ khoá dòng), kiểm tra object còn trên S3, thiếu thì PUT lại, rồi mới ghi tham chiếu của mình.
+- `BlobRefs.CollectAsync` (chạy mỗi giờ trong `MailMaintenanceWorker`, tối đa 1.000 blob/lượt): chọn blob không có
+  tham chiếu nào (thư chưa expunge, `mta.outbound_messages`, `admin.quarantine`, `mail.confidential_messages`, ảnh
+  `contact.contacts`) và không dùng trong 2 ngày, `FOR UPDATE SKIP LOCKED`, **xoá object S3 khi còn giữ khoá dòng**,
+  đánh dấu `collected_at` rồi mới commit. Dòng `mail.blobs` được giữ vì thư đã expunge vẫn trỏ tới (khoá ngoại).
+- An toàn khi chạy đồng thời: người ghi đã đánh dấu trước thì được bảo vệ bởi thời gian chờ 2 ngày; người ghi đến
+  sau phải chờ khoá, rồi thấy object đã mất và PUT lại. Nếu bộ dọn xoá object nhưng commit thất bại, lần ghi sau cũng
+  thấy object thiếu và PUT lại (`BlobCollectionTests`).
+- Object ghi trước bản này mà không có dòng `mail.blobs` (thư hệ thống gửi ra ngoài, ảnh danh bạ) không bao giờ bị
+  dọn: thà sót còn hơn xoá nhầm.

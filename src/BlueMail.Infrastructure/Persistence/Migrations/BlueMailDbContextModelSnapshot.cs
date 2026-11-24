@@ -2010,10 +2010,20 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasColumnType("bytea")
                         .HasColumnName("sha256");
 
+                    b.Property<DateTimeOffset?>("CollectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("collected_at");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTimeOffset>("LastUsedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_used_at")
                         .HasDefaultValueSql("now()");
 
                     b.Property<string>("ObjectKey")
@@ -2028,6 +2038,9 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
 
                     b.HasKey("TenantId", "Sha256")
                         .HasName("pk_blobs");
+
+                    b.HasIndex("LastUsedAt")
+                        .HasDatabaseName("ix_blobs_last_used_at");
 
                     b.ToTable("blobs", "mail");
                 });

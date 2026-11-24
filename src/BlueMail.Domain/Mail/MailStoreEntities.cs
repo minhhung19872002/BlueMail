@@ -74,6 +74,12 @@ public class Blob : ITenantOwned
     public string ObjectKey { get; set; } = "";
     public long Size { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Last time a writer stored or reused this content; blobs unused and unreferenced are collected (BlobRefs).</summary>
+    public DateTimeOffset LastUsedAt { get; set; }
+
+    /// <summary>When the S3 object was deleted as unreferenced; the row stays (expunged messages still point to it).</summary>
+    public DateTimeOffset? CollectedAt { get; set; }
 }
 
 public class Message : TenantEntity

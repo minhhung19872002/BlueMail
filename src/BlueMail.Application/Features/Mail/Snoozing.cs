@@ -71,7 +71,7 @@ public sealed class SnoozeService(BlueMailDbContext db, PgMailStore store)
 
 /// <summary>
 /// Background mailbox housekeeping in the API process: wakes due snoozes (claimed with SKIP LOCKED so several
-/// instances share the work) and deletes forever what stayed 30 days in Trash or Spam (PROMPT 6.5).
+/// instances share the work), deletes forever what stayed 30 days in Trash or Spam (PROMPT 6.5) and collects unreferenced blobs.
 /// </summary>
 public sealed class MailMaintenanceWorker(IServiceScopeFactory scopes, ILogger<MailMaintenanceWorker> log) : BackgroundService
 {
@@ -94,6 +94,9 @@ public sealed class MailMaintenanceWorker(IServiceScopeFactory scopes, ILogger<M
                         log.LogInformation("Deleted {Count} messages kept over 30 days in Trash or Spam", n);
                     }
 
+                    // S3 objects nothing refers to any more (expunged messages, sent queue rows, old photos).
+                    await BlobRefs.CollectAsync(scope.ServiceProvider.GetRequiredService<BlueMailDbContext>(),
+                        scope.ServiceProvider.GetRequiredService<BlobStore>(), BlobRefs.Grace, 1000, log, stoppingToken);
                     _nextPurge = DateTimeOffset.UtcNow.AddHours(1);
                 }
 

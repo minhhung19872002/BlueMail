@@ -62,11 +62,7 @@ public sealed partial class PgMailStore
         // PostgreSQL timestamptz parameters must be UTC; imports carry the source's own offset (BUG-052).
         r = r with { ReceivedAt = r.ReceivedAt.ToUniversalTime() };
         var sha = await BlobStore.HashAsync(r.Content, ct);
-        var known = await db.Blobs.IgnoreQueryFilters().AnyAsync(b => b.TenantId == r.TenantId && b.Sha256 == sha, ct);
-        if (!known)
-        {
-            await blobs.PutAsync(r.TenantId, sha, r.Content, ct);
-        }
+        await BlobRefs.EnsureAsync(db, blobs, r.TenantId, sha, r.Content, ct);
 
         var results = new List<DeliveredMessage>();
         await using (var tx = await db.Database.BeginTransactionAsync(ct))

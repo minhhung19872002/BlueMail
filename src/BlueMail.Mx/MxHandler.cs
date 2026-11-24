@@ -596,10 +596,7 @@ public sealed class MxHandler(
         var blobs = scope.ServiceProvider.GetRequiredService<BlobStore>();
         var db = scope.ServiceProvider.GetRequiredService<BlueMailDbContext>();
         var sha = await BlobStore.HashAsync(content, ct);
-        if (!await blobs.ExistsAsync(tenant, sha, ct))
-        {
-            await blobs.PutAsync(tenant, sha, content, ct);
-        }
+        await BlobRefs.EnsureAsync(db, blobs, tenant, sha, content, ct);
 
         var top = verdicts.MaxBy(v => v.Score)!;
         db.Quarantine.Add(new QuarantinedMessage

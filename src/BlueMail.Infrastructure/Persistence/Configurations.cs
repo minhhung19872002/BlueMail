@@ -275,6 +275,8 @@ internal sealed class BlobConfig : IEntityTypeConfiguration<Blob>
         b.HasKey(x => new { x.TenantId, x.Sha256 });
         b.Property(x => x.ObjectKey).HasMaxLength(200);
         b.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+        b.Property(x => x.LastUsedAt).HasDefaultValueSql("now()");
+        b.HasIndex(x => x.LastUsedAt);
     }
 }
 
