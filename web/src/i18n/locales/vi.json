@@ -149,7 +149,8 @@
       "labelled": "{count, plural, other {Đã gắn nhãn cho # hội thoại.}}",
       "saved": "Đã xong.",
       "snoozed": "Đã tạm ẩn {count} hội thoại",
-      "unsnoozed": "{count} hội thoại đã về Hộp thư đến"
+      "unsnoozed": "{count} hội thoại đã về Hộp thư đến",
+      "deletedOne": "Đã chuyển thư vào Thùng rác."
     },
     "reportPhishing": "Báo cáo lừa đảo",
     "phishingDone": "Đã báo cáo lừa đảo. Cảm ơn bạn.",
@@ -196,6 +197,21 @@
       "allAndBlock": "Tất cả, và chặn thư từ người gửi này về sau",
       "older": "Chỉ những hội thoại cũ hơn 10 ngày",
       "done": "Đã chuyển {count, number} hội thoại từ {address} vào Thùng rác."
+    },
+    "deleteThisMessage": "Xoá thư này",
+    "markUnreadFromHere": "Đánh dấu chưa đọc từ đây",
+    "details": {
+      "show": "Xem chi tiết",
+      "from": "Từ",
+      "to": "Tới",
+      "cc": "Cc",
+      "date": "Ngày",
+      "subject": "Tiêu đề",
+      "mailedBy": "Gửi qua",
+      "signedBy": "Được ký bởi",
+      "security": "Bảo mật",
+      "tls": "Mã hoá tiêu chuẩn (TLS)",
+      "noTls": "Không mã hoá khi truyền"
     }
   },
   "sessions": {

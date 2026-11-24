@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
-import { Alert, App, Button, Card, Descriptions, Dropdown, Modal, Space, Spin, Table, Tag, Tooltip, Typography, type MenuProps } from "antd";
+import { Alert, App, Button, Card, Descriptions, Dropdown, Modal, Popover, Space, Spin, Table, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
-  ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, ExclamationCircleOutlined, EyeOutlined, FileZipOutlined, InboxOutlined,
+  ArrowLeftOutlined, CaretDownOutlined, DeleteOutlined, DownloadOutlined, ExclamationCircleOutlined, EyeOutlined, FileZipOutlined, InboxOutlined,
   MailOutlined, MoreOutlined, PaperClipOutlined, PrinterOutlined, RollbackOutlined, ShareAltOutlined, StarFilled, StarOutlined, WarningOutlined,
 } from "@ant-design/icons";
 import DOMPurify from "dompurify";
@@ -16,7 +16,7 @@ import { SweepButton } from "./Sweep";
 import { InviteCard } from "./InviteCard";
 import { useShortcuts } from "./ShortcutHost";
 import { ApiError } from "../../api/client";
-import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
+import { authWarnings, domainOf, isExternal, looksLike, senderDetails } from "./mailView";
 const PdfPreview = lazy(() => import("./PdfPreview").then((m) => ({ default: m.PdfPreview })));
 import { SpamReasons } from "./SpamReasons";
 import { rulesApi } from "../settings/rulesApi";
@@ -178,6 +178,14 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
             inSpam={systemKey === "SPAM"}
             open={open}
             toggle={() => setExpanded((s) => { const n = new Set(s); if (n.has(m.message.id)) n.delete(m.message.id); else n.add(m.message.id); return n; })}
+            fromHere={msgs.slice(i).map((x) => x.message.id)}
+            onlyOne={msgs.length === 1}
+            onChanged={(close) => {
+              void qc.invalidateQueries({ queryKey: mailKeys.lists });
+              void qc.invalidateQueries({ queryKey: mailKeys.labels });
+              void qc.invalidateQueries({ queryKey: mailKeys.thread(threadId) });
+              if (close) onClose();
+            }}
           />
         );
       })}
@@ -185,7 +193,32 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
   );
 }
 
-function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: boolean; toggle: () => void; inSpam: boolean }) {
+/** Sender details like Gmail's "show details" / Outlook's message details (PROMPT 6.3). */
+function SenderDetailsTable({ m }: { m: ThreadMessage["message"] }) {
+  const { t } = useTranslation();
+  const fmt = useUserFormat();
+  const d = senderDetails(m.authResults);
+  const addr = (a: { name: string | null; address: string }) => (a.name ? `${a.name} <${a.address}>` : a.address);
+  const items = [
+    { key: "from", label: t("mail.details.from"), children: m.from ? addr(m.from) : "—" },
+    { key: "to", label: t("mail.details.to"), children: m.to.map(addr).join(", ") || "—" },
+    ...(m.cc.length > 0 ? [{ key: "cc", label: t("mail.details.cc"), children: m.cc.map(addr).join(", ") }] : []),
+    { key: "date", label: t("mail.details.date"), children: dateTime(m.receivedAt, fmt) },
+    { key: "subject", label: t("mail.details.subject"), children: m.subject ?? "—" },
+    ...(d.mailedBy ? [{ key: "mailedBy", label: t("mail.details.mailedBy"), children: d.mailedBy }] : []),
+    ...(d.signedBy.length > 0 ? [{ key: "signedBy", label: t("mail.details.signedBy"), children: d.signedBy.join(", ") }] : []),
+    ...(d.tls !== null ? [{ key: "tls", label: t("mail.details.security"), children: t(d.tls ? "mail.details.tls" : "mail.details.noTls") }] : []),
+  ];
+  return <Descriptions className="bm-details" size="small" column={1} items={items} />;
+}
+
+function MessageItem({ m, open, toggle, inSpam, fromHere, onlyOne, onChanged }: {
+  m: ThreadMessage; open: boolean; toggle: () => void; inSpam: boolean;
+  /** This message and the ones after it ("mark unread from here"). */
+  fromHere: string[];
+  onlyOne: boolean;
+  onChanged: (close: boolean) => void;
+}) {
   const { t } = useTranslation();
   const me = useMe();
   const fmt = useUserFormat();
@@ -225,12 +258,23 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
       { key: "forward", label: t("compose.forward") },
       { key: "forwardAttachment", label: t("compose.forwardAttachment") },
       { type: "divider" },
+      { key: "deleteOne", label: t("mail.deleteThisMessage") },
+      { key: "unreadFromHere", label: t("mail.markUnreadFromHere") },
+      { type: "divider" },
       { key: "original", label: t("mail.showOriginal") },
       { key: "eml", label: <a href={m.rawUrl} download>{t("mail.downloadEml")}</a> },
       ...(sender && sender.toLowerCase() !== me.email.toLowerCase() ? [{ key: "block", danger: true, label: t("mail.blockSender", { address: sender }) }] : []),
     ],
     onClick: ({ key }) => {
       if (key === "reply" || key === "replyAll" || key === "forward" || key === "forwardAttachment") startCompose(key);
+      if (key === "deleteOne") {
+        // Only this message goes to Trash; the rest of the conversation stays (PROMPT 6.3).
+        void act({ action: "trash", messageIds: [msg.id] }).then(() => { message.success(t("mail.done.deletedOne")); onChanged(onlyOne); },
+          () => message.error(t("errors.actionFailed")));
+      }
+      if (key === "unreadFromHere") {
+        void act({ action: "markUnread", messageIds: fromHere }).then(() => onChanged(true), () => message.error(t("errors.actionFailed")));
+      }
       if (key === "original") setOriginal(true);
       if (key === "block" && sender) {
         modal.confirm({
@@ -256,6 +300,9 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
       </div>
       <Typography.Text type="secondary" className="bm-msg-to">
         {t("mail.toLine", { to: [...msg.to, ...msg.cc].map((a) => a.name || a.address).join(", ") || "—" })}
+        <Popover trigger="click" placement="bottomLeft" content={<SenderDetailsTable m={msg} />}>
+          <Button type="text" size="small" icon={<CaretDownOutlined />} aria-label={t("mail.details.show")} />
+        </Popover>
       </Typography.Text>
 
       <SpamReasons report={msg.spamReport} inSpam={inSpam} />

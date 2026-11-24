@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authWarnings, avatarColor, avatarPalette, dateGroup, initials, isExternal, looksLike, parseSpamReport, senderParts } from "./mailView";
+import { authWarnings, avatarColor, avatarPalette, dateGroup, initials, isExternal, looksLike, parseSpamReport, senderDetails, senderParts } from "./mailView";
 import en from "../../i18n/locales/en.json";
 import vi from "../../i18n/locales/vi.json";
 
@@ -117,5 +117,23 @@ describe("avatars", () => {
   it("gives one sender always the same readable colour", () => {
     expect(avatarColor("An@Doitac.test")).toBe(avatarColor("an@doitac.test"));
     expect(avatarPalette).toContain(avatarColor("x@y.test"));
+  });
+});
+
+describe("sender details", () => {
+  it("takes mailed-by from a passing SPF, signed-by from passing DKIM, and TLS", () => {
+    const json = JSON.stringify({
+      spf: "pass", spfDomain: "Doitac.test",
+      dkim: [{ result: "pass", domain: "doitac.test", selector: "s1", reason: "" }, { result: "fail", domain: "evil.test", selector: "x", reason: "bad" },
+        { result: "pass", domain: "doitac.test", selector: "s2", reason: "" }],
+      tls: true,
+    });
+    expect(senderDetails(json)).toEqual({ mailedBy: "doitac.test", signedBy: ["doitac.test"], tls: true });
+  });
+
+  it("knows nothing without a summary or with a failing SPF", () => {
+    expect(senderDetails(null)).toEqual({ mailedBy: null, signedBy: [], tls: null });
+    expect(senderDetails("{oops")).toEqual({ mailedBy: null, signedBy: [], tls: null });
+    expect(senderDetails(JSON.stringify({ spf: "fail", spfDomain: "x.test" })).mailedBy).toBeNull();
   });
 });

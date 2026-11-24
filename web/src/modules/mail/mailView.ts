@@ -166,3 +166,30 @@ export function avatarColor(address: string): string {
   for (const ch of address.toLowerCase()) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
   return avatarPalette[h % avatarPalette.length]!;
 }
+
+export interface SenderDetails {
+  /** Domain that passed SPF ("mailed-by"). */
+  mailedBy: string | null;
+  /** Domains with a passing DKIM signature ("signed-by"). */
+  signedBy: string[];
+  /** Whether the message reached our MX over TLS; null when unknown. */
+  tls: boolean | null;
+}
+
+/** The "mailed-by / signed-by / security" lines of the sender details, from the stored authentication summary. */
+export function senderDetails(json: string | null): SenderDetails {
+  const none: SenderDetails = { mailedBy: null, signedBy: [], tls: null };
+  if (!json) return none;
+  let a: AuthResultsSummary;
+  try {
+    a = JSON.parse(json) as AuthResultsSummary;
+  } catch {
+    return none;
+  }
+  const signedBy = [...new Set((a.dkim ?? []).filter((d) => d.result === "pass" && d.domain).map((d) => d.domain!.toLowerCase()))];
+  return {
+    mailedBy: a.spf === "pass" && a.spfDomain ? a.spfDomain.toLowerCase() : null,
+    signedBy,
+    tls: typeof a.tls === "boolean" ? a.tls : null,
+  };
+}

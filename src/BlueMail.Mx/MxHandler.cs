@@ -291,6 +291,8 @@ public sealed class MxHandler(
             dmarcPolicy = dmarc.Disposition.ToString().ToLowerInvariant(),
             fromDomain,
             arc = arc.AuthResultsValue,
+            // For the "security" line of the sender details (PROMPT 6.3): whether this hop arrived over TLS.
+            tls = session.Tls,
         };
         var msgId = SearchText.Clean(parsed.MessageId);
 

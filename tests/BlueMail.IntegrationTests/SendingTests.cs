@@ -373,6 +373,14 @@ public class SendingTests(StackFixture stack)
         var thread = ivanList.GetProperty("items").EnumerateArray().Where(c => c.GetProperty("subject").GetString()!.EndsWith("Kế hoạch tuần", StringComparison.Ordinal)).ToList();
         thread.Should().ContainSingle("the reply joins the conversation (References/In-Reply-To)");
         thread[0].GetProperty("messageCount").GetInt32().Should().Be(2, "ivan's sent copy and jiwoo's reply");
+
+        // "Delete this message": only jiwoo's reply goes to Trash, ivan's own message stays in the conversation.
+        var full = await Data(await ivan.GetAsync($"/api/v1/mail/threads/{thread[0].GetProperty("threadId").GetGuid()}"));
+        var replyId = full.GetProperty("messages").EnumerateArray().Last().GetProperty("message").GetProperty("id").GetGuid();
+        (await ivan.PostAsJsonAsync("/api/v1/mail/actions", new { action = "trash", messageIds = new[] { replyId } })).EnsureSuccessStatusCode();
+        var after = (await Data(await ivan.GetAsync("/api/v1/mail/conversations?view=all&limit=100"))).GetProperty("items").EnumerateArray()
+            .Where(c => c.GetProperty("subject").GetString()!.EndsWith("Kế hoạch tuần", StringComparison.Ordinal)).ToList();
+        after.Should().ContainSingle().Which.GetProperty("messageCount").GetInt32().Should().Be(1);
     }
 
     [Fact]

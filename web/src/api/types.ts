@@ -219,4 +219,7 @@ export interface AuthResultsSummary {
   dmarcPolicy?: string;
   fromDomain?: string | null;
   arc?: string;
+  spfDomain?: string | null;
+  /** Received over TLS at our MX (absent on mail stored before this was recorded and on internal mail). */
+  tls?: boolean;
 }

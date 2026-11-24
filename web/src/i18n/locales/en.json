@@ -149,7 +149,8 @@
       "labelled": "{count, plural, one {Label applied to the conversation.} other {Label applied to # conversations.}}",
       "saved": "Done.",
       "snoozed": "{count, plural, one {Conversation snoozed} other {# conversations snoozed}}",
-      "unsnoozed": "{count, plural, one {Conversation back in the Inbox} other {# conversations back in the Inbox}}"
+      "unsnoozed": "{count, plural, one {Conversation back in the Inbox} other {# conversations back in the Inbox}}",
+      "deletedOne": "Message moved to Trash."
     },
     "reportPhishing": "Report phishing",
     "phishingDone": "Reported as phishing. Thank you.",
@@ -196,6 +197,21 @@
       "allAndBlock": "All of them, and block future messages from this sender",
       "older": "Only those older than 10 days",
       "done": "Moved {count, number} conversations from {address} to Trash."
+    },
+    "deleteThisMessage": "Delete this message",
+    "markUnreadFromHere": "Mark unread from here",
+    "details": {
+      "show": "Show details",
+      "from": "From",
+      "to": "To",
+      "cc": "Cc",
+      "date": "Date",
+      "subject": "Subject",
+      "mailedBy": "Mailed by",
+      "signedBy": "Signed by",
+      "security": "Security",
+      "tls": "Standard encryption (TLS)",
+      "noTls": "Not encrypted in transit"
     }
   },
   "sessions": {
