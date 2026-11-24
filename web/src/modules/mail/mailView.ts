@@ -116,3 +116,53 @@ export function parseSpamReport(json: string | null): SpamReport | null {
     return null;
   }
 }
+
+/** Date headings of the message list, as Outlook groups "By date". */
+export type DateGroup = "today" | "yesterday" | "thisWeek" | "lastWeek" | "thisMonth" | "lastMonth" | "older";
+
+/** Day number (days since 1970-01-01) of an instant in a time zone. */
+function dayIn(at: Date, timeZone: string): number {
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+  return Math.floor(Date.parse(ymd + "T00:00:00Z") / 86_400_000);
+}
+
+/**
+ * The heading a message received at `at` goes under, seen at `now` in `timeZone`. Weeks start on `weekStart`
+ * (0 = Sunday, 1 = Monday, as the user's profile); months are calendar months.
+ */
+export function dateGroup(at: Date, now: Date, timeZone: string, weekStart = 1): DateGroup {
+  const d = dayIn(at, timeZone);
+  const today = dayIn(now, timeZone);
+  if (d >= today) return "today";
+  if (d === today - 1) return "yesterday";
+  // 1970-01-01 was a Thursday (weekday 4).
+  const weekday = (today + 4) % 7;
+  const thisWeek = today - ((weekday - weekStart + 7) % 7);
+  if (d >= thisWeek) return "thisWeek";
+  if (d >= thisWeek - 7) return "lastWeek";
+  const ym = (day: number) => new Date(day * 86_400_000).toISOString().slice(0, 7);
+  const month = ym(today);
+  if (ym(d) === month) return "thisMonth";
+  const prev = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 2, 1)).toISOString().slice(0, 7);
+  if (ym(d) === prev) return "lastMonth";
+  return "older";
+}
+
+/** Initials for the round avatar of a sender (Outlook on the web): first and last word of the name, else the address. */
+export function initials(name: string | null, address: string): string {
+  const words = (name ?? "").replace(/[<>"()[\]]/g, " ").trim().split(/\s+/).filter((w) => /\p{L}/u.test(w));
+  if (words.length === 0) return (address.split("@")[0] ?? "?").replace(/[^\p{L}\p{N}]/gu, "").slice(0, 2).toUpperCase() || "?";
+  const first = [...words[0]!][0] ?? "";
+  // CJK names: one character is the usual avatar.
+  if (/[\p{Script=Han}\p{Script=Hangul}\p{Script=Hiragana}\p{Script=Katakana}]/u.test(first)) return first;
+  const last = words.length > 1 ? [...words[words.length - 1]!][0] ?? "" : "";
+  return (first + last).toUpperCase();
+}
+
+/** A stable avatar colour per address (same sender, same colour), chosen from a palette with readable white text. */
+export const avatarPalette = ["#1a5fb4", "#26734d", "#a51d2d", "#6b2fa0", "#9c4b00", "#0f6b6b", "#5e5c64", "#8f3b76"];
+export function avatarColor(address: string): string {
+  let h = 0;
+  for (const ch of address.toLowerCase()) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
+  return avatarPalette[h % avatarPalette.length]!;
+}

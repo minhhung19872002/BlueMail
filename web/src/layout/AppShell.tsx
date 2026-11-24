@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Alert, App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
   BulbOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
-  MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined,
+  MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined, StarOutlined, StarFilled, MailOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -100,6 +100,37 @@ export function AppShell() {
         },
       });
 
+    // Favorites (Outlook on the web): pinned lists at the top of the folder pane; a star on every list toggles it.
+    const favorites = settings?.favorites ?? [];
+    const toggleFavorite = (key: string) => {
+      const next = favorites.includes(key) ? favorites.filter((f) => f !== key) : [...favorites, key];
+      void saveSettings({ favorites: next });
+    };
+    const favButton = (key: string, name: string) => (
+      <Button size="small" type="text" className="bm-nav-fav" aria-pressed={favorites.includes(key)}
+        icon={favorites.includes(key) ? <StarFilled /> : <StarOutlined />}
+        aria-label={t(favorites.includes(key) ? "mail.fav.remove" : "mail.fav.add") + ": " + name}
+        onClick={(e) => { e.stopPropagation(); toggleFavorite(key); }} />
+    );
+    const favItems: NonNullable<MenuProps["items"]> = [];
+    for (const key of favorites) {
+      const v = systemViews.find((x) => `/mail/${x.route}` === key);
+      const l = key.startsWith("/mail/label/") ? labels.data?.labels.find((x) => `/mail/label/${x.id}` === key) : undefined;
+      if (!v && !l) continue;
+      const name = v ? t(v.i18nKey) : l!.name;
+      const n = v ? (labels.data ? countFor(v, labels.data.labels) : 0) : l!.unread;
+      favItems.push({
+        key: "fav:" + key,
+        label: (
+          <span className="bm-nav-item">
+            <span className="bm-nav-label">{name}</span>
+            {n > 0 && <span className="bm-nav-count">{n}</span>}
+            {favButton(key, name)}
+          </span>
+        ),
+      });
+    }
+
     const items: NonNullable<MenuProps["items"]> = systemViews.map((v) => {
       const n = labels.data ? countFor(v, labels.data.labels) : 0;
       const target = v.systemKey ? labels.data?.labels.find((l) => l.systemKey === v.systemKey) : undefined;
@@ -109,6 +140,7 @@ export function AppShell() {
           <span className="bm-nav-item" {...(target && dropTargets.has(v.systemKey ?? "") ? drop(target.id, true) : {})}>
             <span>{t(v.i18nKey)}</span>
             {n > 0 && <span className="bm-nav-count" aria-label={t("labels.unreadCount", { count: n })}>{n}</span>}
+            {favButton(`/mail/${v.route}`, t(v.i18nKey))}
           </span>
         ),
       };
@@ -134,17 +166,26 @@ export function AppShell() {
           <span className="bm-label-dot" style={l.colorBg ? { background: l.colorBg } : undefined} aria-hidden />
           <span className="bm-nav-label">{l.name}</span>
           {l.unread > 0 && <span className="bm-nav-count">{l.unread}</span>}
+          {favButton(`/mail/label/${l.id}`, l.name)}
           <Button size="small" type="text" className="bm-nav-del" icon={<DeleteOutlined />} aria-label={t("mail.deleteLabelTitle", { name: l.name })}
             onClick={(e) => { e.stopPropagation(); confirmDelete(l.id, l.name); }} />
         </span>
       ),
     })));
+    if (favItems.length > 0) {
+      items.unshift(
+        { key: "fav-head", className: "bm-nav-heading", label: <span className="bm-nav-item"><span>{t("mail.fav.heading")}</span></span> },
+        ...favItems,
+        { type: "divider" },
+      );
+    }
     if (canAdmin) {
       items.push({ type: "divider" });
       items.push({ key: `/admin/${adminSections[0]?.key ?? ""}`, icon: <TeamOutlined />, label: t("nav.admin") });
     }
     return items;
-  }, [labels.data, canAdmin, adminSections, t, qc, message, modal, location.pathname, navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [labels.data, canAdmin, adminSections, t, qc, message, modal, location.pathname, navigate, settings?.favorites]);
 
   const saveLabel = async () => {
     const name = newLabel?.trim();
@@ -224,6 +265,19 @@ export function AppShell() {
         </Dropdown>
       </Header>
       <Layout>
+        {!narrow && (
+          // App switcher of Outlook on the web: one column of apps at the window edge.
+          <nav className="bm-app-rail" aria-label={t("nav.apps")}>
+            <Tooltip title={t("nav.mail")} placement="right">
+              <Button type="text" icon={<MailOutlined />} aria-label={t("nav.mail")} aria-current={location.pathname.startsWith("/mail") ? "page" : undefined}
+                onClick={() => navigate("/mail/inbox")} />
+            </Tooltip>
+            <Tooltip title={t("nav.contacts")} placement="right">
+              <Button type="text" icon={<ContactsOutlined />} aria-label={t("nav.contacts")} aria-current={location.pathname.startsWith("/contacts") ? "page" : undefined}
+                onClick={() => navigate("/contacts")} />
+            </Tooltip>
+          </nav>
+        )}
         <Sider
           className={narrow ? "bm-sider bm-sider-overlay" : "bm-sider"}
           width={256}
@@ -241,11 +295,11 @@ export function AppShell() {
           <nav aria-label={t("nav.labels")}>
             <Menu
               mode="inline"
-              selectedKeys={[location.pathname.startsWith("/admin/") && adminSections[0] ? `/admin/${adminSections[0].key}` : location.pathname]}
+              selectedKeys={location.pathname.startsWith("/admin/") && adminSections[0] ? [`/admin/${adminSections[0].key}`] : [location.pathname, "fav:" + location.pathname]}
               items={navItems}
               onClick={({ key }) => {
-                if (key === "labels-head") return;
-                navigate(key);
+                if (key === "labels-head" || key === "fav-head") return;
+                navigate(key.startsWith("fav:") ? key.slice(4) : key);
                 if (narrow && !collapsed) toggle();
               }}
             />

@@ -59,6 +59,22 @@ body { background: var(--bm-bg); color: var(--bm-text); }
 .bm-conv:hover .bm-conv-hover, .bm-conv:focus-within .bm-conv-hover { display: inline-flex; }
 .bm-conv:hover .bm-conv-time { visibility: hidden; }
 .bm-att-chips { display: block; margin-block-start: 2px; }
+/* Outlook-like list beside the reading pane: three-line cards, unread marked by a bar, date headings. */
+.bm-cards .bm-conv { grid-template-columns: auto auto minmax(0, 1fr); align-items: start; padding-block: 8px; }
+.bm-avatar { inline-size: 32px; block-size: 32px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 600;
+  display: inline-grid; place-items: center; flex: none; user-select: none; }
+.bm-cards .bm-conv > .bm-icon-btn { display: none; }
+.bm-cards .bm-conv.bm-unread { box-shadow: inset 3px 0 0 var(--bm-primary); }
+.bm-card { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.bm-card-top { display: flex; justify-content: space-between; gap: 8px; min-inline-size: 0; }
+.bm-card-subject, .bm-card-snippet { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-card-subject.bm-unread-accent { color: var(--bm-primary); }
+.bm-card-snippet { color: var(--bm-textMuted); font-size: 13px; }
+.bm-cards .bm-conv:hover .bm-conv-time { visibility: visible; }
+.bm-cards .bm-conv-hover { inset-block-end: 4px; }
+.bm-group-hdr { padding: 6px 8px 4px; font-size: 13px; font-weight: 600; color: var(--bm-textMuted); background: var(--bm-bg);
+  border-block-end: 1px solid var(--bm-border); position: sticky; top: 0; z-index: 2; }
+.bm-list-filter { margin-block-end: 8px; }
 .bm-label-chip { margin-inline-end: 4px; }
 .bm-icon-btn { all: unset; cursor: pointer; padding: 4px; min-width: 24px; min-height: 24px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; color: var(--bm-textMuted); line-height: 1; } /* WCAG 2.5.8 target size */
 .bm-star-on { color: var(--bm-warning); }
@@ -240,3 +256,11 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
   margin: 24px auto;
   padding: 0 12px;
 }
+
+/* Outlook on the web: app rail at the window edge, star to pin a list to Favorites. */
+.bm-app-rail { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-block: 8px; inline-size: 48px; flex: none;
+  background: var(--bm-bg); border-inline-end: 1px solid var(--bm-border); }
+.bm-app-rail .ant-btn[aria-current="page"] { color: var(--bm-primary); background: color-mix(in srgb, var(--bm-primary) 12%, transparent); }
+.bm-nav-fav { visibility: hidden; }
+.bm-nav-item:hover .bm-nav-fav, .bm-nav-fav:focus-visible, .bm-nav-fav[aria-pressed="true"] { visibility: visible; }
+.bm-nav-fav[aria-pressed="true"] { color: var(--bm-warning, #b8860b); }

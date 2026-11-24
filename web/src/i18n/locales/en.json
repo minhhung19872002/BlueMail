@@ -40,7 +40,9 @@
     "forwarding": "Forwarding",
     "settings": "Settings",
     "contacts": "Contacts",
-    "admin": "Administration"
+    "admin": "Administration",
+    "apps": "Apps",
+    "mail": "Mail"
   },
   "theme": {
     "title": "Theme",
@@ -163,6 +165,27 @@
       "allSelected": "All {count, number} conversations of this list are selected.",
       "selectFirst": "Select the first {max, number} conversations of this list",
       "preparing": "Finding the conversations…"
+    },
+    "group": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "thisMonth": "Earlier this month",
+      "lastMonth": "Last month",
+      "older": "Older"
+    },
+    "filter": {
+      "all": "All",
+      "unread": "Unread",
+      "starred": "Starred",
+      "attachments": "Has attachments",
+      "label": "Show"
+    },
+    "fav": {
+      "heading": "Favorites",
+      "add": "Add to Favorites",
+      "remove": "Remove from Favorites"
     }
   },
   "sessions": {

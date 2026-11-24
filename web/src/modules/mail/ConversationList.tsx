@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { App, Button, Checkbox, Dropdown, Empty, Space, Spin, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
   DeleteOutlined, ExclamationCircleOutlined, FolderOpenOutlined, InboxOutlined, LeftOutlined, MailOutlined,
@@ -15,7 +15,7 @@ import { SnoozeMenu } from "./SnoozeMenu";
 import { useShortcuts } from "./ShortcutHost";
 import { inverse } from "./shortcuts";
 import { useSettings } from "../settings/settingsApi";
-import { senderParts } from "./mailView";
+import { avatarColor, dateGroup, initials, senderParts, type DateGroup } from "./mailView";
 
 export const dragType = "application/x-bluemail-threads";
 
@@ -26,10 +26,12 @@ interface Props {
   title: string;
   openThreadId: string | null;
   onOpen: (threadId: string, latestMessageId: string) => void;
+  /** Narrow list beside the reading pane: each conversation as a three-line card (Outlook). */
+  cards?: boolean;
 }
 
 /** Conversation list (PROMPT 6.2): cursor pages, selection, bulk and hover actions, drag to a label. */
-export function ConversationList({ scope, systemKey, labels, title, openThreadId, onOpen }: Props) {
+export function ConversationList({ scope, systemKey, labels, title, openThreadId, onOpen, cards = false }: Props) {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const me = useMe();
@@ -55,6 +57,7 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
     placeholderData: (prev) => prev,
   });
   const items = page.data?.items ?? [];
+  const now = useMemo(() => new Date(), [page.data]);
   const labelById = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const userLabels = labels.filter((l) => l.systemKey === null);
   const start = (cursors.length - 1) * pageSize;
@@ -237,8 +240,14 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
       {items.length === 0 ? (
         <Empty className="bm-empty" description={t("mail.emptyLabel", { label: title })} />
       ) : (
-        <ul className="bm-conv-list" aria-label={title}>
-          {items.map((c, i) => (
+        <ul className={cards ? "bm-conv-list bm-cards" : "bm-conv-list"} aria-label={title}>
+          {items.map((c, i) => {
+            // Date headings, as Outlook groups the list "By date" (snoozed mail is ordered by wake-up time: no headings).
+            const group: DateGroup | null = systemKey === "SNOOZED" ? null : dateGroup(new Date(c.lastMessageAt), now, fmt.timeZone, me.weekStart ?? 1);
+            const prev = i > 0 && systemKey !== "SNOOZED" ? dateGroup(new Date(items[i - 1]!.lastMessageAt), now, fmt.timeZone, me.weekStart ?? 1) : null;
+            return (
+            <Fragment key={c.threadId}>
+            {group && group !== prev && <li className="bm-group-hdr" role="presentation"><span role="heading" aria-level={3}>{t(`mail.group.${group}`)}</span></li>}
             <Row
               key={c.threadId}
               c={c}
@@ -253,8 +262,11 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
               myAddress={me.email}
               time={snoozedUntil.has(c.threadId) ? t("snooze.until", { time: dateTime(snoozedUntil.get(c.threadId)!, fmt) }) : listTime(c.lastMessageAt, fmt)}
               systemKey={systemKey}
+              cards={cards}
             />
-          ))}
+            </Fragment>
+            );
+          })}
         </ul>
       )}
     </>
@@ -285,9 +297,10 @@ interface RowProps {
   time: string;
   systemKey: string | null;
   focused: boolean;
+  cards: boolean;
 }
 
-function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myAddress, time, systemKey, focused }: RowProps) {
+function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myAddress, time, systemKey, focused, cards }: RowProps) {
   const { t } = useTranslation();
   const ref = useRef<HTMLLIElement>(null);
   // The keyboard cursor (j/k) is visible and keeps the row on screen.
@@ -313,6 +326,30 @@ function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myA
         onClick={() => onAction(c.important ? "notImportant" : "important")}>
         <span className={c.important ? "bm-important-on" : "bm-important-off"} aria-hidden>❯</span>
       </button>
+      {cards && (() => {
+        const who = c.participants.find((p) => p.address.toLowerCase() !== myAddress.toLowerCase()) ?? c.participants[0];
+        return who ? <span className="bm-avatar" aria-hidden style={{ background: avatarColor(who.address) }}>{initials(who.name, who.address)}</span> : <span />;
+      })()}
+      {cards ? (
+      <button type="button" className="bm-conv-main bm-card" onClick={onOpen} aria-current={open ? "true" : undefined}>
+        <span className="bm-card-top">
+          <span className="bm-conv-from">
+            {senders.map((s, i) => (
+              <span key={i} className={s.unread ? "bm-strong" : undefined}>{i > 0 ? ", " : ""}{s.me ? t("mail.me") : s.text}</span>
+            ))}
+            {c.messageCount > 1 && <span className="bm-conv-count">{c.messageCount}</span>}
+          </span>
+          <span className="bm-conv-time">{c.hasAttachments && <PaperClipOutlined aria-label={t("mail.hasAttachments")} />} {time}</span>
+        </span>
+        <span className={unread ? "bm-card-subject bm-strong bm-unread-accent" : "bm-card-subject"}>
+          {labels.map((l) => (
+            <Tag key={l.id} className="bm-label-chip" style={l.colorBg ? { background: l.colorBg, color: l.colorText ?? undefined, borderColor: l.colorBg } : undefined}>{l.name}</Tag>
+          ))}
+          {c.subject || t("mail.noSubject")}
+        </span>
+        {c.snippet && <span className="bm-card-snippet">{c.snippet}</span>}
+      </button>
+      ) : (
       <button type="button" className="bm-conv-main" onClick={onOpen} aria-current={open ? "true" : undefined}>
         <span className="bm-conv-from">
           {senders.map((s, i) => (
@@ -333,9 +370,10 @@ function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myA
           )}
         </span>
       </button>
-      <span className="bm-conv-time">
+      )}
+      {!cards && <span className="bm-conv-time">
         {c.hasAttachments && <PaperClipOutlined aria-label={t("mail.hasAttachments")} />} {time}
-      </span>
+      </span>}
       <span className="bm-conv-hover" role="group" aria-label={t("mail.quickActions")}>
         {systemKey === "INBOX" && (
           <Tooltip title={t("mail.archive")}><Button size="small" type="text" icon={<InboxOutlined />} aria-label={t("mail.archive")} onClick={() => onAction("archive")} /></Tooltip>

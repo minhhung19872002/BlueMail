@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { authWarnings, isExternal, looksLike, parseSpamReport, senderParts } from "./mailView";
+import { authWarnings, avatarColor, avatarPalette, dateGroup, initials, isExternal, looksLike, parseSpamReport, senderParts } from "./mailView";
 import en from "../../i18n/locales/en.json";
 import vi from "../../i18n/locales/vi.json";
 
@@ -68,5 +68,54 @@ describe("spam report", () => {
       const rules = (locale as unknown as { spam: { rule: Record<string, string> } }).spam.rule;
       expect(codes.filter((c) => !rules[c])).toEqual([]);
     }
+  });
+});
+
+describe("date groups", () => {
+  const tz = "Asia/Ho_Chi_Minh";
+  // Wednesday 2026-11-25 10:00 in Hà Nội.
+  const now = new Date("2026-11-25T03:00:00Z");
+  const at = (local: string) => new Date(local + "+07:00");
+
+  it("puts messages under Outlook-like headings in the user's time zone", () => {
+    expect(dateGroup(at("2026-11-25T00:30:00"), now, tz)).toBe("today");
+    expect(dateGroup(at("2026-11-24T23:59:00"), now, tz)).toBe("yesterday");
+    expect(dateGroup(at("2026-11-23T08:00:00"), now, tz)).toBe("thisWeek"); // Monday
+    expect(dateGroup(at("2026-11-22T08:00:00"), now, tz)).toBe("lastWeek"); // Sunday before
+    expect(dateGroup(at("2026-11-16T08:00:00"), now, tz)).toBe("lastWeek");
+    expect(dateGroup(at("2026-11-10T08:00:00"), now, tz)).toBe("thisMonth");
+    expect(dateGroup(at("2026-10-31T08:00:00"), now, tz)).toBe("lastMonth");
+    expect(dateGroup(at("2026-09-30T08:00:00"), now, tz)).toBe("older");
+  });
+
+  it("follows the week start of the profile", () => {
+    // Sunday 22nd is in this week when weeks start on Sunday.
+    expect(dateGroup(at("2026-11-22T08:00:00"), now, tz, 0)).toBe("thisWeek");
+  });
+
+  it("uses the zone, not the browser clock: 23:30 UTC is already tomorrow in Hà Nội", () => {
+    expect(dateGroup(new Date("2026-11-24T17:30:00Z"), now, tz)).toBe("today");
+  });
+
+  it("has a translation for every heading", () => {
+    for (const g of ["today", "yesterday", "thisWeek", "lastWeek", "thisMonth", "lastMonth", "older"]) {
+      expect((en.mail.group as Record<string, string>)[g]).toBeTruthy();
+      expect((vi.mail.group as Record<string, string>)[g]).toBeTruthy();
+    }
+  });
+});
+
+describe("avatars", () => {
+  it("takes the first and last word, or the address", () => {
+    expect(initials("Chị Hạnh", "hanh@x.test")).toBe("CH");
+    expect(initials("Nguyễn Văn An", "an@x.test")).toBe("NA");
+    expect(initials("田中 健二", "kenji@x.test")).toBe("田");
+    expect(initials(null, "noreply-dmarc@google.com")).toBe("NO");
+    expect(initials("\"Olivia\"", "o@x.test")).toBe("O");
+  });
+
+  it("gives one sender always the same readable colour", () => {
+    expect(avatarColor("An@Doitac.test")).toBe(avatarColor("an@doitac.test"));
+    expect(avatarPalette).toContain(avatarColor("x@y.test"));
   });
 });

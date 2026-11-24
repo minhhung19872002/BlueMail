@@ -17,7 +17,7 @@ public sealed record MailSettings
 {
     public int PageSize { get; init; } = 50;
     public string Density { get; init; } = "DEFAULT";
-    public string ReadingPane { get; init; } = "NONE";
+    public string ReadingPane { get; init; } = "RIGHT"; // as Outlook: list and message side by side
     public bool ConversationView { get; init; } = true;
     public int UndoSendSeconds { get; init; } = 10;
     public string DefaultReply { get; init; } = "REPLY";
@@ -28,6 +28,11 @@ public sealed record MailSettings
     public bool SendAndArchive { get; init; }
     public string AutoAdvance { get; init; } = "LIST";
     public bool DesktopNotifications { get; init; }
+
+    /// <summary>Lists pinned at the top of the folder pane (Outlook "Favorites"): web paths /mail/inbox, /mail/label/{id}.</summary>
+    public IReadOnlyList<string> Favorites { get; init; } = ["/mail/inbox", "/mail/sent", "/mail/drafts"];
+
+    public const int MaxFavorites = 20;
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -60,6 +65,8 @@ public sealed record MailSettings
             InboxCategories = Categories.Where(c => c == "PRIMARY" || (s.InboxCategories ?? []).Contains(c)).ToList(),
             Theme = s.Theme is "SYSTEM" or "LIGHT" or "DARK" ? s.Theme : d.Theme,
             AutoAdvance = s.AutoAdvance is "LIST" or "NEWER" or "OLDER" ? s.AutoAdvance : d.AutoAdvance,
+            Favorites = (s.Favorites ?? d.Favorites).Where(f => f is { Length: > 6 and <= 64 } && f.StartsWith("/mail/", StringComparison.Ordinal))
+                .Distinct(StringComparer.Ordinal).Take(MaxFavorites).ToList(),
         };
     }
 }

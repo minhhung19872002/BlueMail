@@ -26,7 +26,7 @@ export const useUi = create<UiState>()(
       theme: "system",
       density: "default",
       sidebarCollapsed: false,
-      readingPane: "none",
+      readingPane: "right",
       threaded: true,
       undoSeconds: 10,
       setUndoSeconds: (undoSeconds) => set({ undoSeconds }),

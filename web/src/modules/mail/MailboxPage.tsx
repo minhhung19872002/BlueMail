@@ -1,5 +1,5 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { Grid, Spin, Typography } from "antd";
+import { Grid, Segmented, Spin, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api/client";
@@ -34,6 +34,9 @@ export function MailboxPage() {
   const query = label === "search" ? search.get("q") ?? "" : "";
   const tabs = settings?.inboxCategories ?? [];
   const tab = (search.get("c") as Category | null) ?? "PRIMARY";
+  // Quick filter above the list (Outlook "All / Unread"), kept in the URL like the open conversation.
+  const filter = (search.get("f") ?? "all") as "all" | "unread" | "starred" | "attachments";
+  const filterQuery = { all: "", unread: "is:unread", starred: "is:starred", attachments: "has:attachment" }[filter] ?? "";
   const view = labelId ? undefined : systemViews.find((v) => v.route === (query ? "all" : label));
   const userLabel = labelId ? all.find((l) => l.id === labelId) : undefined;
   const systemLabel = view?.systemKey ? all.find((l) => l.systemKey === view.systemKey) : undefined;
@@ -58,21 +61,29 @@ export function MailboxPage() {
   const inboxTabs = view?.systemKey === "INBOX" && !query && tabs.length > 1;
   const list = (
     <ConversationList
-      key={(scopeLabelId ?? "all") + query + (inboxTabs ? tab : "")}
-      scope={{ labelId: view?.route === "all" ? null : scopeLabelId, q: query || (inboxTabs ? `category:${tab.toLowerCase()}` : undefined) }}
+      key={(scopeLabelId ?? "all") + query + (inboxTabs ? tab : "") + filter}
+      scope={{ labelId: view?.route === "all" ? null : scopeLabelId,
+        q: [query || (inboxTabs ? `category:${tab.toLowerCase()}` : ""), filterQuery].filter(Boolean).join(" ") || undefined }}
       systemKey={view?.systemKey ?? null}
       labels={all}
       title={title}
       openThreadId={threadId}
       onOpen={open}
+      cards={split && pane === "right"}
     />
   );
-  const listWithTabs = inboxTabs ? (
+  const filterBar = (
+    <Segmented className="bm-list-filter" size="small" aria-label={t("mail.filter.label")} value={filter}
+      options={(["all", "unread", "starred", "attachments"] as const).map((f) => ({ value: f, label: t(`mail.filter.${f}`) }))}
+      onChange={(v) => setSearch((s) => { if (v === "all") s.delete("f"); else s.set("f", String(v)); s.delete("t"); return s; })} />
+  );
+  const listWithTabs = (
     <>
-      <InboxTabs categories={tabs} active={tab} labels={all} onChange={(c) => setSearch((s) => { s.set("c", c); s.delete("t"); return s; })} />
+      {inboxTabs && <InboxTabs categories={tabs} active={tab} labels={all} onChange={(c) => setSearch((s) => { s.set("c", c); s.delete("t"); return s; })} />}
+      {filterBar}
       {list}
     </>
-  ) : list;
+  );
   const reader = threadId ? <ThreadView key={threadId} threadId={threadId} labels={all} systemKey={view?.systemKey ?? null} onClose={close} /> : null;
 
   return (

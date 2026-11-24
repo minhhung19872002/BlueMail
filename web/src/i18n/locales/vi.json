@@ -40,7 +40,9 @@
     "forwarding": "Chuyển tiếp",
     "settings": "Cài đặt",
     "contacts": "Danh bạ",
-    "admin": "Quản trị"
+    "admin": "Quản trị",
+    "apps": "Ứng dụng",
+    "mail": "Thư"
   },
   "theme": {
     "title": "Chủ đề",
@@ -163,6 +165,27 @@
       "allSelected": "Đã chọn tất cả {count, number} hội thoại trong danh sách này.",
       "selectFirst": "Chọn {max, number} hội thoại đầu tiên trong danh sách này",
       "preparing": "Đang tìm các hội thoại…"
+    },
+    "group": {
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua",
+      "thisWeek": "Tuần này",
+      "lastWeek": "Tuần trước",
+      "thisMonth": "Đầu tháng này",
+      "lastMonth": "Tháng trước",
+      "older": "Cũ hơn"
+    },
+    "filter": {
+      "all": "Tất cả",
+      "unread": "Chưa đọc",
+      "starred": "Gắn sao",
+      "attachments": "Có tệp đính kèm",
+      "label": "Hiển thị"
+    },
+    "fav": {
+      "heading": "Yêu thích",
+      "add": "Thêm vào Yêu thích",
+      "remove": "Bỏ khỏi Yêu thích"
     }
   },
   "sessions": {
