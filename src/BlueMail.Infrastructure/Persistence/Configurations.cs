@@ -792,6 +792,17 @@ internal sealed class TaskItemConfig : IEntityTypeConfiguration<BlueMail.Domain.
     }
 }
 
+internal sealed class CalendarShareConfig : IEntityTypeConfiguration<BlueMail.Domain.Calendar.CalendarShare>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Calendar.CalendarShare> b)
+    {
+        b.ToTable("calendar_shares", "cal");
+        b.Property(x => x.Permission).HasMaxLength(8);
+        b.HasIndex(x => new { x.OwnerUserId, x.GranteeUserId }).IsUnique().HasFilter("deleted_at IS NULL");
+        b.HasIndex(x => x.GranteeUserId);
+    }
+}
+
 internal sealed class InviteResponseConfig : IEntityTypeConfiguration<InviteResponse>
 {
     public void Configure(EntityTypeBuilder<InviteResponse> b)

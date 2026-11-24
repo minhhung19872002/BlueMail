@@ -341,8 +341,21 @@ public sealed class CalendarController(ISender mediator) : ControllerBase
     [HttpGet("events")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<IReadOnlyList<BlueMail.Application.Features.Calendar.EventOccurrenceDto>>> Events([FromQuery] DateTimeOffset from,
-        [FromQuery] DateTimeOffset to, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.ListEventsQuery(from, to), ct));
+        [FromQuery] DateTimeOffset to, [FromQuery] Guid? owner, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.ListEventsQuery(from, to, owner), ct));
+
+    /// <summary>Who sees my calendar, and whose calendars I may open (Outlook "Share Calendar").</summary>
+    [HttpGet("shares")]
+    [SelfGuarded("own calendar shares of the signed-in user")]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.CalendarSharesDto>> Shares(CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.ListCalendarSharesQuery(), ct));
+
+    /// <summary>{ email, permission: VIEW | EDIT | NONE } shares my calendar with a colleague, or stops sharing.</summary>
+    [HttpPut("shares")]
+    [SelfGuarded("own calendar shares of the signed-in user")]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.CalendarSharesDto>> SetShare([FromBody] BlueMail.Application.Features.Calendar.SetCalendarShareCommand body,
+        CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(body, ct));
 
     /// <summary>Busy times of people of the organisation (no event details), for planning a meeting.</summary>
     [HttpGet("freebusy")]
@@ -353,19 +366,19 @@ public sealed class CalendarController(ISender mediator) : ControllerBase
 
     [HttpPost("events")]
     [SelfGuarded(Guarded)]
-    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.EventOccurrenceDto>> Create([FromBody] EventBody b, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(ToCommand(null, b), ct));
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.EventOccurrenceDto>> Create([FromBody] EventBody b, [FromQuery] Guid? owner, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(ToCommand(null, b) with { Owner = owner }, ct));
 
     [HttpPut("events/{id:guid}")]
     [SelfGuarded(Guarded)]
-    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.EventOccurrenceDto>> Update(Guid id, [FromBody] EventBody b, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(ToCommand(id, b), ct));
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.EventOccurrenceDto>> Update(Guid id, [FromBody] EventBody b, [FromQuery] Guid? owner, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(ToCommand(id, b) with { Owner = owner }, ct));
 
     /// <summary>Deletes the event, or with <c>occurrence</c> only that occurrence of a series.</summary>
     [HttpDelete("events/{id:guid}")]
     [SelfGuarded(Guarded)]
-    public async Task<ApiResponse<bool>> Delete(Guid id, [FromQuery] DateTimeOffset? occurrence, CancellationToken ct) =>
-        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.DeleteEventCommand(id, occurrence), ct));
+    public async Task<ApiResponse<bool>> Delete(Guid id, [FromQuery] DateTimeOffset? occurrence, [FromQuery] Guid? owner, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.DeleteEventCommand(id, occurrence, owner), ct));
 
     private static BlueMail.Application.Features.Calendar.SaveEventCommand ToCommand(Guid? id, EventBody b) =>
         new(id, b.Summary ?? "", b.Location, b.Description, b.Start, b.End, b.AllDay, b.TimeZone, b.RecurrenceRule, b.Attendees, b.ReminderMinutes, b.Color);

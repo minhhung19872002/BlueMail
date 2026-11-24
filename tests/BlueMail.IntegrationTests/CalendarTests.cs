@@ -129,5 +129,43 @@ public class CalendarTests(StackFixture stack)
         (await lucas.GetAsync($"/api/v1/calendar/freebusy?address=joao@acme.test&from={Uri.EscapeDataString(day.ToString("O"))}&to={Uri.EscapeDataString(day.AddDays(40).ToString("O"))}"))
             .StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Sharing_a_calendar_to_view_or_edit_and_stopping()
+    {
+        using var sofia = await Client("sofia@acme.test");
+        using var tomas = await Client("tomas@acme.test");
+        var tomasId = (await Data(await tomas.GetAsync("/api/v1/me"))).GetProperty("id").GetGuid();
+        var sofiaId = (await Data(await sofia.GetAsync("/api/v1/me"))).GetProperty("id").GetGuid();
+        var day = new DateTimeOffset(2027, 2, 3, 0, 0, 0, TimeSpan.Zero);
+        var title = "Dentist " + Guid.NewGuid().ToString("N")[..5];
+        await Data(await sofia.PostAsJsonAsync("/api/v1/calendar/events", new { summary = title, start = day.AddHours(15), end = day.AddHours(16), allDay = false, timeZone = "UTC" }));
+        var range = Range(day, day.AddDays(1));
+
+        // Not shared: tomas cannot open it (looks like "not found").
+        (await tomas.GetAsync(range + $"&owner={sofiaId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // VIEW: tomas sees the details but cannot add.
+        var shares = await Data(await sofia.PutAsJsonAsync("/api/v1/calendar/shares", new { email = "TOMAS@acme.test", permission = "VIEW" }));
+        shares.GetProperty("mine").EnumerateArray().Should().ContainSingle(x => x.GetProperty("userId").GetGuid() == tomasId && x.GetProperty("permission").GetString() == "VIEW");
+        (await Data(await tomas.GetAsync("/api/v1/calendar/shares"))).GetProperty("withMe").EnumerateArray().Should().Contain(x => x.GetProperty("userId").GetGuid() == sofiaId);
+        (await Data(await tomas.GetAsync(range + $"&owner={sofiaId}"))).EnumerateArray().Should().Contain(e => e.GetProperty("summary").GetString() == title);
+        (await tomas.PostAsJsonAsync($"/api/v1/calendar/events?owner={sofiaId}", new { summary = "x", start = day.AddHours(9), end = day.AddHours(10), allDay = false }))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // EDIT: tomas adds to sofia's calendar, but not a meeting with guests.
+        await Data(await sofia.PutAsJsonAsync("/api/v1/calendar/shares", new { email = "tomas@acme.test", permission = "EDIT" }));
+        var added = await Data(await tomas.PostAsJsonAsync($"/api/v1/calendar/events?owner={sofiaId}", new { summary = "Booked by Tomas", start = day.AddHours(9), end = day.AddHours(10), allDay = false, timeZone = "UTC" }));
+        (await Data(await sofia.GetAsync(range))).EnumerateArray().Should().Contain(e => e.GetProperty("summary").GetString() == "Booked by Tomas");
+        (await tomas.PostAsJsonAsync($"/api/v1/calendar/events?owner={sofiaId}", new { summary = "m", start = day.AddHours(11), end = day.AddHours(12), allDay = false,
+            attendees = new[] { new { address = "jonas@acme.test" } } })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Data(await tomas.DeleteAsync($"/api/v1/calendar/events/{added.GetProperty("id").GetGuid()}?owner={sofiaId}"))).GetBoolean().Should().BeTrue();
+
+        // Stop sharing: closed again; nobody outside the organisation can be given access.
+        await Data(await sofia.PutAsJsonAsync("/api/v1/calendar/shares", new { email = "tomas@acme.test", permission = "NONE" }));
+        (await tomas.GetAsync(range + $"&owner={sofiaId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await sofia.PutAsJsonAsync("/api/v1/calendar/shares", new { email = "minh@bluemail.test", permission = "VIEW" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await sofia.PutAsJsonAsync("/api/v1/calendar/shares", new { email = "sofia@acme.test", permission = "VIEW" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
 

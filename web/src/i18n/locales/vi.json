@@ -1554,6 +1554,20 @@
       "free": "rảnh",
       "busy": "bận giờ này",
       "unknown": "không xem được lịch"
+    },
+    "share": {
+      "button": "Chia sẻ",
+      "title": "Chia sẻ lịch của tôi",
+      "intro": "Đồng nghiệp bạn thêm sẽ mở được lịch của bạn. “Được sửa” cho phép thêm, sửa, xoá sự kiện (trừ cuộc họp có khách mời).",
+      "email": "Địa chỉ email của đồng nghiệp",
+      "permission": "Quyền",
+      "view": "Được xem",
+      "edit": "Được sửa",
+      "add": "Chia sẻ",
+      "none": "Chưa chia sẻ với ai.",
+      "stop": "Ngừng chia sẻ",
+      "others": "Hiện lịch của người khác",
+      "ofOwner": "Lịch của {name}"
     }
   },
   "tasks": {

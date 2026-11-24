@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { App, Button, DatePicker, Form, Input, Modal, Segmented, Select, Space, Spin, Switch, Tag, Tooltip, Typography } from "antd";
 import { CalendarOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, LeftOutlined, PlusOutlined, RightOutlined, SyncOutlined, TeamOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,7 +7,8 @@ import { useTranslation } from "react-i18next";
 import dayjs, { type Dayjs } from "dayjs";
 import { ApiError } from "../../api/client";
 import { useMe, useUserFormat } from "../../session";
-import { calendarApi, calendarKeys, type CalendarEvent, type EventInput } from "./calendarApi";
+import { calendarApi, calendarKeys, type CalendarEvent, type EventInput, type SharedCalendar } from "./calendarApi";
+import { CalendarSharing } from "./CalendarSharing";
 import { availability, eventColors, eventDates, layoutDay, repeatKind, ruleFor, step, visibleDays, type CalendarView, type RepeatKind } from "./calendarView";
 
 const HourPx = 48;
@@ -26,7 +28,21 @@ export function CalendarPage() {
   const days = useMemo(() => visibleDays(view, anchor, weekStart), [view, anchor, weekStart]);
   const from = days[0]!.toISOString();
   const to = days[days.length - 1]!.add(1, "day").toISOString();
-  const events = useQuery({ queryKey: calendarKeys.range(from, to), queryFn: () => calendarApi.list(from, to) });
+  const own = useQuery({ queryKey: calendarKeys.range(from, to), queryFn: () => calendarApi.list(from, to) });
+  // Calendars others shared with the user, shown over their own (Outlook: several calendars side by side).
+  const shares = useQuery({ queryKey: [...calendarKeys.all, "shares"], queryFn: calendarApi.shares });
+  const [shown, setShown] = useState<string[]>([]);
+  const sharedCalendars = (shares.data?.withMe ?? []).filter((s) => shown.includes(s.userId));
+  const others = useQueries({
+    queries: sharedCalendars.map((s) => ({
+      queryKey: [...calendarKeys.range(from, to), s.userId],
+      queryFn: async () => (await calendarApi.list(from, to, s.userId)).map((e): CalendarEvent => ({ ...e, owner: s, color: e.color ?? "gray" })),
+    })),
+  });
+  const events = {
+    isPending: own.isPending,
+    data: [...(own.data ?? []), ...others.flatMap((q) => q.data ?? [])].sort((a, b) => a.start.localeCompare(b.start)),
+  };
 
   const title = useMemo(() => {
     if (view === "month") return new Intl.DateTimeFormat(fmt.locale, { timeZone: tz, month: "long", year: "numeric" }).format(anchor.toDate());
@@ -41,7 +57,8 @@ export function CalendarPage() {
       for (const d of eventDates(e, tz)) map.set(d, [...(map.get(d) ?? []), e]);
     }
     return map;
-  }, [events.data, tz]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [own.data, others.map((q) => q.dataUpdatedAt).join(), tz]);
 
   const newAt = (start: Dayjs, allDay = false) => setEditing({ event: null, start, allDay });
 
@@ -55,6 +72,12 @@ export function CalendarPage() {
         <DatePicker aria-label={t("calendar.goTo")} placeholder={t("calendar.goTo")} allowClear={false} format="YYYY-MM-DD"
           onChange={(d) => { if (d) setAnchor(dayjs.tz(d.format("YYYY-MM-DD"), tz).hour(12)); }} />
         <Typography.Title level={4} id="cal-title" className="bm-cal-title">{title}</Typography.Title>
+        {(shares.data?.withMe.length ?? 0) > 0 && (
+          <Select mode="multiple" allowClear maxTagCount="responsive" style={{ minInlineSize: 200 }} placeholder={t("calendar.share.others")}
+            aria-label={t("calendar.share.others")} value={shown} onChange={setShown}
+            options={(shares.data?.withMe ?? []).map((s: SharedCalendar) => ({ value: s.userId, label: s.name }))} />
+        )}
+        <CalendarSharing />
         <Segmented value={view} onChange={(v) => setView(v as CalendarView)} aria-label={t("calendar.view")}
           options={(["day", "workweek", "week", "month"] as const).map((v) => ({ value: v, label: t(`calendar.views.${v}`) }))} />
       </div>
@@ -199,8 +222,10 @@ function EventDetails({ event, onClose, onEdit }: { event: CalendarEvent; onClos
     ? new Intl.DateTimeFormat(fmt.locale, { timeZone: "UTC", dateStyle: "full" }).format(new Date(event.start))
     : `${new Intl.DateTimeFormat(fmt.locale, { timeZone: fmt.timeZone, dateStyle: "full", timeStyle: "short", hourCycle: fmt.hourCycle ?? undefined }).format(new Date(event.start))} – ${
       new Intl.DateTimeFormat(fmt.locale, { timeZone: fmt.timeZone, timeStyle: "short", hourCycle: fmt.hourCycle ?? undefined }).format(new Date(event.end))}`;
+  const owner = event.owner;
+  const canChange = !owner || (owner.permission === "EDIT" && event.attendees.length === 0);
   const remove = (occurrence?: string) =>
-    calendarApi.remove(event.id, occurrence).then(async () => {
+    calendarApi.remove(event.id, occurrence, owner?.userId).then(async () => {
       await qc.invalidateQueries({ queryKey: calendarKeys.all });
       message.success(t("calendar.deleted"));
       onClose();
@@ -225,11 +250,12 @@ function EventDetails({ event, onClose, onEdit }: { event: CalendarEvent; onClos
   return (
     <Modal open title={event.summary} onCancel={onClose} footer={
       <Space>
-        {event.isOrganizer && <Button icon={<EditOutlined />} onClick={onEdit}>{t("calendar.edit")}</Button>}
-        <Button danger icon={<DeleteOutlined />} onClick={askDelete}>{t("calendar.delete")}</Button>
+        {event.isOrganizer && canChange && <Button icon={<EditOutlined />} onClick={onEdit}>{t("calendar.edit")}</Button>}
+        {canChange && <Button danger icon={<DeleteOutlined />} onClick={askDelete}>{t("calendar.delete")}</Button>}
       </Space>
     }>
       <Space direction="vertical" size={6} style={{ inlineSize: "100%" }}>
+        {owner && <Tag>{t("calendar.share.ofOwner", { name: owner.name })}</Tag>}
         <Typography.Text><CalendarOutlined /> {when} {event.recurring && <Tooltip title={t("invite.recurring")}><SyncOutlined aria-label={t("invite.recurring")} /></Tooltip>}</Typography.Text>
         {event.location && <Typography.Text><EnvironmentOutlined /> {event.location}</Typography.Text>}
         {!event.isOrganizer && event.organizerEmail && <Typography.Text type="secondary">{t("invite.organizer", { name: event.organizerName || event.organizerEmail })}</Typography.Text>}
@@ -313,7 +339,7 @@ function EventEditor({ initial, tz, onClose }: { initial: { event: CalendarEvent
     };
     setBusy(true);
     try {
-      if (e) await calendarApi.update(e.id, input);
+      if (e) await calendarApi.update(e.id, input, e.owner?.userId);
       else await calendarApi.create(input);
       await qc.invalidateQueries({ queryKey: calendarKeys.all });
       message.success(input.attendees.length > 0 ? t("calendar.savedInvited", { count: input.attendees.length }) : t("calendar.saved"));

@@ -50,7 +50,8 @@ public static class CalendarLimits
 
 // ---------- read ----------
 
-public sealed record ListEventsQuery(DateTimeOffset From, DateTimeOffset To) : IRequest<IReadOnlyList<EventOccurrenceDto>>;
+/// <summary>Occurrences in [From, To) of the caller's calendar, or of <paramref name="Owner"/>'s when it is shared with them.</summary>
+public sealed record ListEventsQuery(DateTimeOffset From, DateTimeOffset To, Guid? Owner = null) : IRequest<IReadOnlyList<EventOccurrenceDto>>;
 
 public sealed class ListEventsValidator : AbstractValidator<ListEventsQuery>
 {
@@ -66,8 +67,9 @@ public sealed class ListEventsHandler(BlueMailDbContext db, ICurrentUser me) : I
         // (PostgreSQL timestamptz parameters must be UTC.)
         var from = q.From.ToUniversalTime();
         var to = q.To.ToUniversalTime();
+        var owner = await CalendarPermissions.ResolveAsync(db, me, q.Owner, CalendarPermissions.View, ct);
         var items = await db.CalendarItems.AsNoTracking()
-            .Where(e => e.UserId == me.UserId && e.Status != "CANCELLED" && e.MyResponse != "DECLINED" && e.StartAt < to
+            .Where(e => e.UserId == owner && e.Status != "CANCELLED" && e.MyResponse != "DECLINED" && e.StartAt < to
                         && (e.RecurrenceRule != null || e.EndAt > from))
             .OrderBy(e => e.StartAt).Take(5000).ToListAsync(ct);
         var result = new List<EventOccurrenceDto>();
@@ -101,7 +103,8 @@ public sealed record SaveEventCommand(
     string? RecurrenceRule,
     IReadOnlyList<AttendeeInput>? Attendees,
     int? ReminderMinutes,
-    string? Color) : IRequest<EventOccurrenceDto>;
+    string? Color,
+    Guid? Owner = null) : IRequest<EventOccurrenceDto>;
 
 public sealed class SaveEventValidator : AbstractValidator<SaveEventCommand>
 {
@@ -125,12 +128,25 @@ public sealed class SaveEventHandler(BlueMailDbContext db, ICurrentUser me, Cale
 {
     public async Task<EventOccurrenceDto> Handle(SaveEventCommand c, CancellationToken ct)
     {
-        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Id == me.UserId, ct);
+        // Someone else's calendar needs an EDIT share; meetings (guests) stay with their organizer.
+        var owner = await CalendarPermissions.ResolveAsync(db, me, c.Owner, CalendarPermissions.Edit, ct);
+        var delegated = owner != me.UserId;
+        if (delegated && c.Attendees is { Count: > 0 })
+        {
+            throw AppException.BadRequest("shared_calendar_no_guests");
+        }
+
+        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Id == owner, ct);
         CalendarItem e;
         var before = new List<AttendeeDto>();
         if (c.Id is { } id)
         {
-            e = await db.CalendarItems.FirstOrDefaultAsync(x => x.Id == id && x.UserId == me.UserId, ct) ?? throw AppException.NotFound("event_not_found");
+            e = await db.CalendarItems.FirstOrDefaultAsync(x => x.Id == id && x.UserId == owner, ct) ?? throw AppException.NotFound("event_not_found");
+            if (delegated && Calendars.People(e.Attendees).Count > 0)
+            {
+                throw AppException.BadRequest("shared_calendar_no_guests");
+            }
+
             if (!e.IsOrganizer)
             {
                 // An invitation from someone else: only my own reminder and colour can change.
@@ -147,7 +163,7 @@ public sealed class SaveEventHandler(BlueMailDbContext db, ICurrentUser me, Cale
         {
             e = new CalendarItem
             {
-                Id = Guid.NewGuid(), TenantId = me.TenantId, UserId = me.UserId, Uid = Guid.NewGuid().ToString("N") + "@bluemail",
+                Id = Guid.NewGuid(), TenantId = me.TenantId, UserId = owner, Uid = Guid.NewGuid().ToString("N") + "@bluemail",
                 IsOrganizer = true, OrganizerEmail = user.PrimaryEmail, OrganizerName = user.DisplayName,
             };
             db.CalendarItems.Add(e);
@@ -186,14 +202,20 @@ public sealed class SaveEventHandler(BlueMailDbContext db, ICurrentUser me, Cale
     }
 }
 
-public sealed record DeleteEventCommand(Guid Id, DateTimeOffset? Occurrence) : IRequest<bool>;
+public sealed record DeleteEventCommand(Guid Id, DateTimeOffset? Occurrence, Guid? Owner = null) : IRequest<bool>;
 
 public sealed class DeleteEventHandler(BlueMailDbContext db, ICurrentUser me, Calendars calendars) : IRequestHandler<DeleteEventCommand, bool>
 {
     public async Task<bool> Handle(DeleteEventCommand c, CancellationToken ct)
     {
-        var e = await db.CalendarItems.FirstOrDefaultAsync(x => x.Id == c.Id && x.UserId == me.UserId, ct) ?? throw AppException.NotFound("event_not_found");
-        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Id == me.UserId, ct);
+        var owner = await CalendarPermissions.ResolveAsync(db, me, c.Owner, CalendarPermissions.Edit, ct);
+        var e = await db.CalendarItems.FirstOrDefaultAsync(x => x.Id == c.Id && x.UserId == owner, ct) ?? throw AppException.NotFound("event_not_found");
+        if (owner != me.UserId && Calendars.People(e.Attendees).Count > 0)
+        {
+            throw AppException.BadRequest("shared_calendar_no_guests");
+        }
+
+        var user = await db.Users.AsNoTracking().FirstAsync(u => u.Id == owner, ct);
         if (c.Occurrence is { } at && e.RecurrenceRule is not null)
         {
             // One occurrence of a series: an EXDATE (RFC 5545 3.8.5.1); guests get the updated series.

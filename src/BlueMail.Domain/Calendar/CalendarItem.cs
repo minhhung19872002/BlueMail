@@ -50,3 +50,13 @@ public class CalendarItem : TenantEntity
 
     public string? Color { get; set; }
 }
+
+/// <summary>The owner lets a colleague see (VIEW) or also change (EDIT) their calendar (Outlook "Share Calendar").</summary>
+public class CalendarShare : TenantEntity
+{
+    public Guid OwnerUserId { get; set; }
+    public Guid GranteeUserId { get; set; }
+
+    /// <summary>VIEW or EDIT.</summary>
+    public string Permission { get; set; } = "VIEW";
+}

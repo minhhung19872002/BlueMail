@@ -1554,6 +1554,20 @@
       "free": "free",
       "busy": "busy at this time",
       "unknown": "calendar not visible"
+    },
+    "share": {
+      "button": "Share",
+      "title": "Share my calendar",
+      "intro": "Colleagues you add can open your calendar. “Can edit” also lets them add, change and delete events (not meetings with guests).",
+      "email": "Colleague's email address",
+      "permission": "Permission",
+      "view": "Can view",
+      "edit": "Can edit",
+      "add": "Share",
+      "none": "Not shared with anyone.",
+      "stop": "Stop sharing",
+      "others": "Show other calendars",
+      "ofOwner": "Calendar of {name}"
     }
   },
   "tasks": {
