@@ -1672,5 +1672,21 @@
       "moveTo": "Move to label",
       "mute": "Ignore conversation"
     }
+  },
+  "mailMerge": {
+    "button": "Mail merge",
+    "title": "Mail merge to {group}",
+    "intro": "One message per contact of the group, each sent like any message (with the undo window). Fields you can use:",
+    "body": "Message",
+    "preview": "Preview for {email}:",
+    "send": "{count, plural, one {Send # message} other {Send # messages}}",
+    "sent": "{count, plural, one {# message sent} other {# messages sent}}.",
+    "tooMany": "Only the first {max} contacts are sent to.",
+    "empty": "No contact of this group has an email address.",
+    "fields": {
+      "name": "first name",
+      "fullName": "full name",
+      "email": "email address"
+    }
   }
 }

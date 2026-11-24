@@ -1672,5 +1672,21 @@
       "moveTo": "Chuyển sang nhãn",
       "mute": "Bỏ qua hội thoại"
     }
+  },
+  "mailMerge": {
+    "button": "Trộn thư",
+    "title": "Trộn thư gửi nhóm {group}",
+    "intro": "Mỗi liên hệ trong nhóm nhận một thư riêng, gửi như thư thường (có thời gian hoàn tác). Các trường dùng được:",
+    "body": "Nội dung",
+    "preview": "Xem trước cho {email}:",
+    "send": "Gửi {count, number} thư",
+    "sent": "Đã gửi {count, number} thư.",
+    "tooMany": "Chỉ gửi cho {max} liên hệ đầu tiên.",
+    "empty": "Không liên hệ nào trong nhóm có địa chỉ email.",
+    "fields": {
+      "name": "tên",
+      "fullName": "họ tên",
+      "email": "địa chỉ email"
+    }
   }
 }

@@ -65,7 +65,7 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Forward Contact (vCard), nhập/xuất | ✅ | vCard 2.1–4.0, CSV Google/Outlook |
 | Gộp liên hệ trùng | ✅ | |
 | Share Contacts, Open Shared Contacts | ❌ | |
-| Mail Merge | ❌ | |
+| Mail Merge | ✅ | Từ một nhóm danh bạ: mỗi người một thư riêng ({{name}}, {{fullName}}, {{email}}), gửi qua đường gửi thường, tối đa 100 |
 | Meeting / Follow Up từ liên hệ | ❌ | |
 
 ## Việc cần làm

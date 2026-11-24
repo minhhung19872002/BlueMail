@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { ApiError } from "../../api/client";
 import { useCompose } from "../compose/composeStore";
 import { emptyDraft } from "../compose/composeApi";
+import { MailMerge } from "./MailMerge";
 import { contactKeys, contactsApi, type Contact, type ContactInput, type LabeledValue } from "./contactsApi";
 
 /** Contacts (PROMPT 6.10): personal contacts and groups, "Other contacts" saved automatically, the organisation directory. */
@@ -86,6 +87,7 @@ function ContactList({ other }: { other: boolean }) {
             <Select className="bm-filter-select" value={group ?? ""} onChange={(v: string) => { setGroup(v || null); setPage(1); }} aria-label={t("contacts.group")}
               options={[{ value: "", label: t("contacts.allContacts") }, ...(groups.data ?? []).map((g) => ({ value: g.id, label: `${g.name} (${g.members})` }))]} />
             <Button icon={<TeamOutlined />} onClick={newGroup}>{t("contacts.newGroup")}</Button>
+            {group && <MailMerge groupId={group} groupName={groups.data?.find((g) => g.id === group)?.name ?? ""} />}
             {group && (
               <Button danger icon={<DeleteOutlined />} onClick={() => modal.confirm({ title: t("contacts.deleteGroup"), okButtonProps: { danger: true },
                 onOk: async () => { await contactsApi.deleteGroup(group); setGroup(null); await qc.invalidateQueries({ queryKey: contactKeys.groups }); } })}>
