@@ -1,4 +1,5 @@
 import { api } from "../../api/client";
+import type { FreeBusy } from "./calendarView";
 
 // The user's calendar (docs/05-api.md "Calendar").
 
@@ -51,6 +52,8 @@ export const calendarApi = {
   list: (from: string, to: string) => api.get<CalendarEvent[]>(`/api/v1/calendar/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
   create: (e: EventInput) => api.post<CalendarEvent>("/api/v1/calendar/events", e),
   update: (id: string, e: EventInput) => api.put<CalendarEvent>(`/api/v1/calendar/events/${id}`, e),
+  freeBusy: (addresses: string[], from: string, to: string) =>
+    api.get<FreeBusy[]>(`/api/v1/calendar/freebusy?${addresses.map((a) => "address=" + encodeURIComponent(a)).join("&")}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
   remove: (id: string, occurrence?: string) =>
     api.delete<boolean>(`/api/v1/calendar/events/${id}${occurrence ? `?occurrence=${encodeURIComponent(occurrence)}` : ""}`),
 };

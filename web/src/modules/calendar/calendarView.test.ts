@@ -80,3 +80,14 @@ describe("work week and reminders", () => {
     expect(dueReminders(events, now, new Set([reminderKey(events[0]!)])).map((r) => r.event.id)).toEqual(["running"]);
   });
 });
+
+describe("scheduling assistant", () => {
+  it("tells free, busy and unknown guests for the chosen time", async () => {
+    const { availability } = await import("./calendarView");
+    const fb = { address: "a@x.test", known: true, busy: [{ start: "2027-01-12T09:00:00Z", end: "2027-01-12T11:00:00Z" }] };
+    expect(availability(fb, "2027-01-12T10:30:00Z", "2027-01-12T11:30:00Z")).toBe("busy");
+    expect(availability(fb, "2027-01-12T11:00:00Z", "2027-01-12T12:00:00Z")).toBe("free");
+    expect(availability({ ...fb, known: false }, "2027-01-12T10:00:00Z", "2027-01-12T10:30:00Z")).toBe("unknown");
+    expect(availability(undefined, "2027-01-12T10:00:00Z", "2027-01-12T10:30:00Z")).toBe("unknown");
+  });
+});

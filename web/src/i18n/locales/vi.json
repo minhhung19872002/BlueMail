@@ -1549,6 +1549,11 @@
       "body": "Bắt đầu lúc {time}",
       "bodyAt": "Bắt đầu lúc {time} · {place}",
       "open": "Mở lịch"
+    },
+    "availability": {
+      "free": "rảnh",
+      "busy": "bận giờ này",
+      "unknown": "không xem được lịch"
     }
   },
   "tasks": {

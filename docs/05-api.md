@@ -203,6 +203,7 @@ Draft state gains `confidential: { expiresDays: 1|7|30|90|365, requireCode }`. S
 | Method | Path | Guard | Notes |
 |---|---|---|---|
 | GET | `/api/v1/calendar/events?from=&to=` | self | Occurrences overlapping the window (≤ 400 days); recurring events expanded (RRULE DAILY/WEEKLY/MONTHLY/YEARLY, EXDATE) in their own zone; declined and cancelled ones left out |
+| GET | `/api/v1/calendar/freebusy?address=&address=&from=&to=` | self (own organisation) | Busy intervals (merged, no titles) of up to 20 addresses over ≤ 31 days; `known: false` for addresses outside the organisation |
 | POST | `/api/v1/calendar/events` | self | `{ summary, location?, description?, start, end, allDay, timeZone?, recurrenceRule?, attendees?: [{ name?, address }], reminderMinutes?, color? }`; guests get an iMIP REQUEST |
 | PUT | `/api/v1/calendar/events/{id}` | self | Same body; SEQUENCE + 1, guests get the update, removed guests a CANCEL. For an invitation from someone else only reminder and colour change |
 | DELETE | `/api/v1/calendar/events/{id}?occurrence=` | self | Whole event (guests get CANCEL) or one occurrence (EXDATE, guests get the updated series) |

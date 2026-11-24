@@ -344,6 +344,13 @@ public sealed class CalendarController(ISender mediator) : ControllerBase
         [FromQuery] DateTimeOffset to, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.ListEventsQuery(from, to), ct));
 
+    /// <summary>Busy times of people of the organisation (no event details), for planning a meeting.</summary>
+    [HttpGet("freebusy")]
+    [SelfGuarded("free/busy of the caller's own organisation only; times without details")]
+    public async Task<ApiResponse<IReadOnlyList<BlueMail.Application.Features.Calendar.FreeBusyDto>>> FreeBusy([FromQuery] string[] address,
+        [FromQuery] DateTimeOffset from, [FromQuery] DateTimeOffset to, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.FreeBusyQuery(address, from, to), ct));
+
     [HttpPost("events")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.Application.Features.Calendar.EventOccurrenceDto>> Create([FromBody] EventBody b, CancellationToken ct) =>

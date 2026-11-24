@@ -7,7 +7,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { ApiError } from "../../api/client";
 import { useMe, useUserFormat } from "../../session";
 import { calendarApi, calendarKeys, type CalendarEvent, type EventInput } from "./calendarApi";
-import { eventColors, eventDates, layoutDay, repeatKind, ruleFor, step, visibleDays, type CalendarView, type RepeatKind } from "./calendarView";
+import { availability, eventColors, eventDates, layoutDay, repeatKind, ruleFor, step, visibleDays, type CalendarView, type RepeatKind } from "./calendarView";
 
 const HourPx = 48;
 
@@ -275,6 +275,17 @@ function EventEditor({ initial, tz, onClose }: { initial: { event: CalendarEvent
   const [busy, setBusy] = useState(false);
   const e = initial.event;
   const allDay = Form.useWatch("allDay", form) ?? initial.allDay;
+  // Scheduling assistant (Outlook): guests of the organisation free or busy at the chosen time.
+  const guests = (Form.useWatch("guests", form) as string[] | undefined) ?? [];
+  const watchStart = Form.useWatch("start", form) as Dayjs | undefined;
+  const watchEnd = Form.useWatch("end", form) as Dayjs | undefined;
+  const span = watchStart && watchEnd && !allDay ? { s: fromPicker(watchStart, tz).toISOString(), e: fromPicker(watchEnd, tz).toISOString() } : null;
+  const validGuests = guests.map((g) => g.trim().toLowerCase()).filter((g) => /^[^\s@]+@[^\s@]+$/.test(g)).slice(0, 20);
+  const freeBusy = useQuery({
+    queryKey: ["freebusy", validGuests.join(","), span?.s, span?.e],
+    queryFn: () => calendarApi.freeBusy(validGuests, dayjs(span!.s).startOf("day").toISOString(), dayjs(span!.s).startOf("day").add(1, "day").toISOString()),
+    enabled: span !== null && validGuests.length > 0 && dayjs(span.e).diff(dayjs(span.s), "day") < 1,
+  });
   const start = e ? (e.allDay ? dayjs.utc(e.start) : dayjs(e.start).tz(tz)) : initial.start;
   const end = e ? (e.allDay ? dayjs.utc(e.end).subtract(1, "day") : dayjs(e.end).tz(tz)) : initial.allDay ? initial.start : initial.start.add(30, "minute");
   const initialValues: EditorValues = {
@@ -283,6 +294,8 @@ function EventEditor({ initial, tz, onClose }: { initial: { event: CalendarEvent
     repeat: repeatKind(e?.recurrenceRule ?? null), location: e?.location ?? undefined, guests: e?.attendees.map((a) => a.address) ?? [],
     reminder: e ? e.reminderMinutes : 10, color: e?.color ?? "blue", description: e?.description ?? undefined,
   };
+
+  const previousStart = useRef<Dayjs>(initialValues.start);
 
   const save = async (v: EditorValues) => {
     const input: EventInput = {
@@ -323,7 +336,14 @@ function EventEditor({ initial, tz, onClose }: { initial: { event: CalendarEvent
         <Space wrap>
           <Form.Item name="start" label={t("calendar.fields.start")} rules={[{ required: true }]}>
             <DatePicker showTime={allDay ? false : { format: "HH:mm", minuteStep: 5 }} format={allDay ? "YYYY-MM-DD" : "YYYY-MM-DD HH:mm"} allowClear={false}
-              onChange={(v) => { if (v) { const old = form.getFieldValue("start") as Dayjs; const len = (form.getFieldValue("end") as Dayjs).diff(old); form.setFieldValue("end", v.add(Math.max(0, len), "millisecond")); } }} />
+              onChange={(v) => {
+                // Keep the length when the start moves (the form already holds the new start here, so use the previous one).
+                if (!v) return;
+                const len = (form.getFieldValue("end") as Dayjs).diff(previousStart.current);
+                form.setFieldValue("end", v.add(len > 0 ? len : allDay ? 0 : 30 * 60_000, "millisecond"));
+                previousStart.current = v;
+                void form.validateFields(["end"]).catch(() => undefined);
+              }} />
           </Form.Item>
           <Form.Item name="end" label={t("calendar.fields.end")} dependencies={["start"]} rules={[{ required: true }, ({ getFieldValue }) => ({
             validator: (_, value: Dayjs) => !value || (allDay ? !value.isBefore(getFieldValue("start"), "day") : value.isAfter(getFieldValue("start")))
@@ -342,6 +362,14 @@ function EventEditor({ initial, tz, onClose }: { initial: { event: CalendarEvent
         }]}>
           <Select mode="tags" tokenSeparators={[",", ";", " "]} open={false} suffixIcon={null} aria-label={t("calendar.fields.guests")} />
         </Form.Item>
+        {span && freeBusy.data && validGuests.length > 0 && (
+          <div className="bm-cal-availability" aria-live="polite">
+            {validGuests.map((g) => {
+              const a = availability(freeBusy.data.find((f) => f.address === g), span.s, span.e);
+              return <Tag key={g} color={a === "busy" ? "red" : a === "free" ? "green" : undefined}>{g}: {t(`calendar.availability.${a}`)}</Tag>;
+            })}
+          </div>
+        )}
         <Space wrap>
           <Form.Item name="reminder" label={t("calendar.fields.reminder")}>
             <Select style={{ minInlineSize: 160 }} options={[null, 0, 5, 10, 15, 30, 60, 120, 1440].map((m) => ({ value: m, label: m === null ? t("calendar.reminder.none") : t("calendar.reminder.before", { count: m }) }))} />

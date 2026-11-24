@@ -376,3 +376,92 @@ public sealed class Calendars(BlueMailDbContext db, SystemMail mail, BmSettings 
         item.Status = e.Method == "CANCEL" || e.Status == "CANCELLED" ? "CANCELLED" : "CONFIRMED";
     }
 }
+
+// ---------- free/busy ----------
+
+public sealed record BusyInterval(DateTimeOffset Start, DateTimeOffset End);
+
+/// <summary>Busy times of one address; <see cref="Known"/> is false for addresses outside the organisation (nothing is shown).</summary>
+public sealed record FreeBusyDto(string Address, bool Known, IReadOnlyList<BusyInterval> Busy);
+
+/// <summary>
+/// Outlook's Scheduling Assistant: when people of the same organisation are busy (PROMPT: shared calendars). Only
+/// times are returned, never titles, places or guests; tentative answers count as busy, declined and cancelled events do not.
+/// </summary>
+public sealed record FreeBusyQuery(IReadOnlyList<string> Addresses, DateTimeOffset From, DateTimeOffset To) : IRequest<IReadOnlyList<FreeBusyDto>>;
+
+public sealed class FreeBusyValidator : AbstractValidator<FreeBusyQuery>
+{
+    public const int MaxAddresses = 20;
+    public static readonly TimeSpan MaxWindow = TimeSpan.FromDays(31);
+
+    public FreeBusyValidator()
+    {
+        RuleFor(x => x.Addresses).NotEmpty().Must(a => a.Count <= MaxAddresses).WithErrorCode("too_many_attendees");
+        RuleFor(x => x).Must(q => q.To > q.From && q.To - q.From <= MaxWindow).WithErrorCode("calendar_window");
+    }
+}
+
+public sealed class FreeBusyHandler(BlueMailDbContext db) : IRequestHandler<FreeBusyQuery, IReadOnlyList<FreeBusyDto>>
+{
+    public async Task<IReadOnlyList<FreeBusyDto>> Handle(FreeBusyQuery q, CancellationToken ct)
+    {
+        var from = q.From.ToUniversalTime();
+        var to = q.To.ToUniversalTime();
+        var wanted = q.Addresses.Select(a => a.Trim().ToLowerInvariant()).Distinct().ToList();
+        // Same tenant only (the query filter scopes Users to the caller's tenant).
+        var users = await db.Users.AsNoTracking().Where(u => wanted.Contains(u.PrimaryEmail) && u.DeletedAt == null)
+            .Select(u => new { u.Id, u.PrimaryEmail }).ToListAsync(ct);
+        var ids = users.Select(u => u.Id).ToList();
+        var items = await db.CalendarItems.AsNoTracking()
+            .Where(e => ids.Contains(e.UserId) && e.Status != "CANCELLED" && e.MyResponse != "DECLINED" && e.StartAt < to
+                        && (e.RecurrenceRule != null || e.EndAt > from))
+            .Take(10_000).ToListAsync(ct);
+        var result = new List<FreeBusyDto>();
+        foreach (var address in wanted)
+        {
+            var user = users.FirstOrDefault(u => u.PrimaryEmail == address);
+            if (user is null)
+            {
+                result.Add(new FreeBusyDto(address, false, []));
+                continue;
+            }
+
+            var busy = new List<BusyInterval>();
+            foreach (var e in items.Where(i => i.UserId == user.Id))
+            {
+                var duration = e.EndAt - e.StartAt;
+                foreach (var start in Recurrence.Expand(e.StartAt, duration, RecurrenceRule.Parse(e.RecurrenceRule), CalendarLimits.Zone(e.TimeZone), from, to, e.ExceptionDates))
+                {
+                    busy.Add(new BusyInterval(start, start + duration));
+                }
+            }
+
+            result.Add(new FreeBusyDto(address, true, Merge(busy)));
+        }
+
+        return result;
+    }
+
+    /// <summary>Sorted, overlapping or touching intervals joined (so nothing about single events shows).</summary>
+    public static IReadOnlyList<BusyInterval> Merge(IEnumerable<BusyInterval> intervals)
+    {
+        var merged = new List<BusyInterval>();
+        foreach (var i in intervals.OrderBy(x => x.Start))
+        {
+            if (merged.Count > 0 && i.Start <= merged[^1].End)
+            {
+                if (i.End > merged[^1].End)
+                {
+                    merged[^1] = merged[^1] with { End = i.End };
+                }
+            }
+            else
+            {
+                merged.Add(i);
+            }
+        }
+
+        return merged;
+    }
+}

@@ -1549,6 +1549,11 @@
       "body": "Starts at {time}",
       "bodyAt": "Starts at {time} · {place}",
       "open": "Open calendar"
+    },
+    "availability": {
+      "free": "free",
+      "busy": "busy at this time",
+      "unknown": "calendar not visible"
     }
   },
   "tasks": {

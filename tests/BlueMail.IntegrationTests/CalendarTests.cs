@@ -103,4 +103,31 @@ public class CalendarTests(StackFixture stack)
             .Should().NotContain(e => e.GetProperty("summary").GetString() == "Christmas Eve");
         (await jonas.DeleteAsync($"/api/v1/calendar/events/{holiday.GetProperty("id").GetGuid()}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Free_busy_shows_times_without_details_and_only_inside_the_organisation()
+    {
+        using var joao = await Client("joao@acme.test");
+        var day = new DateTimeOffset(2027, 1, 12, 0, 0, 0, TimeSpan.Zero);
+        await Data(await joao.PostAsJsonAsync("/api/v1/calendar/events", new { summary = "Secret 1:1", start = day.AddHours(9), end = day.AddHours(10), allDay = false, timeZone = "UTC" }));
+        await Data(await joao.PostAsJsonAsync("/api/v1/calendar/events", new { summary = "Overlap", start = day.AddHours(9.5), end = day.AddHours(11), allDay = false, timeZone = "UTC" }));
+        await Data(await joao.PostAsJsonAsync("/api/v1/calendar/events", new { summary = "Daily", start = day.AddHours(14), end = day.AddHours(14.25), allDay = false, timeZone = "UTC",
+            recurrenceRule = "FREQ=DAILY;COUNT=3" }));
+
+        using var lucas = await Client("lucas@acme.test");
+        var url = $"/api/v1/calendar/freebusy?address=JOAO@acme.test&address=someone@doitac.test&address=minh@bluemail.test&from={Uri.EscapeDataString(day.ToString("O"))}&to={Uri.EscapeDataString(day.AddDays(1).ToString("O"))}";
+        var body = await (await lucas.GetAsync(url)).Content.ReadAsStringAsync();
+        body.Should().NotContain("Secret").And.NotContain("Overlap");
+        var list = JsonDocument.Parse(body).RootElement.GetProperty("data").EnumerateArray().ToList();
+        var joaoBusy = list.Single(x => x.GetProperty("address").GetString() == "joao@acme.test");
+        joaoBusy.GetProperty("known").GetBoolean().Should().BeTrue();
+        joaoBusy.GetProperty("busy").EnumerateArray().Select(b => (b.GetProperty("start").GetDateTimeOffset(), b.GetProperty("end").GetDateTimeOffset()))
+            .Should().Equal((day.AddHours(9), day.AddHours(11)), (day.AddHours(14), day.AddHours(14.25)));
+        list.Single(x => x.GetProperty("address").GetString() == "someone@doitac.test").GetProperty("known").GetBoolean().Should().BeFalse();
+        list.Single(x => x.GetProperty("address").GetString() == "minh@bluemail.test").GetProperty("known").GetBoolean().Should().BeFalse("another organisation");
+
+        (await lucas.GetAsync($"/api/v1/calendar/freebusy?address=joao@acme.test&from={Uri.EscapeDataString(day.ToString("O"))}&to={Uri.EscapeDataString(day.AddDays(40).ToString("O"))}"))
+            .StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
+

@@ -321,3 +321,11 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 
 .bm-quickstep { padding: 8px; border: 1px solid var(--bm-border); border-radius: 8px; }
 .bm-quickstep-action { margin-block-start: 6px; }
+
+.bm-cal-availability { display: flex; flex-wrap: wrap; gap: 4px; margin-block: -12px 16px; }
+
+/* Phones: the date-and-time picker stacks the time columns under the calendar so it fits a 375 px screen. */
+@media (max-width: 767px) {
+  .ant-picker-datetime-panel { flex-direction: column; }
+  .ant-picker-dropdown { max-inline-size: calc(100vw - 16px); }
+}

@@ -49,7 +49,8 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Nhắc (reminder) | ✅ | Trong trang và thông báo máy tính khi BlueMail đang mở |
 | Huỷ cuộc họp (thông báo khách) | ✅ | iMIP CANCEL |
 | Next 7 Days, Schedule view | ❌ | |
-| Open/Share Calendar, Calendar Groups, Permissions, Publish Online | ❌ | Lịch dùng chung chưa có |
+| Scheduling Assistant (rảnh/bận khi mời họp) | ✅ | Người trong tổ chức: rảnh / bận giờ này; ngoài tổ chức: không xem được lịch; chỉ thời gian, không lộ tiêu đề |
+| Open/Share Calendar, Calendar Groups, Permissions, Publish Online | ❌ | Mở lịch đầy đủ của người khác và cấp quyền chưa có (đã có rảnh/bận) |
 | E-mail Calendar | ❌ | |
 | Teams / Skype meeting | — | Không có dịch vụ họp trực tuyến |
 
@@ -79,4 +80,4 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 ## Việc nên làm tiếp (theo mức dùng thường gặp)
 
 1. Sắp xếp danh sách thư theo người gửi / kích thước / tiêu đề (cần đường truy vấn riêng giữ được hiệu năng D30).
-2. Lịch dùng chung giữa người trong tổ chức (xem rảnh/bận, chia sẻ quyền).
+2. Chia sẻ lịch đầy đủ (quyền xem/sửa) giữa người trong tổ chức.

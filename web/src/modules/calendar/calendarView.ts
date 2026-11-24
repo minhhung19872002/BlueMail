@@ -144,3 +144,17 @@ export function dueReminders<T extends Span & { id: string; reminderMinutes: num
 }
 
 export const reminderKey = (e: { id: string; start: string }) => `${e.id}|${e.start}`;
+
+export interface FreeBusy {
+  address: string;
+  known: boolean;
+  busy: { start: string; end: string }[];
+}
+
+/** Whether a guest is free for [start, end): "unknown" outside the organisation (their calendar is not visible). */
+export function availability(fb: FreeBusy | undefined, start: string, end: string): "free" | "busy" | "unknown" {
+  if (!fb || !fb.known) return "unknown";
+  const s = Date.parse(start);
+  const e = Date.parse(end);
+  return fb.busy.some((b) => Date.parse(b.start) < e && Date.parse(b.end) > s) ? "busy" : "free";
+}
