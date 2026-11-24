@@ -1409,5 +1409,34 @@
     "notOpened": "Chưa có người ngoài nào mở thư.",
     "revoke": "Thu hồi quyền xem",
     "restore": "Cho xem lại"
+  },
+  "invite": {
+    "label": "Lời mời họp",
+    "untitled": "(không có tiêu đề)",
+    "recurring": "Lặp lại",
+    "organizer": "Người tổ chức: {name}",
+    "attendees": "{count, plural, other {# khách mời}}",
+    "cancelled": "Cuộc họp này đã bị huỷ.",
+    "answer": {
+      "ACCEPTED": "Có",
+      "TENTATIVE": "Có thể",
+      "DECLINED": "Không"
+    },
+    "yours": {
+      "ACCEPTED": "Bạn sẽ tham dự.",
+      "TENTATIVE": "Bạn có thể tham dự.",
+      "DECLINED": "Bạn không tham dự."
+    },
+    "sent": {
+      "ACCEPTED": "Đã gửi trả lời: có.",
+      "TENTATIVE": "Đã gửi trả lời: có thể.",
+      "DECLINED": "Đã gửi trả lời: không."
+    },
+    "replied": {
+      "ACCEPTED": "{name} đã chấp nhận.",
+      "TENTATIVE": "{name} có thể tham dự.",
+      "DECLINED": "{name} đã từ chối.",
+      "OTHER": "{name} đã trả lời."
+    }
   }
 }

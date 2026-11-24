@@ -27,7 +27,9 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - DI: every process `AddBlueMailApplicationCore()`; only the API `AddBlueMailApiFeatures()` (needs ICurrentUser).
 - Migrations: generated ones + hand-written `MailStorePartitionedTables` (partitioned tables, triggers). Never edit a
   committed migration. `dotnet ef migrations add <Name> -p src/BlueMail.Infrastructure -s src/BlueMail.Infrastructure -o Persistence/Migrations`.
-- Stop host-run dev processes before `dotnet build/test` (they lock bin/). Integration tests need Docker.
+- Stop host-run dev processes before `dotnet build/test` (they lock bin/). Integration tests need Docker. Stopping the
+  `dev-run.sh` shell leaves the `BlueMail.Api`/`BlueMail.Identity` processes running: kill them by command line
+  (PowerShell `Get-CimInstance Win32_Process | ? CommandLine -match 'BlueMail\.(Api|Identity)'`).
 - Server strings: `src/BlueMail.Infrastructure/Localization/Resources/{en,vi}.json`; web: `web/src/i18n/locales`.
 - New endpoint: add `[RequirePermission]` or `[SelfGuarded("why")]`; new package: list it in docs/09.
 - Python heredocs: never put `\r\n` / `\n` escapes for C# strings inside them (they become real newlines); use the Edit tool.

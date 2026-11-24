@@ -13,6 +13,7 @@ import { useMe, useUserFormat } from "../../session";
 import { act, getBody, getOriginal, getThread, mailKeys, trustImages, unsubscribe, type MailAction } from "./mailApi";
 import { SnoozeMenu } from "./SnoozeMenu";
 import { SweepButton } from "./Sweep";
+import { InviteCard } from "./InviteCard";
 import { useShortcuts } from "./ShortcutHost";
 import { ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
@@ -274,6 +275,9 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
             </Button>
           </Space>
         } />
+      )}
+      {(body.data?.calendar || m.attachments.some((a) => /^(text\/calendar|application\/ics)/i.test(a.contentType) || /\.ics$/i.test(a.fileName ?? ""))) && (
+        <InviteCard messageId={msg.id} />
       )}
       {body.data?.htmlDocument ? (
         <MessageFrame html={body.data.htmlDocument} title={t("mail.messageBody")} />

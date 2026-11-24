@@ -1409,5 +1409,34 @@
     "notOpened": "Nobody outside has opened it yet.",
     "revoke": "Withdraw access",
     "restore": "Restore access"
+  },
+  "invite": {
+    "label": "Meeting invitation",
+    "untitled": "(no title)",
+    "recurring": "Repeats",
+    "organizer": "Organiser: {name}",
+    "attendees": "{count, plural, one {# guest} other {# guests}}",
+    "cancelled": "This meeting has been cancelled.",
+    "answer": {
+      "ACCEPTED": "Yes",
+      "TENTATIVE": "Maybe",
+      "DECLINED": "No"
+    },
+    "yours": {
+      "ACCEPTED": "You are going.",
+      "TENTATIVE": "You might go.",
+      "DECLINED": "You are not going."
+    },
+    "sent": {
+      "ACCEPTED": "Answer sent: yes.",
+      "TENTATIVE": "Answer sent: maybe.",
+      "DECLINED": "Answer sent: no."
+    },
+    "replied": {
+      "ACCEPTED": "{name} accepted.",
+      "TENTATIVE": "{name} might attend.",
+      "DECLINED": "{name} declined.",
+      "OTHER": "{name} answered."
+    }
   }
 }

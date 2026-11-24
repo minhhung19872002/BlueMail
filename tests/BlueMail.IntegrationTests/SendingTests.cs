@@ -376,6 +376,88 @@ public class SendingTests(StackFixture stack)
     }
 
     [Fact]
+    public async Task Meeting_invitation_card_answer_goes_to_the_organizer_as_an_imip_reply()
+    {
+        // ivan (organizer) invites jiwoo, the way Outlook sends it: text/plain + text/calendar; method=REQUEST.
+        var uid = "inv-" + Guid.NewGuid().ToString("N");
+        var ics = string.Join("\r\n", "BEGIN:VCALENDAR", "METHOD:REQUEST", "VERSION:2.0", "BEGIN:VEVENT",
+            "ORGANIZER;CN=Ivan:mailto:ivan@acme.test", "ATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:jiwoo@acme.test",
+            "UID:" + uid, "SUMMARY:Họp tiến độ dự án", "DTSTART:20261126T020000Z", "DTEND:20261126T030000Z", "SEQUENCE:2",
+            "END:VEVENT", "END:VCALENDAR", "");
+        var invite = new BlueMail.Mime.MessageBuilder
+        {
+            From = new BlueMail.Mime.MailboxAddress("Ivan", "ivan@acme.test"), To = [new BlueMail.Mime.MailboxAddress(null, "jiwoo@acme.test")],
+            Subject = "Họp tiến độ dự án", MessageId = uid + "@acme.test", TextBody = "Mời họp", Calendar = ("REQUEST", ics),
+        }.ToBytes();
+        await Db(async db =>
+        {
+            var u = await db.Users.IgnoreQueryFilters().SingleAsync(x => x.PrimaryEmail == "jiwoo@acme.test");
+            var mb = await db.Mailboxes.IgnoreQueryFilters().Where(m => m.OwnerId == u.Id).Select(m => m.Id).SingleAsync();
+            await using var scope = stack.ApiScope();
+            await OutgoingDispatcher.DeliverRawAsync(scope.ServiceProvider.GetRequiredService<PgMailStore>(), u.TenantId, invite,
+                new MailboxDelivery(mb, [SystemLabels.Inbox]), default);
+            return true;
+        });
+
+        using var jiwoo = await Client("jiwoo@acme.test");
+        var list = await Data(await jiwoo.GetAsync("/api/v1/mail/conversations?view=all&limit=100"));
+        var messageId = list.GetProperty("items").EnumerateArray().First(c => c.GetProperty("subject").GetString() == "Họp tiến độ dự án").GetProperty("latestMessageId").GetGuid();
+
+        var card = await Data(await jiwoo.GetAsync($"/api/v1/mail/messages/{messageId}/invite"));
+        card.GetProperty("method").GetString().Should().Be("REQUEST");
+        card.GetProperty("canRespond").GetBoolean().Should().BeTrue();
+        card.GetProperty("myResponse").ValueKind.Should().Be(JsonValueKind.Null);
+        card.GetProperty("start").GetDateTimeOffset().Should().Be(new DateTimeOffset(2026, 11, 26, 2, 0, 0, TimeSpan.Zero));
+
+        (await jiwoo.PostAsJsonAsync($"/api/v1/mail/messages/{messageId}/invite/respond", new { response = "MAYBE" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var answered = await Data(await jiwoo.PostAsJsonAsync($"/api/v1/mail/messages/{messageId}/invite/respond", new { response = "ACCEPTED" }));
+        answered.GetProperty("myResponse").GetString().Should().Be("ACCEPTED");
+        (await Data(await jiwoo.GetAsync($"/api/v1/mail/messages/{messageId}/invite"))).GetProperty("myResponse").GetString().Should().Be("ACCEPTED");
+        // Changing the answer keeps one row.
+        await Data(await jiwoo.PostAsJsonAsync($"/api/v1/mail/messages/{messageId}/invite/respond", new { response = "DECLINED", sendReply = false }));
+        (await Db(db => db.InviteResponses.IgnoreQueryFilters().CountAsync(r => r.Uid == uid))).Should().Be(1);
+
+        // ivan gets the REPLY: subject per the answer, an iTIP REPLY with jiwoo's PARTSTAT, threaded to the invitation.
+        using var ivan = await Client("ivan@acme.test");
+        var ivanList = await Data(await ivan.GetAsync("/api/v1/mail/conversations?view=all&limit=100"));
+        var reply = ivanList.GetProperty("items").EnumerateArray().First(c => c.GetProperty("subject").GetString()!.EndsWith("Họp tiến độ dự án", StringComparison.Ordinal)
+            && c.GetProperty("subject").GetString() != "Họp tiến độ dự án");
+        reply.GetProperty("subject").GetString().Should().Be("Accepted: Họp tiến độ dự án");
+        var ivanCard = await Data(await ivan.GetAsync($"/api/v1/mail/messages/{reply.GetProperty("latestMessageId").GetGuid()}/invite"));
+        ivanCard.GetProperty("method").GetString().Should().Be("REPLY");
+        ivanCard.GetProperty("iAmOrganizer").GetBoolean().Should().BeTrue();
+        ivanCard.GetProperty("canRespond").GetBoolean().Should().BeFalse();
+        ivanCard.GetProperty("attendees").EnumerateArray().Should().ContainSingle().Which.GetProperty("response").GetString().Should().Be("ACCEPTED");
+        (await CountMessages("jiwoo@acme.test", (await Db(db => db.Messages.IgnoreQueryFilters()
+            .Where(m => m.Subject == "Accepted: Họp tiến độ dự án").Select(m => m.RfcMessageId).FirstAsync()))!, SystemLabels.Sent)).Should().Be(1, "a copy in Sent");
+
+        // An invitation attached as an .ics file (no text/calendar alternative) gets the card too.
+        var attached = new BlueMail.Mime.MessageBuilder
+        {
+            From = new BlueMail.Mime.MailboxAddress("Ivan", "ivan@acme.test"), To = [new BlueMail.Mime.MailboxAddress(null, "jiwoo@acme.test")],
+            Subject = "Lời mời tệp ics", MessageId = uid + ".2@acme.test", TextBody = "Xem tệp đính kèm",
+            Attachments = [new BlueMail.Mime.BuilderAttachment { FileName = "invite.ics", ContentType = "application/octet-stream",
+                Open = () => new MemoryStream(Encoding.UTF8.GetBytes(ics.Replace(uid, uid + "-2", StringComparison.Ordinal))) }],
+        }.ToBytes();
+        await Db(async db =>
+        {
+            var u = await db.Users.IgnoreQueryFilters().SingleAsync(x => x.PrimaryEmail == "jiwoo@acme.test");
+            var mb = await db.Mailboxes.IgnoreQueryFilters().Where(m => m.OwnerId == u.Id).Select(m => m.Id).SingleAsync();
+            await using var scope = stack.ApiScope();
+            await OutgoingDispatcher.DeliverRawAsync(scope.ServiceProvider.GetRequiredService<PgMailStore>(), u.TenantId, attached,
+                new MailboxDelivery(mb, [SystemLabels.Inbox]), default);
+            return true;
+        });
+        var list2 = await Data(await jiwoo.GetAsync("/api/v1/mail/conversations?view=all&limit=100"));
+        var attachedId = list2.GetProperty("items").EnumerateArray().First(c => c.GetProperty("subject").GetString() == "Lời mời tệp ics").GetProperty("latestMessageId").GetGuid();
+        (await Data(await jiwoo.GetAsync($"/api/v1/mail/messages/{attachedId}/invite"))).GetProperty("uid").GetString().Should().Be(uid + "-2");
+
+        // A message without an invitation has no card; another user cannot read jiwoo's.
+        using var david = await Client("david@acme.test");
+        (await david.GetAsync($"/api/v1/mail/messages/{messageId}/invite")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task Forward_as_attachment_carries_the_whole_original_and_only_from_my_own_mailbox()
     {
         using var ivan = await Client("ivan@acme.test");

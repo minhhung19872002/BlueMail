@@ -264,3 +264,5 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 .bm-nav-fav { visibility: hidden; }
 .bm-nav-item:hover .bm-nav-fav, .bm-nav-fav:focus-visible, .bm-nav-fav[aria-pressed="true"] { visibility: visible; }
 .bm-nav-fav[aria-pressed="true"] { color: var(--bm-warning, #b8860b); }
+.bm-invite { margin-block: 8px; border-inline-start: 3px solid var(--bm-primary); }
+.bm-invite-title { font-size: 15px; }

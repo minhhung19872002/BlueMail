@@ -44,6 +44,9 @@ public sealed class MessageBuilder
     public IReadOnlyList<BuilderAttachment> Attachments { get; init; } = [];
     public IReadOnlyList<(string Name, string Value)> ExtraHeaders { get; init; } = [];
 
+    /// <summary>An iCalendar object sent with iMIP (RFC 6047): added as text/calendar; method=… alternative.</summary>
+    public (string Method, string Text)? Calendar { get; init; }
+
     /// <summary>New globally unique Message-ID (RFC 5322 3.6.4) on the configured host name.</summary>
     public static string NewMessageId(string hostname) =>
         Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16)) + "@" + hostname;
@@ -133,6 +136,12 @@ public sealed class MessageBuilder
         object alt = text is not null && html is not null
             ? new Multipart("alternative", [new Node(text), new Node(html)])
             : (object?)html ?? text ?? TextLeaf("text/plain", "");
+        if (Calendar is { } cal)
+        {
+            // iMIP (RFC 6047 2.4): the iCalendar object is the last, richest alternative, with its METHOD as a parameter.
+            var calLeaf = TextLeaf("text/calendar; method=" + cal.Method, cal.Text);
+            alt = alt is Multipart m ? new Multipart("alternative", [.. m.Parts, new Node(calLeaf)]) : new Multipart("alternative", [new Node(alt), new Node(calLeaf)]);
+        }
         if (inline.Count == 0)
         {
             return alt;

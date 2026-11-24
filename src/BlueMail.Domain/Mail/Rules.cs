@@ -119,3 +119,21 @@ public class ForwardingAddress : TenantEntity
     /// <summary>Keep BlueMail's copy in the Inbox; otherwise it goes to Trash after forwarding.</summary>
     public bool KeepCopy { get; set; } = true;
 }
+
+/// <summary>
+/// The user's answer to a meeting invitation (PROMPT 6.3, iMIP RFC 6047): one row per mailbox and event UID, so the
+/// card shows it on every copy of the invitation and an update (higher SEQUENCE) can be answered again.
+/// </summary>
+public class InviteResponse : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid MailboxId { get; set; }
+    public string Uid { get; set; } = "";
+    public int Sequence { get; set; }
+
+    /// <summary>ACCEPTED, TENTATIVE or DECLINED (RFC 5545 PARTSTAT).</summary>
+    public string Response { get; set; } = "";
+
+    public DateTimeOffset RespondedAt { get; set; }
+}

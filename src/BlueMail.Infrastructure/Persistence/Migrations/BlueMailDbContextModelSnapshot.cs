@@ -3059,6 +3059,51 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.ToTable("greylist", "spam");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.InviteResponse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("MailboxId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("mailbox_id");
+
+                    b.Property<DateTimeOffset>("RespondedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("responded_at");
+
+                    b.Property<string>("Response")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("response");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Uid")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("uid");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invite_responses");
+
+                    b.HasIndex("MailboxId", "Uid")
+                        .IsUnique()
+                        .HasDatabaseName("ix_invite_responses_mailbox_id_uid");
+
+                    b.ToTable("invite_responses", "mail");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Mail.IpPool", b =>
                 {
                     b.Property<Guid>("Id")

@@ -248,5 +248,16 @@
   "import.error.import_failed": "Lỗi khi nhập",
   "error.app_password_limit": "Bạn đã có tối đa 20 mật khẩu ứng dụng.",
   "error.app_password_not_found": "Không tìm thấy mật khẩu ứng dụng.",
-  "error.too_many_jobs": "Bạn đang có vài tác vụ lớn đang chạy. Hãy đợi một tác vụ xong rồi thử lại."
+  "error.too_many_jobs": "Bạn đang có vài tác vụ lớn đang chạy. Hãy đợi một tác vụ xong rồi thử lại.",
+  "invite.reply.accepted.subject": "Đã chấp nhận: {summary}",
+  "invite.reply.accepted.body": "{name} đã chấp nhận cuộc họp này.\r\n",
+  "invite.reply.tentative.subject": "Có thể: {summary}",
+  "invite.reply.tentative.body": "{name} có thể sẽ tham dự cuộc họp này.\r\n",
+  "invite.reply.declined.subject": "Đã từ chối: {summary}",
+  "invite.reply.declined.body": "{name} đã từ chối cuộc họp này.\r\n",
+  "error.invalid_response": "Chọn Có, Có thể hoặc Không.",
+  "error.invite_not_found": "Thư này không có lời mời họp.",
+  "error.invite_cannot_respond": "Không thể trả lời lời mời này (không phải lời mời, hoặc bạn là người tổ chức).",
+  "error.invite_cancelled": "Cuộc họp này đã bị huỷ.",
+  "error.invite_organizer_unreachable": "Địa chỉ của người tổ chức không nhận được thư."
 }

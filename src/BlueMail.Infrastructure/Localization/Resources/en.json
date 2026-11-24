@@ -248,5 +248,16 @@
   "import.error.import_failed": "Error while importing",
   "error.app_password_limit": "You already have the maximum of 20 app passwords.",
   "error.app_password_not_found": "The app password was not found.",
-  "error.too_many_jobs": "You already have several large tasks running. Wait until one finishes."
+  "error.too_many_jobs": "You already have several large tasks running. Wait until one finishes.",
+  "invite.reply.accepted.subject": "Accepted: {summary}",
+  "invite.reply.accepted.body": "{name} has accepted this meeting.\r\n",
+  "invite.reply.tentative.subject": "Tentative: {summary}",
+  "invite.reply.tentative.body": "{name} has tentatively accepted this meeting.\r\n",
+  "invite.reply.declined.subject": "Declined: {summary}",
+  "invite.reply.declined.body": "{name} has declined this meeting.\r\n",
+  "error.invalid_response": "Choose Yes, Maybe or No.",
+  "error.invite_not_found": "This message has no meeting invitation.",
+  "error.invite_cannot_respond": "This invitation cannot be answered (it is not a request, or you organised it).",
+  "error.invite_cancelled": "This meeting has been cancelled.",
+  "error.invite_organizer_unreachable": "The organiser's address cannot receive mail."
 }

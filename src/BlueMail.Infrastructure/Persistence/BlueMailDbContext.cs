@@ -81,6 +81,7 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<MailFilter> Filters => Set<MailFilter>();
     public DbSet<FilterJob> FilterJobs => Set<FilterJob>();
     public DbSet<BulkMailJob> BulkMailJobs => Set<BulkMailJob>();
+    public DbSet<InviteResponse> InviteResponses => Set<InviteResponse>();
     public DbSet<BlockedSender> BlockedSenders => Set<BlockedSender>();
     public DbSet<Vacation> Vacations => Set<Vacation>();
     public DbSet<VacationReply> VacationReplies => Set<VacationReply>();

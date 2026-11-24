@@ -757,6 +757,17 @@ internal sealed class BulkMailJobConfig : IEntityTypeConfiguration<BulkMailJob>
     }
 }
 
+internal sealed class InviteResponseConfig : IEntityTypeConfiguration<InviteResponse>
+{
+    public void Configure(EntityTypeBuilder<InviteResponse> b)
+    {
+        b.ToTable("invite_responses", "mail");
+        b.Property(x => x.Uid).HasMaxLength(255);
+        b.Property(x => x.Response).HasMaxLength(16);
+        b.HasIndex(x => new { x.MailboxId, x.Uid }).IsUnique();
+    }
+}
+
 internal sealed class BlockedSenderConfig : IEntityTypeConfiguration<BlockedSender>
 {
     public void Configure(EntityTypeBuilder<BlockedSender> b)

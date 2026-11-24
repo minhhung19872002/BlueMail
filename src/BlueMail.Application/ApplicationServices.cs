@@ -86,6 +86,7 @@ public static class ApplicationServices
         services.AddScoped<Features.Sending.AggregateReportProcessor>();
         services.AddScoped<Features.Sending.ConfidentialService>();
         services.AddScoped<Features.Rules.SystemMail>();
+        services.AddScoped<Features.Calendar.Invites>();
         services.AddScoped<Features.Rules.MailboxRules>();
         services.AddScoped<Features.Rules.InboxOrganizer>();
         services.AddScoped<Features.Mail.SnoozeService>();

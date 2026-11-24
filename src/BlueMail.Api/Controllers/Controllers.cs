@@ -124,6 +124,8 @@ public sealed class MailController(ISender mediator) : ControllerBase
 
     public sealed record BulkJobBody(string Action, Guid? LabelId, Guid? FromLabelId, DateTimeOffset? SnoozeUntil, Guid? ScopeLabelId, string? Query);
 
+    public sealed record InviteResponseBody(string Response, bool SendReply = true);
+
     /// <summary>An action on every conversation of a list or search, run in the background (PROMPT 8.3).</summary>
     [HttpPost("bulk-jobs")]
     [SelfGuarded(Guarded)]
@@ -135,6 +137,19 @@ public sealed class MailController(ISender mediator) : ControllerBase
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.Application.Features.Mail.BulkJobDto>> BulkJob(Guid id, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.GetBulkJobQuery(id), ct));
+
+    /// <summary>The meeting invitation in a message (iMIP card, PROMPT 6.3); null data when it carries none.</summary>
+    [HttpGet("messages/{id:guid}/invite")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.InviteDto?>> Invite(Guid id, [FromQuery] Guid? mailboxId, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.GetInviteQuery(mailboxId, id), ct));
+
+    /// <summary>Yes / Maybe / No to an invitation: recorded, and the iTIP REPLY goes to the organizer unless sendReply is false.</summary>
+    [HttpPost("messages/{id:guid}/invite/respond")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.InviteDto>> RespondInvite(Guid id, [FromQuery] Guid? mailboxId, [FromBody] InviteResponseBody body,
+        CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.RespondInviteCommand(mailboxId, id, body.Response, body.SendReply), ct));
 
     [HttpGet("changes")]
     [SelfGuarded(Guarded)]
