@@ -85,6 +85,8 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Mailbox rules run in `MailboxRules` from both MX and the dispatcher's internal delivery; forwards/vacation go out via `SystemMail`.
 - Acceptance: `sh scripts/dev-phase7-check.sh` (rebuild mx + outbound first).
 - A vite dev server may already be running on 5173 (BM_WEB_URL); reuse it instead of starting a second one on another port.
+  If a page goes blank after a script rewrote files ("does not provide an export", lazy element resolves to undefined),
+  vite cached a half-written file: `touch` the files and reload.
 
 ## Organising (Phase 8)
 - Tabs/importance: `InboxOrganizer` (rules only, docs/00 D17), called from `MailboxRules.PlanAsync`; filters run after and win.

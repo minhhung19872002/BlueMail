@@ -24,7 +24,7 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Categorize | ✅ | Nhãn màu, lồng nhau |
 | Rules | ✅ | Bộ lọc với ngôn ngữ tìm kiếm |
 | Filter Email (Unread, Has attachments, Flagged…) | ⚠️ | Tất cả / Chưa đọc / Gắn sao / Có tệp; các lọc khác qua ô tìm kiếm |
-| Follow Up (cờ có hạn: Hôm nay, Ngày mai, Tuần này…) | ⚠️ | Gắn sao = cờ (đồng bộ IMAP `\Flagged`); "Thêm vào Việc cần làm" đặt được hạn; chưa có cờ kèm hạn trên chính thư |
+| Follow Up (cờ có hạn: Hôm nay, Ngày mai, Tuần này, Tuần sau, Không hạn) | ✅ | Gắn cờ (sao, đồng bộ IMAP `\Flagged`) và tạo việc có hạn liên kết thư; hạn tuần này/tuần sau là thứ Sáu như Outlook |
 | Snooze, Schedule send, Undo send | ✅ | |
 | Encrypt / không chuyển tiếp | ✅ | Chế độ bảo mật |
 | Meeting invitation card (Yes / Maybe / No) | ✅ | iMIP, tự vào lịch |
@@ -77,7 +77,6 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 
 ## Việc nên làm tiếp (theo mức dùng thường gặp)
 
-1. Cờ theo dõi có hạn ngay trên thư (Follow Up: Hôm nay / Ngày mai / Tuần này / Tuần sau / Tuỳ chọn), hiện trong Việc cần làm.
-2. Sắp xếp danh sách thư theo người gửi / kích thước / tiêu đề (cần đường truy vấn riêng giữ được hiệu năng D30).
-3. Quick Steps (chuỗi thao tác lưu sẵn) và Clean Up hội thoại.
-4. Lịch dùng chung giữa người trong tổ chức (xem rảnh/bận, chia sẻ quyền).
+1. Sắp xếp danh sách thư theo người gửi / kích thước / tiêu đề (cần đường truy vấn riêng giữ được hiệu năng D30).
+2. Quick Steps (chuỗi thao tác lưu sẵn) và Clean Up hội thoại.
+3. Lịch dùng chung giữa người trong tổ chức (xem rảnh/bận, chia sẻ quyền).

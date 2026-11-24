@@ -214,6 +214,15 @@
       "security": "Bảo mật",
       "tls": "Mã hoá tiêu chuẩn (TLS)",
       "noTls": "Không mã hoá khi truyền"
+    },
+    "followUp": {
+      "button": "Theo dõi",
+      "today": "Hôm nay",
+      "tomorrow": "Ngày mai",
+      "thisWeek": "Tuần này",
+      "nextWeek": "Tuần sau",
+      "noDate": "Không đặt hạn",
+      "done": "Đã gắn cờ và thêm vào Việc cần làm."
     }
   },
   "sessions": {

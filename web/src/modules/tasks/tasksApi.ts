@@ -48,3 +48,22 @@ export function dueState(due: string, today: string): "overdue" | "today" | "soo
   const days = (Date.parse(due + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 86_400_000;
   return days <= 7 ? "soon" : "later";
 }
+
+export type FollowUp = "today" | "tomorrow" | "thisWeek" | "nextWeek" | "noDate";
+
+/**
+ * Due date of an Outlook follow-up flag, from today's date (YYYY-MM-DD, user's zone): this week and next week end
+ * on Friday (the last working day); a flag set after Friday for "this week" is due today.
+ */
+export function followUpDue(kind: FollowUp, today: string): string | null {
+  const d = new Date(today + "T00:00:00Z");
+  const add = (days: number) => new Date(d.getTime() + days * 86_400_000).toISOString().slice(0, 10);
+  const toFriday = (5 - d.getUTCDay() + 7) % 7; // 0 on Friday
+  switch (kind) {
+    case "today": return today;
+    case "tomorrow": return add(1);
+    case "thisWeek": return d.getUTCDay() === 6 || d.getUTCDay() === 0 ? today : add(toFriday);
+    case "nextWeek": return add((d.getUTCDay() === 6 ? 6 : d.getUTCDay() === 0 ? 5 : toFriday + 7));
+    default: return null;
+  }
+}

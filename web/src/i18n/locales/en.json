@@ -214,6 +214,15 @@
       "security": "Security",
       "tls": "Standard encryption (TLS)",
       "noTls": "Not encrypted in transit"
+    },
+    "followUp": {
+      "button": "Follow up",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "thisWeek": "This week",
+      "nextWeek": "Next week",
+      "noDate": "No date",
+      "done": "Flagged and added to To Do."
     }
   },
   "sessions": {

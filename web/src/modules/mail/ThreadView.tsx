@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { Alert, App, Button, Card, Descriptions, Dropdown, Modal, Popover, Space, Spin, Table, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
-  ArrowLeftOutlined, CaretDownOutlined, DeleteOutlined, DownloadOutlined, ExclamationCircleOutlined, EyeOutlined, FileZipOutlined, InboxOutlined,
+  ArrowLeftOutlined, CaretDownOutlined, DeleteOutlined, FlagOutlined, DownloadOutlined, ExclamationCircleOutlined, EyeOutlined, FileZipOutlined, InboxOutlined,
   MailOutlined, MoreOutlined, PaperClipOutlined, PrinterOutlined, RollbackOutlined, ShareAltOutlined, StarFilled, StarOutlined, WarningOutlined,
 } from "@ant-design/icons";
 import DOMPurify from "dompurify";
@@ -14,7 +14,7 @@ import { act, getBody, getOriginal, getThread, mailKeys, trustImages, unsubscrib
 import { SnoozeMenu } from "./SnoozeMenu";
 import { SweepButton } from "./Sweep";
 import { InviteCard } from "./InviteCard";
-import { taskKeys, tasksApi } from "../tasks/tasksApi";
+import { followUpDue, taskKeys, tasksApi, type FollowUp } from "../tasks/tasksApi";
 import { useShortcuts } from "./ShortcutHost";
 import { ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike, senderDetails } from "./mailView";
@@ -42,6 +42,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
   const [showOlder, setShowOlder] = useState(false);
   const markedRead = useRef<string | null>(null);
   const me = useMe();
+  const userFmt = useUserFormat();
 
   const msgs = thread.data?.messages ?? [];
   // Open by default: unread messages and the last one (PROMPT 6.3).
@@ -132,6 +133,20 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
         {unsubscribable && (
           <Button type="text" onClick={() => void doUnsubscribe(unsubscribable)}>{t("mail.unsubscribe")}</Button>
         )}
+        <Dropdown trigger={["click"]} menu={{
+          items: (["today", "tomorrow", "thisWeek", "nextWeek", "noDate"] as const).map((k) => ({ key: k, label: t(`mail.followUp.${k}`) })),
+          onClick: ({ key }) => {
+            // Outlook "Follow Up": the message is flagged (starred) and a dated task links to it.
+            const today = new Intl.DateTimeFormat("en-CA", { timeZone: userFmt.timeZone }).format(new Date());
+            const due = followUpDue(key as FollowUp, today);
+            if (!lastId) return;
+            void Promise.all([run("star", false), tasksApi.create({ title: null, notes: null, dueDate: due, important: false, completed: false, messageId: lastId })])
+              .then(() => { void qc.invalidateQueries({ queryKey: taskKeys.all }); message.success(t("mail.followUp.done")); },
+                () => message.error(t("errors.actionFailed")));
+          },
+        }}>
+          <Tooltip title={t("mail.followUp.button")}><Button type="text" icon={<FlagOutlined />} aria-label={t("mail.followUp.button")} /></Tooltip>
+        </Dropdown>
         <Tooltip title={t("mail.markUnread")}><Button type="text" icon={<MailOutlined />} aria-label={t("mail.markUnread")} onClick={() => void run("markUnread")} /></Tooltip>
         <Tooltip title={t("mail.print")}><Button type="text" icon={<PrinterOutlined />} aria-label={t("mail.print")} onClick={() => window.print()} /></Tooltip>
         <Dropdown trigger={["click"]} menu={{
