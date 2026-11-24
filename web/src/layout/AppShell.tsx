@@ -20,6 +20,7 @@ import { ShortcutHost } from "../modules/mail/ShortcutHost";
 import { rulesApi, rulesKeys, vacationActive } from "../modules/settings/rulesApi";
 import { useSaveSettings, useSettings, type MailSettings } from "../modules/settings/settingsApi";
 import { ComposeDock } from "../modules/compose/ComposeDock";
+import { CalendarReminders } from "../modules/calendar/CalendarReminders";
 import { useCompose } from "../modules/compose/composeStore";
 import { useMe } from "../session";
 import { useAdminSections } from "../modules/admin/adminSections";
@@ -357,7 +358,8 @@ export function AppShell() {
             <Outlet />
           </div>
         </Content>
-        <ComposeDock />
+        <CalendarReminders />
+      <ComposeDock />
         <ShortcutHost enabled={settings?.keyboardShortcuts ?? false} />
       </Layout>
     </Layout>

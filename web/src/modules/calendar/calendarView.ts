@@ -5,15 +5,17 @@ import timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-export type CalendarView = "day" | "week" | "month";
+export type CalendarView = "day" | "workweek" | "week" | "month";
 
 /** The days a view shows around `anchor` (in the user's zone); weeks start on `weekStart` (0 = Sunday, 1 = Monday). */
 export function visibleDays(view: CalendarView, anchor: Dayjs, weekStart: number): Dayjs[] {
   const day = anchor.startOf("day");
   if (view === "day") return [day];
-  if (view === "week") {
+  if (view === "week" || view === "workweek") {
     const first = day.subtract((day.day() - weekStart + 7) % 7, "day");
-    return Array.from({ length: 7 }, (_, i) => first.add(i, "day"));
+    const week = Array.from({ length: 7 }, (_, i) => first.add(i, "day"));
+    // Outlook's "Work week": Monday to Friday.
+    return view === "workweek" ? week.filter((d) => d.day() !== 0 && d.day() !== 6) : week;
   }
   const month = day.startOf("month");
   const first = month.subtract((month.day() - weekStart + 7) % 7, "day");
@@ -22,7 +24,7 @@ export function visibleDays(view: CalendarView, anchor: Dayjs, weekStart: number
 
 /** Moves the anchor one view forward (+1) or back (-1). */
 export function step(view: CalendarView, anchor: Dayjs, direction: 1 | -1): Dayjs {
-  return anchor.add(direction, view);
+  return anchor.add(direction, view === "workweek" ? "week" : view);
 }
 
 export interface Span {
@@ -120,3 +122,25 @@ export function repeatKind(rule: string | null): RepeatKind {
 export const eventColors: Record<string, string> = {
   blue: "#1a5fb4", green: "#26734d", red: "#a51d2d", purple: "#6b2fa0", orange: "#9c4b00", teal: "#0f6b6b", gray: "#5e5c64",
 };
+
+export interface Reminder<T> {
+  event: T;
+  /** When the reminder is due. */
+  at: number;
+}
+
+/**
+ * Reminders due now: the event has a reminder, its time (start - minutes) has come, the event has not ended, and it
+ * was not shown yet (`shown` holds `id|start`). A reminder missed while the page was closed shows once, if the
+ * event is still ahead or running.
+ */
+export function dueReminders<T extends Span & { id: string; reminderMinutes: number | null; status?: string }>(
+  events: T[], now: number, shown: ReadonlySet<string>): Reminder<T>[] {
+  return events
+    .filter((e) => e.reminderMinutes !== null && e.status !== "CANCELLED")
+    .map((e) => ({ event: e, at: Date.parse(e.start) - (e.reminderMinutes ?? 0) * 60_000 }))
+    .filter((r) => r.at <= now && Date.parse(r.event.end) > now && !shown.has(reminderKey(r.event)))
+    .sort((a, b) => a.at - b.at);
+}
+
+export const reminderKey = (e: { id: string; start: string }) => `${e.id}|${e.start}`;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import dayjs from "dayjs";
-import { eventDates, layoutDay, repeatKind, ruleFor, step, visibleDays } from "./calendarView";
+import { dueReminders, eventDates, layoutDay, reminderKey, repeatKind, ruleFor, step, visibleDays } from "./calendarView";
 
 const tz = "Asia/Ho_Chi_Minh";
 
@@ -54,5 +54,29 @@ describe("calendar views", () => {
     expect(repeatKind("freq=weekly")).toBe("weekly");
     expect(repeatKind("FREQ=MONTHLY;BYDAY=1FR")).toBe("custom");
     expect(repeatKind(null)).toBe("none");
+  });
+});
+
+describe("work week and reminders", () => {
+  it("shows Monday to Friday and steps a week", () => {
+    const anchor = dayjs.tz("2026-11-26 10:00", tz);
+    expect(visibleDays("workweek", anchor, 0).map((d) => d.format("ddd"))).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+    expect(step("workweek", anchor, 1).format("YYYY-MM-DD")).toBe("2026-12-03");
+  });
+
+  it("picks reminders whose time has come, once, while the event is not over", () => {
+    const now = Date.parse("2026-11-26T02:50:00Z");
+    const ev = (id: string, start: string, end: string, reminderMinutes: number | null, status = "CONFIRMED") =>
+      ({ id, start, end, allDay: false, reminderMinutes, status });
+    const events = [
+      ev("soon", "2026-11-26T03:00:00Z", "2026-11-26T03:30:00Z", 15), // due 02:45
+      ev("later", "2026-11-26T04:00:00Z", "2026-11-26T04:30:00Z", 15), // due 03:45
+      ev("none", "2026-11-26T03:00:00Z", "2026-11-26T03:30:00Z", null),
+      ev("over", "2026-11-26T01:00:00Z", "2026-11-26T02:00:00Z", 10),
+      ev("running", "2026-11-26T02:30:00Z", "2026-11-26T03:30:00Z", 0),
+      ev("cancelled", "2026-11-26T03:00:00Z", "2026-11-26T03:30:00Z", 15, "CANCELLED"),
+    ];
+    expect(dueReminders(events, now, new Set()).map((r) => r.event.id)).toEqual(["running", "soon"]);
+    expect(dueReminders(events, now, new Set([reminderKey(events[0]!)])).map((r) => r.event.id)).toEqual(["running"]);
   });
 });

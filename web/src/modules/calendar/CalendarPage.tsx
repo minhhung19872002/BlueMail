@@ -32,7 +32,7 @@ export function CalendarPage() {
     if (view === "month") return new Intl.DateTimeFormat(fmt.locale, { timeZone: tz, month: "long", year: "numeric" }).format(anchor.toDate());
     if (view === "day") return new Intl.DateTimeFormat(fmt.locale, { timeZone: tz, dateStyle: "full" }).format(anchor.toDate());
     const f = new Intl.DateTimeFormat(fmt.locale, { timeZone: tz, day: "numeric", month: "short", year: "numeric" });
-    return `${f.format(days[0]!.toDate())} – ${f.format(days[6]!.toDate())}`;
+    return `${f.format(days[0]!.toDate())} – ${f.format(days[days.length - 1]!.toDate())}`;
   }, [view, anchor, days, fmt.locale, tz]);
 
   const byDate = useMemo(() => {
@@ -52,9 +52,11 @@ export function CalendarPage() {
         <Button onClick={() => setAnchor(dayjs().tz(tz))}>{t("calendar.today")}</Button>
         <Button type="text" icon={<LeftOutlined className="bm-flip-rtl" />} aria-label={t("calendar.previous")} onClick={() => setAnchor((a) => step(view, a, -1))} />
         <Button type="text" icon={<RightOutlined className="bm-flip-rtl" />} aria-label={t("calendar.next")} onClick={() => setAnchor((a) => step(view, a, 1))} />
+        <DatePicker aria-label={t("calendar.goTo")} placeholder={t("calendar.goTo")} allowClear={false} format="YYYY-MM-DD"
+          onChange={(d) => { if (d) setAnchor(dayjs.tz(d.format("YYYY-MM-DD"), tz).hour(12)); }} />
         <Typography.Title level={4} id="cal-title" className="bm-cal-title">{title}</Typography.Title>
         <Segmented value={view} onChange={(v) => setView(v as CalendarView)} aria-label={t("calendar.view")}
-          options={(["day", "week", "month"] as const).map((v) => ({ value: v, label: t(`calendar.views.${v}`) }))} />
+          options={(["day", "workweek", "week", "month"] as const).map((v) => ({ value: v, label: t(`calendar.views.${v}`) }))} />
       </div>
       {events.isPending ? <Spin /> : view === "month" ? (
         <MonthGrid days={days} anchor={anchor} byDate={byDate} tz={tz} onOpen={setOpen} onDay={(d) => { setAnchor(d); setView("day"); }} onNew={(d) => newAt(d, true)} />

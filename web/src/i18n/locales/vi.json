@@ -1468,7 +1468,8 @@
     "views": {
       "day": "Ngày",
       "week": "Tuần",
-      "month": "Tháng"
+      "month": "Tháng",
+      "workweek": "Tuần làm việc"
     },
     "allDay": "Cả ngày",
     "more": "{count, plural, other {+# nữa}}",
@@ -1525,6 +1526,12 @@
       "orange": "Cam",
       "teal": "Xanh ngọc",
       "gray": "Xám"
+    },
+    "goTo": "Đến ngày",
+    "remind": {
+      "body": "Bắt đầu lúc {time}",
+      "bodyAt": "Bắt đầu lúc {time} · {place}",
+      "open": "Mở lịch"
     }
   },
   "tasks": {
@@ -1534,7 +1541,8 @@
       "my": "Việc của tôi",
       "important": "Quan trọng",
       "planned": "Có hạn",
-      "completed": "Đã xong"
+      "completed": "Đã xong",
+      "flagged": "Thư gắn cờ"
     },
     "add": "Thêm",
     "addPlaceholder": "Thêm việc",
@@ -1549,7 +1557,8 @@
       "my": "Không có việc nào. Thêm việc ở ô phía trên.",
       "important": "Không có việc quan trọng.",
       "planned": "Không có việc nào có hạn.",
-      "completed": "Chưa có việc nào xong."
+      "completed": "Chưa có việc nào xong.",
+      "flagged": "Không có thư gắn cờ. Gắn sao một thư để thấy ở đây."
     },
     "details": "Việc",
     "save": "Lưu",

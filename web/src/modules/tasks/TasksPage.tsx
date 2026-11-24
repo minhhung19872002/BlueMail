@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import { ApiError } from "../../api/client";
 import { useUserFormat } from "../../session";
 import { dueState, inputOf, taskKeys, tasksApi, type TaskItem, type TaskView } from "./tasksApi";
+import { act, listConversations, mailKeys } from "../mail/mailApi";
 
 /** To-dos like Outlook / Microsoft To Do: smart lists, quick add, important, due dates, tasks made from messages. */
 export function TasksPage() {
@@ -16,10 +17,10 @@ export function TasksPage() {
   const { message } = App.useApp();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [view, setView] = useState<TaskView>("my");
+  const [view, setView] = useState<TaskView | "flagged">("my");
   const [title, setTitle] = useState("");
   const [open, setOpen] = useState<TaskItem | null>(null);
-  const list = useQuery({ queryKey: taskKeys.view(view), queryFn: () => tasksApi.list(view) });
+  const list = useQuery({ queryKey: taskKeys.view(view as TaskView), queryFn: () => tasksApi.list(view as TaskView), enabled: view !== "flagged" });
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: fmt.timeZone }).format(new Date());
   const fail = (e: unknown) => message.error(e instanceof ApiError ? e.title : t("errors.actionFailed"));
   const refresh = () => qc.invalidateQueries({ queryKey: taskKeys.all });
@@ -48,8 +49,9 @@ export function TasksPage() {
   return (
     <section className="bm-tasks" aria-labelledby="tasks-title">
       <Typography.Title level={4} id="tasks-title">{t("tasks.title")}</Typography.Title>
-      <Segmented value={view} onChange={(v) => setView(v as TaskView)} aria-label={t("tasks.lists")} className="bm-tasks-views"
-        options={(["my", "important", "planned", "completed"] as const).map((v) => ({ value: v, label: t(`tasks.views.${v}`) }))} />
+      <Segmented value={view} onChange={(v) => setView(v as TaskView | "flagged")} aria-label={t("tasks.lists")} className="bm-tasks-views"
+        options={(["my", "important", "planned", "flagged", "completed"] as const).map((v) => ({ value: v, label: t(`tasks.views.${v}`) }))} />
+      {view === "flagged" ? <FlaggedMail onOpen={(threadId) => navigate(`/mail/starred?t=${threadId}`)} /> : <>
       {view !== "completed" && (
         <Space.Compact className="bm-tasks-add">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} onPressEnter={() => void add()} placeholder={t("tasks.addPlaceholder")}
@@ -86,6 +88,7 @@ export function TasksPage() {
           })}
         </ul>
       )}
+      </>}
       {open && (
         <TaskDrawer task={open} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); void refresh(); }}
           onOpenMail={(threadId) => navigate(`/mail/all?t=${threadId}`)} />
@@ -129,3 +132,30 @@ function TaskDrawer({ task, onClose, onSaved, onOpenMail }: { task: TaskItem; on
     </Drawer>
   );
 }
+
+/** Flagged (starred) messages, which Outlook lists in To Do; completing one removes the flag. */
+function FlaggedMail({ onOpen }: { onOpen: (threadId: string) => void }) {
+  const { t } = useTranslation();
+  const { message } = App.useApp();
+  const qc = useQueryClient();
+  const list = useQuery({ queryKey: [...mailKeys.lists, "flagged-tasks"], queryFn: () => listConversations({ labelId: null, q: "is:starred" }, null, 100) });
+  const done = (threadId: string) =>
+    act({ action: "unstar", threadIds: [threadId] }).then(() => qc.invalidateQueries({ queryKey: mailKeys.lists }), () => message.error(t("errors.actionFailed")));
+  if (list.isPending) return <Spin />;
+  const items = list.data?.items ?? [];
+  if (items.length === 0) return <Empty description={t("tasks.empty.flagged")} />;
+  return (
+    <ul className="bm-task-list">
+      {items.map((c) => (
+        <li key={c.threadId} className="bm-task">
+          <Checkbox aria-label={t("tasks.markDone", { title: c.subject ?? "" })} onChange={() => void done(c.threadId)} />
+          <button type="button" className="bm-task-main" onClick={() => onOpen(c.threadId)}>
+            <span className="bm-task-title" dir="auto">{c.subject || t("mail.noSubject")}</span>
+            <span className="bm-task-meta"><span><MailOutlined /> {c.participants.map((p) => p.name || p.address).join(", ")}</span></span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+

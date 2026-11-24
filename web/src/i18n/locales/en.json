@@ -1468,7 +1468,8 @@
     "views": {
       "day": "Day",
       "week": "Week",
-      "month": "Month"
+      "month": "Month",
+      "workweek": "Work week"
     },
     "allDay": "All day",
     "more": "{count, plural, one {# more} other {# more}}",
@@ -1525,6 +1526,12 @@
       "orange": "Orange",
       "teal": "Teal",
       "gray": "Grey"
+    },
+    "goTo": "Go to date",
+    "remind": {
+      "body": "Starts at {time}",
+      "bodyAt": "Starts at {time} · {place}",
+      "open": "Open calendar"
     }
   },
   "tasks": {
@@ -1534,7 +1541,8 @@
       "my": "My tasks",
       "important": "Important",
       "planned": "Planned",
-      "completed": "Completed"
+      "completed": "Completed",
+      "flagged": "Flagged email"
     },
     "add": "Add",
     "addPlaceholder": "Add a task",
@@ -1549,7 +1557,8 @@
       "my": "Nothing to do. Add a task above.",
       "important": "No important tasks.",
       "planned": "No tasks with a due date.",
-      "completed": "No completed tasks yet."
+      "completed": "No completed tasks yet.",
+      "flagged": "No flagged email. Star a message to see it here."
     },
     "details": "Task",
     "save": "Save",
