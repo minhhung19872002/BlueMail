@@ -21,7 +21,11 @@ public sealed record CalendarEvent(
     string? RecurrenceId,
     CalendarPerson? Organizer,
     IReadOnlyList<CalendarPerson> Attendees,
-    string? Status);
+    string? Status)
+{
+    /// <summary>EXDATE values (RFC 5545 3.8.5.1).</summary>
+    public IReadOnlyList<DateTimeOffset> ExceptionDates { get; init; } = [];
+}
 
 /// <summary>
 /// iCalendar (RFC 5545) reading and the iTIP REPLY (RFC 5546 3.2.3) BlueMail sends for an invitation. Input is untrusted:
@@ -133,6 +137,18 @@ public static class ICalendar
         }
 
         var tz = startLine?.Params.GetValueOrDefault("TZID");
+        var exdates = new List<DateTimeOffset>();
+        foreach (var x in chosen.Where(x => x.Name == "EXDATE").Take(500))
+        {
+            foreach (var v in x.Value.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (ParseTime(x with { Value = v }, timeZoneOffsets, out _) is { } t)
+                {
+                    exdates.Add(t);
+                }
+            }
+        }
+
         return new CalendarEvent(
             method,
             Cut(uid.Trim(), 255),
@@ -148,7 +164,7 @@ public static class ICalendar
             Prop("RECURRENCE-ID"),
             PropLine("ORGANIZER") is { } o ? Person(o) : null,
             chosen.Where(x => x.Name == "ATTENDEE").Take(MaxAttendees).Select(Person).Where(p => p.Address.Length > 0).ToList(),
-            Prop("STATUS")?.Trim().ToUpperInvariant());
+            Prop("STATUS")?.Trim().ToUpperInvariant()) { ExceptionDates = exdates };
     }
 
     /// <summary>
@@ -196,6 +212,129 @@ public static class ICalendar
         Add("END:VEVENT");
         Add("END:VCALENDAR");
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// An organizer's iTIP REQUEST or CANCEL (RFC 5546 3.2.2 / 3.2.5). A recurring event is written in its own zone
+    /// (TZID + VTIMEZONE from the system rules) so every occurrence keeps its wall time; others in UTC.
+    /// </summary>
+    public static string Organizer(string method, CalendarEvent e, TimeZoneInfo zone, DateTimeOffset now)
+    {
+        var sb = new StringBuilder();
+        void Add(string line) => Fold(sb, line);
+        Add("BEGIN:VCALENDAR");
+        Add("PRODID:-//BlueMail//BlueMail//EN");
+        Add("VERSION:2.0");
+        Add("METHOD:" + method);
+        var zoned = e.RecurrenceRule is not null && !e.AllDay && zone != TimeZoneInfo.Utc;
+        if (zoned && e.Start is { } first)
+        {
+            foreach (var line in VTimeZone(zone, first))
+            {
+                Add(line);
+            }
+        }
+
+        Add("BEGIN:VEVENT");
+        Add("UID:" + EscapeText(e.Uid));
+        Add("DTSTAMP:" + Utc(now));
+        Add("SEQUENCE:" + e.Sequence.ToString(CultureInfo.InvariantCulture));
+        if (e.Organizer is { } o)
+        {
+            Add("ORGANIZER" + Cn(o.Name) + ":mailto:" + o.Address);
+        }
+
+        foreach (var a in e.Attendees)
+        {
+            Add("ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=" + (a.PartStat ?? "NEEDS-ACTION") + ";RSVP=TRUE" + Cn(a.Name) + ":mailto:" + a.Address);
+        }
+
+        string Time(string name, DateTimeOffset t) => e.AllDay
+            ? name + ";VALUE=DATE:" + t.ToString("yyyyMMdd", CultureInfo.InvariantCulture)
+            : zoned
+                ? name + ";TZID=" + zone.Id + ":" + TimeZoneInfo.ConvertTime(t, zone).ToString("yyyyMMdd'T'HHmmss", CultureInfo.InvariantCulture)
+                : name + ":" + Utc(t);
+        if (e.Start is { } s)
+        {
+            Add(Time("DTSTART", s));
+        }
+
+        if (e.End is { } en)
+        {
+            Add(Time("DTEND", en));
+        }
+
+        if (e.RecurrenceRule is { } rr)
+        {
+            Add("RRULE:" + rr);
+        }
+
+        foreach (var x in e.ExceptionDates)
+        {
+            Add(Time("EXDATE", x));
+        }
+
+        if (e.Summary is { } sum)
+        {
+            Add("SUMMARY:" + EscapeText(sum));
+        }
+
+        if (e.Location is { } loc)
+        {
+            Add("LOCATION:" + EscapeText(loc));
+        }
+
+        if (e.Description is { } desc)
+        {
+            Add("DESCRIPTION:" + EscapeText(desc));
+        }
+
+        Add("STATUS:" + (method == "CANCEL" ? "CANCELLED" : "CONFIRMED"));
+        Add("END:VEVENT");
+        Add("END:VCALENDAR");
+        return sb.ToString();
+    }
+
+    /// <summary>VTIMEZONE (RFC 5545 3.6.5) for a zone from its adjustment rule in force at <paramref name="at"/>.</summary>
+    public static IEnumerable<string> VTimeZone(TimeZoneInfo zone, DateTimeOffset at)
+    {
+        static string Off(TimeSpan t) => (t < TimeSpan.Zero ? "-" : "+") + t.Duration().ToString("hhmm", CultureInfo.InvariantCulture);
+        static string Rule(TimeZoneInfo.TransitionTime t) => t.IsFixedDateRule
+            ? $"FREQ=YEARLY;BYMONTH={t.Month};BYMONTHDAY={t.Day}"
+            : $"FREQ=YEARLY;BYMONTH={t.Month};BYDAY={(t.Week == 5 ? -1 : t.Week)}{t.DayOfWeek.ToString()[..2].ToUpperInvariant()}";
+        static string Start(TimeZoneInfo.TransitionTime t) => "19700101T" + t.TimeOfDay.ToString("HHmmss", CultureInfo.InvariantCulture);
+
+        yield return "BEGIN:VTIMEZONE";
+        yield return "TZID:" + zone.Id;
+        var local = TimeZoneInfo.ConvertTime(at, zone).DateTime;
+        var rule = zone.GetAdjustmentRules().FirstOrDefault(r => r.DateStart <= local && r.DateEnd >= local && r.DaylightDelta != TimeSpan.Zero);
+        var standard = zone.BaseUtcOffset + (rule?.BaseUtcOffsetDelta ?? TimeSpan.Zero);
+        if (rule is null)
+        {
+            yield return "BEGIN:STANDARD";
+            yield return "DTSTART:19700101T000000";
+            yield return "TZOFFSETFROM:" + Off(standard);
+            yield return "TZOFFSETTO:" + Off(standard);
+            yield return "END:STANDARD";
+        }
+        else
+        {
+            var daylight = standard + rule.DaylightDelta;
+            yield return "BEGIN:DAYLIGHT";
+            yield return "DTSTART:" + Start(rule.DaylightTransitionStart);
+            yield return "RRULE:" + Rule(rule.DaylightTransitionStart);
+            yield return "TZOFFSETFROM:" + Off(standard);
+            yield return "TZOFFSETTO:" + Off(daylight);
+            yield return "END:DAYLIGHT";
+            yield return "BEGIN:STANDARD";
+            yield return "DTSTART:" + Start(rule.DaylightTransitionEnd);
+            yield return "RRULE:" + Rule(rule.DaylightTransitionEnd);
+            yield return "TZOFFSETFROM:" + Off(daylight);
+            yield return "TZOFFSETTO:" + Off(standard);
+            yield return "END:STANDARD";
+        }
+
+        yield return "END:VTIMEZONE";
     }
 
     private static string Utc(DateTimeOffset t) => t.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);

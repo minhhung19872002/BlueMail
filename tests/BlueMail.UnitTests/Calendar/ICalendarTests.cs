@@ -102,6 +102,32 @@ public sealed class ICalendarTests
     public void Bad_durations(string text) => ICalendar.TryDuration(text, out _).Should().BeFalse();
 
     [Fact]
+    public void Recurring_request_carries_its_zone_and_reads_back_the_same()
+    {
+        var paris = TimeZoneInfo.FindSystemTimeZoneById("Europe/Paris");
+        var start = new DateTimeOffset(2026, 12, 7, 8, 0, 0, TimeSpan.Zero); // 09:00 in Paris
+        var e = new CalendarEvent("REQUEST", "u1@bluemail", 3, "Weekly; sync", "Room 2", null, start, start.AddMinutes(30), false, "Europe/Paris",
+            "FREQ=WEEKLY;COUNT=4", null, new CalendarPerson("Lucas", "lucas@acme.test", null, null),
+            [new CalendarPerson("Priya", "priya@acme.test", "NEEDS-ACTION", null)], "CONFIRMED") { ExceptionDates = [start.AddDays(7)] };
+        var text = ICalendar.Organizer("REQUEST", e, paris, DateTimeOffset.UtcNow);
+
+        text.Should().Contain("BEGIN:VTIMEZONE").And.Contain("TZID:Europe/Paris").And.Contain("BEGIN:DAYLIGHT")
+            .And.Contain("DTSTART;TZID=Europe/Paris:20261207T090000").And.Contain("RRULE:FREQ=WEEKLY;COUNT=4");
+        var back = ICalendar.Parse(text)!;
+        back.Start.Should().Be(start);
+        back.Summary.Should().Be("Weekly; sync");
+        back.Sequence.Should().Be(3);
+        back.ExceptionDates.Should().Equal(start.AddDays(7));
+        back.Attendees.Should().ContainSingle().Which.Address.Should().Be("priya@acme.test");
+
+        // A zone without daylight saving needs only STANDARD; a single event goes in UTC.
+        var hanoi = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        ICalendar.VTimeZone(hanoi, start).Should().Contain("TZOFFSETTO:+0700").And.NotContain("BEGIN:DAYLIGHT");
+        ICalendar.Organizer("CANCEL", e with { RecurrenceRule = null }, paris, DateTimeOffset.UtcNow)
+            .Should().Contain("DTSTART:20261207T080000Z").And.Contain("STATUS:CANCELLED").And.NotContain("VTIMEZONE");
+    }
+
+    [Fact]
     public void Reply_has_what_rfc_5546_requires_and_folds_long_lines()
     {
         var e = ICalendar.Parse(OutlookRequest)!;

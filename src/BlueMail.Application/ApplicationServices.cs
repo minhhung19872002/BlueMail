@@ -87,6 +87,7 @@ public static class ApplicationServices
         services.AddScoped<Features.Sending.ConfidentialService>();
         services.AddScoped<Features.Rules.SystemMail>();
         services.AddScoped<Features.Calendar.Invites>();
+        services.AddScoped<Features.Calendar.Calendars>();
         services.AddScoped<Features.Security.AccountNotices>();
         services.AddScoped<Features.Rules.MailboxRules>();
         services.AddScoped<Features.Rules.InboxOrganizer>();

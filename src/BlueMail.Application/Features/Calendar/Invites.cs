@@ -54,7 +54,14 @@ public sealed class GetInviteHandler(MailboxOpener opener, Invites invites) : IR
     {
         var access = await opener.OpenAsync(q.MailboxId, ct);
         var loaded = await invites.LoadAsync(access, q.MessageId, ct);
-        return loaded is null ? null : await invites.DtoAsync(access, loaded.Value.Event, loaded.Value.Mine, ct);
+        if (loaded is null)
+        {
+            return null;
+        }
+
+        // Opening a guest's answer, a cancellation or an update brings the calendar up to date.
+        await invites.ApplyToCalendarAsync(access, loaded.Value.Event, ct);
+        return await invites.DtoAsync(access, loaded.Value.Event, loaded.Value.Mine, ct);
     }
 }
 
@@ -84,7 +91,7 @@ public sealed class RespondInviteHandler(MailboxOpener opener, Invites invites) 
 /// Meeting invitations in mail (iMIP, RFC 6047): reads the event of a message, records the user's answer per event UID
 /// and sends the iTIP REPLY (RFC 5546 3.2.3) to the organizer, with a copy in Sent.
 /// </summary>
-public sealed class Invites(PgMailStore store, SenderPolicy senders, BlueMailDbContext db, SystemMail mail, BmSettings settings)
+public sealed class Invites(PgMailStore store, SenderPolicy senders, BlueMailDbContext db, SystemMail mail, BmSettings settings, Calendars calendars)
 {
     public async Task<(CalendarEvent Event, HashSet<string> Mine)?> LoadAsync(MailboxAccess access, Guid messageId, CancellationToken ct)
     {
@@ -112,6 +119,9 @@ public sealed class Invites(PgMailStore store, SenderPolicy senders, BlueMailDbC
         a.VirusStatus != VirusStatus.Infected && a.Size <= ICalendar.MaxLength
         && (a.ContentType.StartsWith("text/calendar", StringComparison.OrdinalIgnoreCase) || a.ContentType.Equals("application/ics", StringComparison.OrdinalIgnoreCase)
             || (a.FileName?.EndsWith(".ics", StringComparison.OrdinalIgnoreCase) ?? false));
+
+    public Task ApplyToCalendarAsync(MailboxAccess access, CalendarEvent e, CancellationToken ct) =>
+        calendars.ApplyFromMailAsync(access.TenantId, access.ActorUserId, e, ct);
 
     public async Task<InviteDto> DtoAsync(MailboxAccess access, CalendarEvent e, HashSet<string> mine, CancellationToken ct)
     {
@@ -144,6 +154,8 @@ public sealed class Invites(PgMailStore store, SenderPolicy senders, BlueMailDbC
         }
 
         await SaveAsync(access, e, response, ct);
+        // Yes / Maybe put it in the calendar; No hides it there.
+        await calendars.SaveAnsweredAsync(access.TenantId, access.ActorUserId, e, response, ct);
         if (sendReply)
         {
             await SendReplyAsync(access, messageId, e, mine, organizer, response, ct);

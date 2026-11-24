@@ -314,3 +314,40 @@ public sealed class AdminTenantsController(ISender mediator) : ControllerBase
         return ApiResponses.Ok(true);
     }
 }
+
+/// <summary>The user's calendar (Outlook-like calendar): events in a window, create/update/delete, invitations by iMIP.</summary>
+[ApiController]
+[Route("api/v1/calendar")]
+public sealed class CalendarController(ISender mediator) : ControllerBase
+{
+    private const string Guarded = "own calendar of the signed-in user";
+
+    public sealed record EventBody(string Summary, string? Location, string? Description, DateTimeOffset Start, DateTimeOffset End, bool AllDay,
+        string? TimeZone, string? RecurrenceRule, IReadOnlyList<BlueMail.Application.Features.Calendar.AttendeeInput>? Attendees, int? ReminderMinutes,
+        string? Color);
+
+    [HttpGet("events")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<IReadOnlyList<BlueMail.Application.Features.Calendar.EventOccurrenceDto>>> Events([FromQuery] DateTimeOffset from,
+        [FromQuery] DateTimeOffset to, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.ListEventsQuery(from, to), ct));
+
+    [HttpPost("events")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.EventOccurrenceDto>> Create([FromBody] EventBody b, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(ToCommand(null, b), ct));
+
+    [HttpPut("events/{id:guid}")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.EventOccurrenceDto>> Update(Guid id, [FromBody] EventBody b, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(ToCommand(id, b), ct));
+
+    /// <summary>Deletes the event, or with <c>occurrence</c> only that occurrence of a series.</summary>
+    [HttpDelete("events/{id:guid}")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<bool>> Delete(Guid id, [FromQuery] DateTimeOffset? occurrence, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.DeleteEventCommand(id, occurrence), ct));
+
+    private static BlueMail.Application.Features.Calendar.SaveEventCommand ToCommand(Guid? id, EventBody b) =>
+        new(id, b.Summary ?? "", b.Location, b.Description, b.Start, b.End, b.AllDay, b.TimeZone, b.RecurrenceRule, b.Attendees, b.ReminderMinutes, b.Color);
+}

@@ -269,5 +269,18 @@
   "account.newSignIn.subject": "Đăng nhập mới vào {email}",
   "account.newSignIn.body": "Tài khoản {email} vừa được đăng nhập từ một trình duyệt và mạng chưa từng dùng.\r\n\r\nThiết bị: {device}\r\nĐịa chỉ IP: {ip}\r\nThời gian: {time}\r\n\r\nNếu đó là bạn, không cần làm gì.\r\nNếu không phải, hãy đổi mật khẩu ngay và đăng xuất các phiên khác trong Cài đặt > Tài khoản.\r\n",
   "account.resetRequest.subject": "Yêu cầu đặt lại mật khẩu cho {email}",
-  "account.resetRequest.body": "{name} <{email}> báo quên mật khẩu (yêu cầu từ IP {ip}).\r\n\r\nNếu xác nhận được đúng là người đó, mở Quản trị > Người dùng > {email} > Đặt lại mật khẩu và đưa mật khẩu mới trực tiếp hoặc qua điện thoại.\r\nNếu không ai yêu cầu, có thể bỏ qua thư này.\r\n"
+  "account.resetRequest.body": "{name} <{email}> báo quên mật khẩu (yêu cầu từ IP {ip}).\r\n\r\nNếu xác nhận được đúng là người đó, mở Quản trị > Người dùng > {email} > Đặt lại mật khẩu và đưa mật khẩu mới trực tiếp hoặc qua điện thoại.\r\nNếu không ai yêu cầu, có thể bỏ qua thư này.\r\n",
+  "calendar.invite.subject": "Lời mời: {summary}",
+  "calendar.invite.body": "{name} mời bạn tham dự: {summary}\r\nThời gian: {when}\r\nĐịa điểm: {where}\r\n",
+  "calendar.cancel.subject": "Đã huỷ: {summary}",
+  "calendar.cancel.body": "{name} đã huỷ: {summary}\r\nDự kiến vào {when}.\r\n",
+  "error.calendar_window": "Mỗi lần chỉ xem tối đa 400 ngày lịch.",
+  "error.event_times": "Giờ kết thúc phải sau giờ bắt đầu, và sự kiện dài tối đa một năm.",
+  "error.invalid_time_zone": "Múi giờ không hợp lệ.",
+  "error.invalid_recurrence": "Kiểu lặp lại này chưa được hỗ trợ.",
+  "error.too_many_attendees": "Một sự kiện có tối đa 100 khách mời.",
+  "error.invalid_reminder": "Chọn một thời điểm nhắc có sẵn.",
+  "error.invalid_color": "Chọn một màu có sẵn.",
+  "error.event_not_found": "Sự kiện này không còn nữa.",
+  "error.invalid_address": "Địa chỉ email không hợp lệ."
 }

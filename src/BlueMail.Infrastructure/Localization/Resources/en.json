@@ -269,5 +269,18 @@
   "account.newSignIn.subject": "New sign-in to {email}",
   "account.newSignIn.body": "Your account {email} was just signed in to from a browser and network not used before.\r\n\r\nDevice: {device}\r\nIP address: {ip}\r\nTime: {time}\r\n\r\nIf this was you, there is nothing to do.\r\nIf not, change your password now and sign out the other sessions in Settings > Account.\r\n",
   "account.resetRequest.subject": "Password reset requested for {email}",
-  "account.resetRequest.body": "{name} <{email}> says they forgot their password (request from IP {ip}).\r\n\r\nIf you can confirm it is them, open Administration > Users > {email} > Reset password and give them the new password in person or by phone.\r\nIf nobody asked, you can ignore this message.\r\n"
+  "account.resetRequest.body": "{name} <{email}> says they forgot their password (request from IP {ip}).\r\n\r\nIf you can confirm it is them, open Administration > Users > {email} > Reset password and give them the new password in person or by phone.\r\nIf nobody asked, you can ignore this message.\r\n",
+  "calendar.invite.subject": "Invitation: {summary}",
+  "calendar.invite.body": "{name} invites you to: {summary}\r\nWhen: {when}\r\nWhere: {where}\r\n",
+  "calendar.cancel.subject": "Cancelled: {summary}",
+  "calendar.cancel.body": "{name} has cancelled: {summary}\r\nIt was planned for {when}.\r\n",
+  "error.calendar_window": "Ask for at most 400 days of the calendar at a time.",
+  "error.event_times": "The end must be after the start, and an event can last at most one year.",
+  "error.invalid_time_zone": "Unknown time zone.",
+  "error.invalid_recurrence": "This repeat rule is not supported.",
+  "error.too_many_attendees": "An event can have at most 100 guests.",
+  "error.invalid_reminder": "Choose one of the offered reminder times.",
+  "error.invalid_color": "Choose one of the offered colours.",
+  "error.event_not_found": "This event no longer exists.",
+  "error.invalid_address": "This is not a valid email address."
 }

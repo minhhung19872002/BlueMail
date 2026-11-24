@@ -759,6 +759,28 @@ internal sealed class BulkMailJobConfig : IEntityTypeConfiguration<BulkMailJob>
     }
 }
 
+internal sealed class CalendarItemConfig : IEntityTypeConfiguration<BlueMail.Domain.Calendar.CalendarItem>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Calendar.CalendarItem> b)
+    {
+        b.ToTable("events", "cal");
+        b.Property(x => x.Uid).HasMaxLength(255);
+        b.Property(x => x.Summary).HasMaxLength(500);
+        b.Property(x => x.Location).HasMaxLength(500);
+        b.Property(x => x.Description).HasMaxLength(8000);
+        b.Property(x => x.TimeZone).HasMaxLength(64);
+        b.Property(x => x.RecurrenceRule).HasMaxLength(500);
+        b.Property(x => x.OrganizerEmail).HasMaxLength(320);
+        b.Property(x => x.OrganizerName).HasMaxLength(200);
+        b.Property(x => x.Attendees).HasColumnType("jsonb");
+        b.Property(x => x.MyResponse).HasMaxLength(16);
+        b.Property(x => x.Status).HasMaxLength(16);
+        b.Property(x => x.Color).HasMaxLength(16);
+        b.HasIndex(x => new { x.UserId, x.Uid }).IsUnique().HasFilter("deleted_at IS NULL");
+        b.HasIndex(x => new { x.UserId, x.StartAt });
+    }
+}
+
 internal sealed class InviteResponseConfig : IEntityTypeConfiguration<InviteResponse>
 {
     public void Configure(EntityTypeBuilder<InviteResponse> b)
