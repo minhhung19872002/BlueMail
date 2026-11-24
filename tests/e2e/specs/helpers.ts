@@ -6,6 +6,11 @@ export const Password = process.env.BM_E2E_PASSWORD ?? "Sample-User-Dev-1";
 /** Signs in through BlueID (OIDC code + PKCE) and waits for the mailbox. */
 export async function signIn(page: Page, email: string, path = "/mail/inbox"): Promise<void> {
   await page.goto(path);
+  // BlueID allows 20 sign-ins a minute per address; a long run can hit it: wait for the window and retry once.
+  if (await page.getByText("rate_limited").isVisible().catch(() => false)) {
+    await page.waitForTimeout(61_000);
+    await page.reload();
+  }
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(Password);
   await page.locator("form button[type=submit]").click();

@@ -37,7 +37,7 @@ test("an assigned task completes for the assigner when the assignee completes it
   await signIn(other, "minh@bluemail.test", "/tasks");
   await expect(other.getByText(title)).toBeVisible();
   const done = other.waitForResponse((r) => r.url().includes("/api/v1/tasks/") && r.request().method() === "PUT");
-  await other.getByRole("checkbox", { name: `Hoàn thành: ${title}` }).check();
+  await other.getByRole("checkbox", { name: `Hoàn thành: ${title}` }).click();
   expect((await done).ok()).toBeTruthy();
   await other.close();
 

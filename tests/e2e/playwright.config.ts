@@ -6,7 +6,7 @@ const channel = process.env.BM_E2E_BROWSER === "chromium" ? undefined : "chrome"
 
 export default defineConfig({
   testDir: "./specs",
-  timeout: 90_000,
+  timeout: 180_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,

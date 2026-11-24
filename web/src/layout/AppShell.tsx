@@ -275,7 +275,7 @@ export function AppShell() {
           </Button>
         </Dropdown>
       </Header>
-      <Layout>
+      <Layout hasSider>
         {!narrow && (
           // App switcher of Outlook on the web: one column of apps at the window edge.
           <nav className="bm-app-rail" aria-label={t("nav.apps")}>
