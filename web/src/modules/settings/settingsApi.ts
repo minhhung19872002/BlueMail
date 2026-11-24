@@ -23,6 +23,19 @@ export interface MailSettings {
   desktopNotifications: boolean;
   /** Lists pinned at the top of the folder pane (paths such as /mail/inbox). */
   favorites: string[];
+  /** Outlook "Quick Steps": named sequences of mail actions. */
+  quickSteps: QuickStep[];
+}
+
+export interface QuickStepAction {
+  action: string;
+  labelId: string | null;
+}
+
+export interface QuickStep {
+  id: string;
+  name: string;
+  actions: QuickStepAction[];
 }
 
 export interface Profile {

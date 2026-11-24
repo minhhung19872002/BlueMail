@@ -318,3 +318,6 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 
 .bm-mailbox-switch { padding: 0 16px 8px; }
 .bm-tasks-views { max-inline-size: 100%; overflow-x: auto; }
+
+.bm-quickstep { padding: 8px; border: 1px solid var(--bm-border); border-radius: 8px; }
+.bm-quickstep-action { margin-block-start: 6px; }

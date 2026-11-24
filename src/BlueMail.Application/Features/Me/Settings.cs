@@ -34,6 +34,18 @@ public sealed record MailSettings
 
     public const int MaxFavorites = 20;
 
+    /// <summary>Outlook "Quick Steps": named sequences of mail actions run with one click.</summary>
+    public IReadOnlyList<QuickStep> QuickSteps { get; init; } = [];
+
+    public const int MaxQuickSteps = 20;
+    public const int MaxQuickStepActions = 5;
+
+    /// <summary>What a Quick Step may do: reversible actions only (no delete forever, no spam/phishing reports).</summary>
+    public static readonly IReadOnlySet<string> QuickStepActions = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "markRead", "markUnread", "star", "unstar", "important", "notImportant", "archive", "moveToInbox", "trash", "addLabel", "removeLabel", "moveTo", "mute",
+    };
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public static MailSettings Parse(string? json)
@@ -67,6 +79,14 @@ public sealed record MailSettings
             AutoAdvance = s.AutoAdvance is "LIST" or "NEWER" or "OLDER" ? s.AutoAdvance : d.AutoAdvance,
             Favorites = (s.Favorites ?? d.Favorites).Where(f => f is { Length: > 6 and <= 64 } && f.StartsWith("/mail/", StringComparison.Ordinal))
                 .Distinct(StringComparer.Ordinal).Take(MaxFavorites).ToList(),
+            QuickSteps = (s.QuickSteps ?? []).Where(q => q is not null && !string.IsNullOrWhiteSpace(q.Name))
+                .Select(q => new QuickStep(q.Id is { Length: > 0 and <= 40 } id ? id : Guid.NewGuid().ToString("N"),
+                    q.Name.Trim().Length > 40 ? q.Name.Trim()[..40] : q.Name.Trim(),
+                    (q.Actions ?? []).Where(a => a is not null && QuickStepActions.Contains(a.Action)
+                                                 && (a.Action is not ("addLabel" or "removeLabel" or "moveTo") || a.LabelId is not null))
+                        .Select(a => new QuickStepAction(a.Action, a.Action is "addLabel" or "removeLabel" or "moveTo" ? a.LabelId : null))
+                        .Take(MaxQuickStepActions).ToList()))
+                .Where(q => q.Actions.Count > 0).DistinctBy(q => q.Id).Take(MaxQuickSteps).ToList(),
         };
     }
 }
@@ -130,3 +150,8 @@ public sealed class SaveProfileHandler(BlueMailDbContext db, ICurrentUser me, IS
         return Unit.Value;
     }
 }
+
+public sealed record QuickStepAction(string Action, Guid? LabelId);
+
+public sealed record QuickStep(string Id, string Name, IReadOnlyList<QuickStepAction> Actions);
+

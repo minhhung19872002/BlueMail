@@ -135,4 +135,27 @@ public class UnsubscribeAndSettingsTests
         s.Theme.Should().Be("SYSTEM");
         MailSettings.Parse("{not json").Should().BeEquivalentTo(new MailSettings());
     }
+
+    [Fact]
+    public void Favorites_and_quick_steps_are_normalised()
+    {
+        var label = Guid.NewGuid();
+        var s = MailSettings.Normalize(new MailSettings
+        {
+            Favorites = ["/mail/inbox", "/mail/inbox", "https://evil.example", "/mail/", "/mail/label/" + label],
+            QuickSteps =
+            [
+                new QuickStep("a", "  Đã xử lý  ", [new("markRead", null), new("addLabel", label), new("archive", null), new("deleteForever", null), new("moveTo", null)]),
+                new QuickStep("b", "Only bad", [new("reportPhishing", null), new("spam", null)]),
+                new QuickStep("", new string('x', 60), [new("star", null)]),
+                new QuickStep("a", "Duplicate id", [new("star", null)]),
+            ],
+        });
+        s.Favorites.Should().Equal("/mail/inbox", "/mail/label/" + label);
+        s.QuickSteps.Should().HaveCount(2, "a step with no allowed action and a duplicate id are dropped");
+        s.QuickSteps[0].Name.Should().Be("Đã xử lý");
+        s.QuickSteps[0].Actions.Select(a => a.Action).Should().Equal("markRead", "addLabel", "archive");
+        s.QuickSteps[1].Name.Should().HaveLength(40);
+        s.QuickSteps[1].Id.Should().NotBeEmpty();
+    }
 }

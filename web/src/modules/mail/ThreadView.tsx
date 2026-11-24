@@ -13,6 +13,7 @@ import { useMe, useUserFormat } from "../../session";
 import { act, getBody, getOriginal, getThread, mailKeys, trustImages, unsubscribe, type MailAction } from "./mailApi";
 import { SnoozeMenu } from "./SnoozeMenu";
 import { SweepButton } from "./Sweep";
+import { QuickStepsMenu } from "./QuickSteps";
 import { InviteCard } from "./InviteCard";
 import { followUpDue, taskKeys, tasksApi, type FollowUp } from "../tasks/tasksApi";
 import { useShortcuts } from "./ShortcutHost";
@@ -133,6 +134,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
         {unsubscribable && (
           <Button type="text" onClick={() => void doUnsubscribe(unsubscribable)}>{t("mail.unsubscribe")}</Button>
         )}
+        <QuickStepsMenu threadIds={[threadId]} labels={labels} onLeft={onClose} />
         <Dropdown trigger={["click"]} menu={{
           items: (["today", "tomorrow", "thisWeek", "nextWeek", "noDate"] as const).map((k) => ({ key: k, label: t(`mail.followUp.${k}`) })),
           onClick: ({ key }) => {

@@ -1585,5 +1585,35 @@
     },
     "addFromMail": "Add to To Do",
     "addedFromMail": "Added to To Do."
+  },
+  "quickSteps": {
+    "title": "Quick Steps",
+    "manage": "Manage Quick Steps…",
+    "intro": "A Quick Step runs several actions on a conversation with one click, e.g. mark as read, add a label and archive.",
+    "name": "Name",
+    "action": "Action",
+    "label": "Label",
+    "remove": "Delete Quick Step {name}",
+    "removeAction": "Remove this action",
+    "addAction": "Add action",
+    "new": "New Quick Step",
+    "save": "Save",
+    "saved": "Quick Steps saved.",
+    "done": "“{name}” done.",
+    "actions": {
+      "markRead": "Mark as read",
+      "markUnread": "Mark as unread",
+      "star": "Flag (star)",
+      "unstar": "Remove flag",
+      "important": "Mark important",
+      "notImportant": "Mark not important",
+      "archive": "Archive",
+      "moveToInbox": "Move to Inbox",
+      "trash": "Delete",
+      "addLabel": "Add label",
+      "removeLabel": "Remove label",
+      "moveTo": "Move to label",
+      "mute": "Ignore conversation"
+    }
   }
 }

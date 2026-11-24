@@ -1585,5 +1585,35 @@
     },
     "addFromMail": "Thêm vào Việc cần làm",
     "addedFromMail": "Đã thêm vào Việc cần làm."
+  },
+  "quickSteps": {
+    "title": "Quick Steps",
+    "manage": "Quản lý Quick Steps…",
+    "intro": "Quick Step làm nhiều thao tác trên một hội thoại bằng một lần bấm, ví dụ đánh dấu đã đọc, gắn nhãn rồi lưu trữ.",
+    "name": "Tên",
+    "action": "Thao tác",
+    "label": "Nhãn",
+    "remove": "Xoá Quick Step {name}",
+    "removeAction": "Bỏ thao tác này",
+    "addAction": "Thêm thao tác",
+    "new": "Quick Step mới",
+    "save": "Lưu",
+    "saved": "Đã lưu Quick Steps.",
+    "done": "Đã chạy “{name}”.",
+    "actions": {
+      "markRead": "Đánh dấu đã đọc",
+      "markUnread": "Đánh dấu chưa đọc",
+      "star": "Gắn cờ (sao)",
+      "unstar": "Bỏ cờ",
+      "important": "Đánh dấu quan trọng",
+      "notImportant": "Bỏ quan trọng",
+      "archive": "Lưu trữ",
+      "moveToInbox": "Chuyển vào Hộp thư đến",
+      "trash": "Xoá",
+      "addLabel": "Gắn nhãn",
+      "removeLabel": "Bỏ nhãn",
+      "moveTo": "Chuyển sang nhãn",
+      "mute": "Bỏ qua hội thoại"
+    }
   }
 }
