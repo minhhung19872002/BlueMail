@@ -68,8 +68,10 @@ public partial class RulesTests(StackFixture stack)
         using var other = await Client("minh@bluemail.test");
         (await other.GetAsync($"/api/v1/mail/bulk-jobs/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound, "a job is visible to its owner only");
 
-        (await stack.Api.Services.GetRequiredService<Application.Features.Mail.BulkMailJobWorker>().RunOnceAsync(default)).Should().BeTrue();
-        var status = await Data(await api.GetAsync($"/api/v1/mail/bulk-jobs/{id}"));
+        // The API's own background worker may take the job first: run one too, then wait for the outcome.
+        var worker = stack.Api.Services.GetRequiredService<Application.Features.Mail.BulkMailJobWorker>();
+        await worker.RunOnceAsync(default);
+        var status = await WaitForJob(api, id);
         status.GetProperty("status").GetString().Should().Be("DONE");
         status.GetProperty("total").GetInt32().Should().Be(3);
         status.GetProperty("done").GetInt32().Should().Be(3);
@@ -80,19 +82,44 @@ public partial class RulesTests(StackFixture stack)
 
         // At most a few waiting jobs per user; an unknown action is refused before anything is queued.
         (await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "explode", query = tag })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        for (var i = 0; i < Application.Features.Mail.StartBulkJobHandler.MaxActivePerUser; i++)
+        // Fill the limit with running jobs that hold their lease (no worker can take them), then one more is refused.
+        var quang = await Db(db => db.Users.IgnoreQueryFilters().Where(u => u.PrimaryEmail == "quang@bluemail.test").Select(u => new { u.Id, u.TenantId }).SingleAsync());
+        var mailbox = await Db(db => db.Mailboxes.IgnoreQueryFilters().Where(m => m.OwnerId == quang.Id).Select(m => m.Id).SingleAsync());
+        var holders = Enumerable.Range(0, Application.Features.Mail.StartBulkJobHandler.MaxActivePerUser).Select(_ => Guid.NewGuid()).ToList();
+        await Db(async db =>
         {
-            await Data(await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "markRead", query = $"subject:{tag}" }));
-        }
-
+            db.BulkMailJobs.AddRange(holders.Select(h => new Domain.Mail.BulkMailJob
+            {
+                Id = h, TenantId = quang.TenantId, UserId = quang.Id, MailboxId = mailbox, Action = "markRead", Status = Domain.Mail.FilterJobStatus.Running,
+                CreatedAt = DateTimeOffset.UtcNow, LockedUntil = DateTimeOffset.UtcNow.AddHours(1),
+            }));
+            return await db.SaveChangesAsync();
+        });
         var refused = await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "markRead", query = $"subject:{tag}" });
         refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await refused.Content.ReadAsStringAsync()).Should().Contain("too_many_jobs");
-        while (await stack.Api.Services.GetRequiredService<Application.Features.Mail.BulkMailJobWorker>().RunOnceAsync(default))
-        {
-        }
+        await Db(db => db.BulkMailJobs.IgnoreQueryFilters().Where(j => holders.Contains(j.Id)).ExecuteDeleteAsync());
+
+        var read = await Data(await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "markRead", query = $"subject:{tag}" }));
+        await worker.RunOnceAsync(default);
+        (await WaitForJob(api, read.GetProperty("id").GetGuid())).GetProperty("status").GetString().Should().Be("DONE");
 
         (await Db(db => db.Messages.IgnoreQueryFilters().Where(m => ids.Contains(m.Id)).AllAsync(m => m.Seen))).Should().BeTrue();
+    }
+
+    /// <summary>Polls a bulk job until it is no longer waiting or running (at most 20 s).</summary>
+    private static async Task<JsonElement> WaitForJob(HttpClient api, Guid id)
+    {
+        for (var i = 0; ; i++)
+        {
+            var s = await Data(await api.GetAsync($"/api/v1/mail/bulk-jobs/{id}"));
+            if (s.GetProperty("status").GetString() is not ("QUEUED" or "RUNNING") || i >= 200)
+            {
+                return s;
+            }
+
+            await Task.Delay(100);
+        }
     }
 
     private static async Task<JsonElement> Data(HttpResponseMessage r)

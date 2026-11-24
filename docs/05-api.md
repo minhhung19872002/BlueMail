@@ -41,6 +41,7 @@ answer `404` (indistinguishable from "does not exist").
 | GET | `/api/v1/mail/messages/{id}/body?showImages=` | self | `htmlDocument` (HtmlSanitizer + CSP document for an iframe sandbox), `text`, remote-image state, `zipUrl` |
 | GET | `/api/v1/mail/messages/{id}/original` | self | Raw headers (first 512 KB) + stored SPF/DKIM/DMARC/ARC results |
 | POST | `/api/v1/mail/messages/{id}/trust-images` | self | "Always display images from this sender" |
+| GET | `/api/v1/mail/mailboxes` | self | Mailboxes the user can open: own first, then shared ones granted with read; `canSendAs`, `canSendOnBehalf`. The web passes the chosen id as `mailboxId` to every mail endpoint |
 | GET | `/api/v1/mail/messages/{id}/invite?mailboxId=` | self | Meeting invitation in the message (text/calendar alternative or .ics file): summary, start/end (UTC), organizer, attendees (≤ 50 shown + count), `canRespond`, `myResponse`; `null` when there is none |
 | POST | `/api/v1/mail/messages/{id}/invite/respond?mailboxId=` | self (Write + SendAs) | `{ response: ACCEPTED\|TENTATIVE\|DECLINED, sendReply? }`: stored per (mailbox, UID); iTIP REPLY (RFC 5546) to the organizer, copy in Sent |
 | POST | `/api/v1/mail/actions?mailboxId=` | self | `{ action, threadIds?, messageIds?, labelId?, fromLabelId? }`; actions: markRead, markUnread, star, unstar, important, notImportant, archive, moveToInbox, trash, untrash, spam, notSpam, addLabel, removeLabel, moveTo, deleteForever (Trash/Spam only), mute, unmute; ≤ 500 items per call |

@@ -44,7 +44,8 @@
     "apps": "Ứng dụng",
     "mail": "Thư",
     "calendar": "Lịch",
-    "tasks": "Việc cần làm"
+    "tasks": "Việc cần làm",
+    "mailbox": "Hộp thư"
   },
   "theme": {
     "title": "Chủ đề",
@@ -401,7 +402,8 @@
       "upload_incomplete": "Có tệp đính kèm chưa tải lên xong.",
       "no_recipients": "Hãy thêm ít nhất một người nhận."
     },
-    "forwardAttachment": "Chuyển tiếp dưới dạng tệp đính kèm"
+    "forwardAttachment": "Chuyển tiếp dưới dạng tệp đính kèm",
+    "onBehalfOf": "Thay mặt {name} <{address}>"
   },
   "signatures": {
     "title": "Chữ ký và mẫu thư",

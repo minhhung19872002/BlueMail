@@ -147,6 +147,7 @@ public sealed partial class MimeComposer(UploadStore uploads, PgMailStore store,
         var builder = new MessageBuilder
         {
             From = Addr(new DraftAddress(null, s.From ?? "")) with { Name = await DisplayNameAsync(access, s.From, ct) },
+            Sender = await OnBehalfSenderAsync(access, s.From, ct),
             To = s.To.Select(Addr).ToList(),
             Cc = s.Cc.Select(Addr).ToList(),
             Bcc = s.Bcc.Select(Addr).ToList(),
@@ -162,6 +163,29 @@ public sealed partial class MimeComposer(UploadStore uploads, PgMailStore store,
             ExtraHeaders = [("MIME-Version", "1.0")],
         };
         return builder.ToBytes();
+    }
+
+    /// <summary>The user as Sender when From is a shared mailbox they may only send on behalf of; null otherwise.</summary>
+    private async Task<MailboxAddress?> OnBehalfSenderAsync(MailboxAccess access, string? from, CancellationToken ct)
+    {
+        if (from is null)
+        {
+            return null;
+        }
+
+        var address = from.ToLowerInvariant();
+        var onBehalf = await (from m in db.SharedMailboxMembers.IgnoreQueryFilters()
+                              join sm in db.SharedMailboxes.IgnoreQueryFilters() on m.SharedMailboxId equals sm.Id
+                              where m.TenantId == access.TenantId && m.UserId == access.ActorUserId && sm.Email == address
+                                    && m.CanSendOnBehalf && !m.CanSendAs && m.DeletedAt == null && sm.DeletedAt == null
+                              select sm.Id).AnyAsync(ct);
+        if (!onBehalf)
+        {
+            return null;
+        }
+
+        var user = await db.Users.IgnoreQueryFilters().AsNoTracking().Where(u => u.Id == access.ActorUserId).Select(u => new { u.DisplayName, u.PrimaryEmail }).FirstAsync(ct);
+        return new MailboxAddress(user.DisplayName, user.PrimaryEmail);
     }
 
     private async Task<string?> DisplayNameAsync(MailboxAccess access, string? from, CancellationToken ct)
@@ -324,6 +348,13 @@ public sealed class SenderPolicy(BlueMailDbContext db)
                              where m.TenantId == access.TenantId && m.UserId == access.ActorUserId && m.CanSendAs && m.DeletedAt == null && s.DeletedAt == null
                              orderby s.Email
                              select new FromOption(s.Email, s.Name, "shared")).AsNoTracking().ToListAsync(ct));
+        // "Send on behalf" (PROMPT 7.3): From is the shared mailbox, Sender is the user (RFC 5322 3.6.2).
+        list.AddRange(await (from m in db.SharedMailboxMembers.IgnoreQueryFilters()
+                             join s in db.SharedMailboxes.IgnoreQueryFilters() on m.SharedMailboxId equals s.Id
+                             where m.TenantId == access.TenantId && m.UserId == access.ActorUserId && m.CanSendOnBehalf && !m.CanSendAs
+                                   && m.DeletedAt == null && s.DeletedAt == null
+                             orderby s.Email
+                             select new FromOption(s.Email, s.Name, "onBehalf")).AsNoTracking().ToListAsync(ct));
         return list;
     }
 

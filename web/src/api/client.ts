@@ -1,5 +1,6 @@
 import { accessToken, dropLocalSession, signIn } from "../auth/auth";
 import { config } from "../config";
+import { withMailbox } from "../store/mailbox";
 
 // All HTTP calls go through this module (PROMPT 12): it adds the bearer token, unwraps the
 // { success, data } envelope and turns problem responses into ApiError with a stable code.
@@ -33,6 +34,7 @@ interface Problem {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  path = withMailbox(path);
   const token = await accessToken();
   const headers: Record<string, string> = { Accept: "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -69,6 +71,7 @@ async function blob(path: string): Promise<Blob> {
 
 /** multipart/form-data upload (e.g. a Gmail filter export); same envelope and errors as JSON calls. */
 async function form<T>(path: string, data: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
+  path = withMailbox(path);
   const token = await accessToken();
   const res = await fetch(config().apiBase + path, { method, body: data, headers: token ? { Authorization: `Bearer ${token}` } : {} });
   const text = await res.text();

@@ -44,7 +44,8 @@
     "apps": "Apps",
     "mail": "Mail",
     "calendar": "Calendar",
-    "tasks": "To Do"
+    "tasks": "To Do",
+    "mailbox": "Mailbox"
   },
   "theme": {
     "title": "Theme",
@@ -401,7 +402,8 @@
       "upload_incomplete": "An attachment has not finished uploading.",
       "no_recipients": "Add at least one recipient."
     },
-    "forwardAttachment": "Forward as attachment"
+    "forwardAttachment": "Forward as attachment",
+    "onBehalfOf": "On behalf of {name} <{address}>"
   },
   "signatures": {
     "title": "Signatures and templates",

@@ -466,6 +466,54 @@ public class SendingTests(StackFixture stack)
     }
 
     [Fact]
+    public async Task Shared_mailbox_is_listed_opened_and_sent_from_on_behalf_with_a_sender_header()
+    {
+        using var olivia = await Client("olivia@acme.test");
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var address = $"support-{tag}@acme.test";
+        var sid = (await Data(await olivia.PostAsJsonAsync("/api/v1/admin/shared-mailboxes", new { email = address, name = "Support" }))).GetGuid();
+        var tomasId = await Db(db => db.Users.IgnoreQueryFilters().Where(u => u.PrimaryEmail == "tomas@acme.test").Select(u => u.Id).SingleAsync());
+        (await olivia.PutAsJsonAsync($"/api/v1/admin/shared-mailboxes/{sid}/members", new { userId = tomasId, canRead = true, canSendAs = false, canSendOnBehalf = true }))
+            .EnsureSuccessStatusCode();
+
+        using var tomas = await Client("tomas@acme.test");
+        var boxes = (await Data(await tomas.GetAsync("/api/v1/mail/mailboxes"))).EnumerateArray().ToList();
+        boxes[0].GetProperty("kind").GetString().Should().Be("own");
+        var shared = boxes.Single(b => b.GetProperty("email").GetString() == address);
+        shared.GetProperty("canSendOnBehalf").GetBoolean().Should().BeTrue();
+        var sharedId = shared.GetProperty("id").GetGuid();
+        (await Data(await tomas.GetAsync($"/api/v1/mail/labels?mailboxId={sharedId}"))).GetProperty("labels").GetArrayLength().Should().BeGreaterThan(0);
+
+        var options = await Data(await tomas.GetAsync("/api/v1/mail/compose/from-options"));
+        options.EnumerateArray().Should().Contain(o => o.GetProperty("address").GetString() == address && o.GetProperty("kind").GetString() == "onBehalf");
+
+        // Sent "on behalf": From is the shared mailbox, Sender is tomas (RFC 5322 3.6.2).
+        var d = await SaveDraft(tomas, new
+        {
+            from = address, to = new[] { new { address = "amara@acme.test" } }, subject = "On behalf " + tag, html = "<p>Hello</p>", attachments = Array.Empty<object>(),
+        });
+        var s = await Data(await tomas.PostAsJsonAsync($"/api/v1/mail/drafts/{d}/send", new { }));
+        await MakeDue(s.GetProperty("outgoingId").GetGuid());
+        await Dispatcher.RunOnceAsync(default);
+
+        // (amara receives: jonas's mailbox must stay empty for Phase1Tests.)
+        using var amara = await Client("amara@acme.test");
+        using var jonas = await Client("jonas@acme.test");
+        var conv = (await Data(await amara.GetAsync("/api/v1/mail/conversations?view=all&limit=100"))).GetProperty("items").EnumerateArray()
+            .First(c => c.GetProperty("subject").GetString() == "On behalf " + tag);
+        var thread = await Data(await amara.GetAsync($"/api/v1/mail/threads/{conv.GetProperty("threadId").GetGuid()}"));
+        var msg = thread.GetProperty("messages")[0];
+        msg.GetProperty("message").GetProperty("from").GetProperty("address").GetString().Should().Be(address);
+        using var anon = stack.Api.CreateClient();
+        var raw = await anon.GetStringAsync(new Uri(msg.GetProperty("rawUrl").GetString()!, UriKind.RelativeOrAbsolute) is { IsAbsoluteUri: true } u ? u.PathAndQuery : msg.GetProperty("rawUrl").GetString()!);
+        raw.Should().Contain("Sender: ").And.Contain("tomas@acme.test");
+
+        // Someone without a grant cannot open it.
+        (await jonas.GetAsync($"/api/v1/mail/conversations?mailboxId={sharedId}&limit=10")).IsSuccessStatusCode.Should().BeFalse();
+        (await Data(await jonas.GetAsync("/api/v1/mail/mailboxes"))).GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
     public async Task Forward_as_attachment_carries_the_whole_original_and_only_from_my_own_mailbox()
     {
         using var ivan = await Client("ivan@acme.test");

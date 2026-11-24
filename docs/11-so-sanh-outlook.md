@@ -30,6 +30,7 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Meeting invitation card (Yes / Maybe / No) | ✅ | iMIP, tự vào lịch |
 | Message details (mailed-by, signed-by, TLS) | ✅ | |
 | Search with scope, gợi ý khi gõ | ✅ | |
+| Hộp thư dùng chung (mở, gửi với tư cách, gửi thay mặt) | ✅ | Chọn hộp thư ở đầu cột thư mục; From/Sender đúng RFC 5322 |
 | Sort by From / Size / Subject | ❌ | Chỉ theo ngày (D30: danh sách lớn) |
 | Quick Steps | ❌ | |
 | Clean Up (xoá thư lặp trong hội thoại) | ❌ | |

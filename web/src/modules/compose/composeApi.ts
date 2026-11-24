@@ -39,7 +39,7 @@ export interface DraftDto {
 export interface FromOption {
   address: string;
   name: string;
-  kind: "primary" | "alias" | "shared";
+  kind: "primary" | "alias" | "shared" | "onBehalf";
 }
 
 export interface Suggestion {

@@ -21,6 +21,7 @@ import { rulesApi, rulesKeys, vacationActive } from "../modules/settings/rulesAp
 import { useSaveSettings, useSettings, type MailSettings } from "../modules/settings/settingsApi";
 import { ComposeDock } from "../modules/compose/ComposeDock";
 import { CalendarReminders } from "../modules/calendar/CalendarReminders";
+import { MailboxSwitcher } from "./MailboxSwitcher";
 import { useCompose } from "../modules/compose/composeStore";
 import { useMe } from "../session";
 import { useAdminSections } from "../modules/admin/adminSections";
@@ -310,6 +311,7 @@ export function AppShell() {
               {!collapsed && t("compose.compose")}
             </Button>
           </div>
+          <MailboxSwitcher collapsed={collapsed} />
           <nav aria-label={t("nav.labels")}>
             <Menu
               mode="inline"

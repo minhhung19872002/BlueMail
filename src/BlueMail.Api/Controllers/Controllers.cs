@@ -138,6 +138,12 @@ public sealed class MailController(ISender mediator) : ControllerBase
     public async Task<ApiResponse<BlueMail.Application.Features.Mail.BulkJobDto>> BulkJob(Guid id, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.GetBulkJobQuery(id), ct));
 
+    /// <summary>The mailboxes the user can open: their own and granted shared ones (pass the id as mailboxId to the mail endpoints).</summary>
+    [HttpGet("mailboxes")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<IReadOnlyList<MyMailboxDto>>> Mailboxes(CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new ListMyMailboxesQuery(), ct));
+
     /// <summary>The meeting invitation in a message (iMIP card, PROMPT 6.3); null data when it carries none.</summary>
     [HttpGet("messages/{id:guid}/invite")]
     [SelfGuarded(Guarded)]

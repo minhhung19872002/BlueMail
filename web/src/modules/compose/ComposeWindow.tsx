@@ -319,7 +319,8 @@ export function ComposeWindow({ w }: { w: ComposeWindowState }) {
                 <span className="bm-rcpt-label">{t("compose.from")}</span>
                 <Select variant="borderless" className="bm-from" value={state.from ?? fromOptions.data?.[0]?.address} onChange={(v) => patch({ from: v })}
                   aria-label={t("compose.from")}
-                  options={fromOptions.data?.map((o) => ({ value: o.address, label: `${o.name} <${o.address}>` }))} />
+                  options={fromOptions.data?.map((o) => ({ value: o.address,
+                    label: o.kind === "onBehalf" ? t("compose.onBehalfOf", { name: o.name, address: o.address }) : `${o.name} <${o.address}>` }))} />
               </div>
             )}
             <RecipientField label={t("compose.to")} field="to" value={state.to} onChange={(v) => patch({ to: v })} ourDomains={me.domains}
