@@ -46,7 +46,7 @@ export function DomainsAdmin() {
           <Button type="primary" icon={<PlusOutlined />} disabled={!name.trim()} onClick={() => void add()}>{t("admin.add")}</Button>
         </Space.Compact>
       )}
-      <Table<Domain> rowKey="id" size="small" pagination={false} dataSource={domains.data ?? []} loading={domains.isPending}
+      <Table<Domain> scroll={{ x: "max-content" }} rowKey="id" size="small" pagination={false} dataSource={domains.data ?? []} loading={domains.isPending}
         onRow={(d) => ({ onClick: () => setOpen(d.id), style: { cursor: "pointer" } })}
         columns={[
           { title: t("admin.domains.domain"), render: (_, d) => <Space>{d.domain}{d.isPrimary && <Tag color="blue">{t("admin.domains.primary")}</Tag>}{d.aliasOf && <Tag>{t("admin.domains.aliasTag", { of: d.aliasOf })}</Tag>}</Space> },

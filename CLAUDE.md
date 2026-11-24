@@ -133,4 +133,6 @@ Decisions: `docs/00-quyet-dinh-ky-thuat.md`. Bugs (including our own): `docs/08-
 - Perf: `tests/perf/fill.sql` / `cleanup.sql` (synthetic rows, dev only), `api_latency.py`, `smtp_load.py`, `imap_idle_load.py`.
   The conversation list has two paths (D30); keep `ConversationPagingTests` green when touching it.
 - Backups: `scripts/backup.sh` / `restore.sh` (pg_dump + rclone); drill numbers in docs/03.
+- E2E: dev stack up (identity, api, vite 5173), then `cd tests/e2e && npx playwright test` (installed Chrome, 1366×768 + 375×812,
+  checks no horizontal scrolling). Wait for the request you trigger (`waitForResponse`), not for a toast that may be an old one.
 - Long fuzz: `BM_FUZZ_SECONDS=240 BM_FUZZ_ITERATIONS=100000000 dotnet test tests/BlueMail.FuzzTests`; replay saved inputs, then a red test.

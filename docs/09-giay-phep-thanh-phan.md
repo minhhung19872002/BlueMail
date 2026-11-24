@@ -104,6 +104,7 @@ Mọi gói NuGet/npm và image chạy thật phải có trong bảng này trư�
 | typescript | 5.9.3 | Apache-2.0 | Build |
 | vite | 8.3.8 | MIT | Build |
 | vitest | 5.1.1 | MIT | Kiểm thử |
+| @playwright/test | 1.65.1 | Apache-2.0 | Kiểm thử đầu-cuối (`tests/e2e`, chỉ khi phát triển; dùng Chrome cài sẵn) |
 
 ## Cảnh báo bảo mật đã đánh giá
 

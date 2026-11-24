@@ -317,3 +317,4 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 .bm-task-done .bm-task-title { text-decoration: line-through; color: var(--bm-textMuted); }
 
 .bm-mailbox-switch { padding: 0 16px 8px; }
+.bm-tasks-views { max-inline-size: 100%; overflow-x: auto; }

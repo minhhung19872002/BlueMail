@@ -1,0 +1,13 @@
+{
+  "name": "bluemail-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "End-to-end tests of the web against the running dev stack (PROMPT 11): 1366x768 and 375x812, no horizontal scrolling.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  }
+}

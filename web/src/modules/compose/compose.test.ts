@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidAddress, parseRecipients, scheduleSuggestions, sendWarnings, toEditorHtml, toStoredHtml, uploadIdsIn, zonedToUtc } from "./compose";
+import { asGuid, isValidAddress, parseRecipients, scheduleSuggestions, sendWarnings, toEditorHtml, toStoredHtml, uploadIdsIn, zonedToUtc } from "./compose";
 
 describe("addresses", () => {
   it("accepts international addresses (RFC 6531) and rejects broken ones", () => {
@@ -65,5 +65,13 @@ describe("inline images", () => {
     expect(stored).toContain(`src="cid:${id}@upload"`);
     expect(uploadIdsIn(stored)).toEqual([id]);
     expect(toEditorHtml(stored, () => "blob:http://x/2")).toContain('src="blob:http://x/2"');
+  });
+});
+
+describe("upload ids", () => {
+  it("are sent to the API as hyphenated Guids", () => {
+    expect(asGuid("34f9852705564b2eb290db88a71c499b")).toBe("34f98527-0556-4b2e-b290-db88a71c499b");
+    expect(asGuid("34F98527-0556-4B2E-B290-DB88A71C499B")).toBe("34f98527-0556-4b2e-b290-db88a71c499b");
+    expect(asGuid("not-an-id")).toBe("not-an-id");
   });
 });

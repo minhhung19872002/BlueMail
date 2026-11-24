@@ -14,7 +14,7 @@ import { useMe, useUserFormat } from "../../session";
 import { useUi } from "../../store/ui";
 import { mailKeys } from "../mail/mailApi";
 import { confidentialDays } from "../mail/confidentialApi";
-import { scheduleSuggestions, sendWarnings, toEditorHtml, toStoredHtml, uploadIdsIn, type Recipient, type SendWarning } from "./compose";
+import { asGuid, scheduleSuggestions, sendWarnings, toEditorHtml, toStoredHtml, uploadIdsIn, type Recipient, type SendWarning } from "./compose";
 import { composeApi, emptyDraft, type DraftAttachment, type DraftState } from "./composeApi";
 import { MailEditor } from "./LazyMailEditor";
 import { RecipientField } from "./RecipientField";
@@ -149,7 +149,7 @@ export function ComposeWindow({ w }: { w: ComposeWindowState }) {
           setUploading((u) => u.filter((x) => x.key !== key));
           const url = URL.createObjectURL(file);
           previews.current.set(id, url);
-          setState((s) => s ? { ...s, attachments: [...s.attachments, { kind: "upload", uploadId: id, messageId: null, partPath: null, fileName: file.name, contentType: file.type, size: file.size, inline: true }] } : s);
+          setState((s) => s ? { ...s, attachments: [...s.attachments, { kind: "upload", uploadId: asGuid(id), messageId: null, partPath: null, fileName: file.name, contentType: file.type, size: file.size, inline: true }] } : s);
           dirty.current = true;
           resolve({ id, url });
         },
@@ -170,7 +170,7 @@ export function ComposeWindow({ w }: { w: ComposeWindowState }) {
         progress: (sent, total) => setUploading((u) => u.map((x) => (x.key === key ? { ...x, sent, total } : x))),
         done: (id) => {
           setUploading((u) => u.filter((x) => x.key !== key));
-          patch({ attachments: [...(stateRef.current?.attachments ?? []), { kind: "upload", uploadId: id, messageId: null, partPath: null, fileName: file.name, contentType: file.type || "application/octet-stream", size: file.size, inline: false }] });
+          patch({ attachments: [...(stateRef.current?.attachments ?? []), { kind: "upload", uploadId: asGuid(id), messageId: null, partPath: null, fileName: file.name, contentType: file.type || "application/octet-stream", size: file.size, inline: false }] });
         },
         error: () => {
           setUploading((u) => u.filter((x) => x.key !== key));

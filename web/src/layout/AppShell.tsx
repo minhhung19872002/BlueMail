@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Alert, App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
+import { Alert, App, Avatar, Button, Dropdown, FloatButton, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
   BulbOutlined, CalendarOutlined, CheckSquareOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
   MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined, StarOutlined, StarFilled, MailOutlined,
@@ -360,7 +360,12 @@ export function AppShell() {
             <Outlet />
           </div>
         </Content>
-        <CalendarReminders />
+        {narrow && location.pathname.startsWith("/mail") && (
+        // Phones: the folder pane (with its Compose button) is closed, so Compose floats like in Outlook mobile.
+        <FloatButton type="primary" icon={<EditOutlined />} aria-label={t("compose.compose")} tooltip={t("compose.compose")}
+          className="bm-compose-fab" onClick={() => openCompose({})} />
+      )}
+      <CalendarReminders />
       <ComposeDock />
         <ShortcutHost enabled={settings?.keyboardShortcuts ?? false} />
       </Layout>

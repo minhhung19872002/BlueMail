@@ -160,3 +160,12 @@ export function toEditorHtml(html: string, urlFor: (uploadId: string) => string 
   });
   return doc.body.innerHTML;
 }
+
+/**
+ * An upload id as the API's JSON expects a Guid (8-4-4-4-12). The tus URL carries it without hyphens, and so do the
+ * cid: references in the stored HTML; System.Text.Json refuses that form (BUG-083).
+ */
+export function asGuid(id: string): string {
+  const hex = id.replace(/-/g, "").toLowerCase();
+  return /^[0-9a-f]{32}$/.test(hex) ? `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}` : id;
+}

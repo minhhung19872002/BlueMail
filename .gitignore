@@ -21,3 +21,6 @@ tests/interop/out/
 
 # scripts/backup.sh output (contains mail data)
 backups/
+
+# Playwright e2e output
+tests/e2e/out/
