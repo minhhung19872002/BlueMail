@@ -11,7 +11,7 @@ import { adminApi, download, type Report } from "./adminApi";
 
 const kinds: string[] = ["MAIL_BY_DAY", "SPAM_RATE", "STORAGE_BY_USER", "USERS_WITHOUT_2FA"];
 // Which column a report charts (the first column is the category axis). Reports without one show only the table.
-const chartColumn: Record<string, string> = { MAIL_BY_DAY: "received", SPAM_RATE: "spam_percent", STORAGE_BY_USER: "used_mb" };
+const chartColumn: Record<string, string> = { MAIL_BY_DAY: "received", SPAM_RATE: "spam_percent", STORAGE_BY_USER: "used_mb", DMARC_REPORTS: "messages", TLS_REPORTS: "failed" };
 
 /** Reports (PROMPT 7.5): table + chart, XLSX export, PDF through the browser's print dialog (docs/00 D19). */
 export function ReportsAdmin() {

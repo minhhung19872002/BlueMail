@@ -217,7 +217,7 @@ web `npx vitest run`. Kiểm thật qua SMTP: `docker compose … up -d --build 
 | P7-12 | Chống vòng, chính sách | Thư đã có dấu của hộp thư; quản trị cấm chuyển ra ngoài | Không chuyển tiếp lại; chuyển tiếp ra ngoài dừng, thêm địa chỉ ngoài bị 403 | Như mong đợi | ✅ |
 | P7-13 | SRS ngược | Bounce tới địa chỉ SRS; người gửi thường; địa chỉ giả; chuyển tiếp tới địa chỉ không tồn tại | Bounce chuyển về người gửi gốc; 550 cho người gửi thường và hash sai; DSN của Outbound về người gửi gốc | Như mong đợi sau BUG-039 | ✅ |
 
-Chưa làm trong Phase 7 (đúng phase sau): gợi ý khi gõ ở ô tìm kiếm (danh bạ ở Phase 8), "chỉ trả lời danh bạ" dùng
+Chưa làm trong Phase 7 (đúng phase sau): ~~gợi ý khi gõ ở ô tìm kiếm (danh bạ ở Phase 8)~~ — đã làm 2026-11-24 (tìm gần đây, nhãn, người liên hệ; không dấu; `search.test.ts`, thử ở 375 px), "chỉ trả lời danh bạ" dùng
 danh bạ thật (Phase 8), giao diện quản trị chính sách chuyển tiếp (Phase 9 — API đã có).
 
 ## Phase 8 — sắp xếp, danh bạ, cài đặt, phím tắt
@@ -356,3 +356,5 @@ bằng `cleanup.sql`); đo qua HTTP thật: `tests/perf/api_latency.py` (hoặc 
 | P13-10 | Sao lưu / phục hồi thử thật | `backup.sh`, `down -v`, `restore.sh` | docs/03 mục 4: 16 s sao lưu, 49 s phục hồi, nội dung IMAP trùng SHA-256 | ✅ |
 | P13-11 | Fuzz dài | Bộ fuzz đột biến 4 phút/đích × 8 đích (SMTP, IMAP, MIME, tiêu đề, DNS kể cả DNSSEC, DKIM, bộ quét, văn bản), 2 lượt hạt giống khác nhau | Lượt 1 (4 phút/đích): 3 lỗi (BUG-066/067/068); lượt 2 (4 phút/đích, hạt giống khác): 1 lỗi (BUG-073); tất cả đã sửa, có phép thử hồi quy; lượt 3 (3 phút/đích, hạt giống 20261125): **không lỗi**. libFuzzer (SharpFuzz) cho chạy nhiều giờ vẫn cần container Linux (Program.cs) | ✅ |
 | P13-12 | Dữ liệu mẫu chặn thư rác | Thư "trúng thưởng" mẫu | Trước: 2,3 điểm (vào Hộp thư đến); thêm luật `ADVANCE_FEE`: vào Thư rác; bộ thư mẫu: bắt nhầm 0/495 | ✅ |
+| P13-13 | Gợi ý khi gõ ở ô tìm kiếm (PROMPT 6.7) | Gõ "test" trên bản chạy ở VM | Gợi ý người liên hệ, nhãn, tìm gần đây; không dấu | Hiện "BlueMail Test <test@bm.bluestar.com.vn>"; chọn → `from:test@bm.bluestar.com.vn`; ô trống hiện lần tìm gần đây; ảnh chụp 375 px không tràn; `search.test.ts` 4 ca | ✅ |
+| P13-14 | Báo cáo DMARC/TLS-RPT nhận về (PROMPT 7.6) | Gửi báo cáo DMARC (gzip) qua SMTP tới `dmarc-reports@bluemail.test` ở MX dev; test tích hợp với báo cáo TLS-RPT | Lưu theo tổ chức sở hữu tên miền, một lần, không cất làm thư; hiện ở Báo cáo | MX trả 250 "Report received", lưu 1 báo cáo 7 thư DKIM pass; gửi lại không trùng; tên miền lạ bị bỏ; quản trị tổ chức khác không thấy; XXE và bom nén bị chặn (`AggregateReportParserTests` 6 ca) | ✅ |

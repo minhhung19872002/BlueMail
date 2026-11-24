@@ -32,6 +32,11 @@ builder.Services.AddSingleton(new MxOptions
     FeedbackAddress = Environment.GetEnvironmentVariable("BM_FEEDBACK_ADDRESS") is { Length: > 0 } fbl
         ? fbl
         : "fbl@" + settings.MailHostname[(settings.MailHostname.IndexOf('.') + 1)..],
+    ReportAddresses = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "dmarc-reports@" + settings.MailHostname[(settings.MailHostname.IndexOf('.') + 1)..],
+        "tls-reports@" + settings.MailHostname[(settings.MailHostname.IndexOf('.') + 1)..],
+    },
 });
 builder.Services.AddSingleton(new MxListenerOptions
 {

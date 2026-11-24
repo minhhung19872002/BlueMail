@@ -123,3 +123,43 @@ public class ConfidentialRecipient : TenantEntity
     public DateTimeOffset? FirstOpenedAt { get; set; }
     public int Opens { get; set; }
 }
+
+public enum AggregateReportKind { Dmarc, TlsRpt }
+
+/// <summary>
+/// An aggregate report another mail system sent about one of our domains (PROMPT 7.6): DMARC (RFC 7489 appendix C,
+/// to the rua dmarc-reports@platform) or SMTP TLS (RFC 8460, to tls-reports@platform). One row per report; a report
+/// delivered twice is kept once (organisation + report id + domain).
+/// </summary>
+public class AggregateReport : ITenantOwned
+{
+    public long Id { get; set; }
+    public Guid TenantId { get; set; }
+    public AggregateReportKind Kind { get; set; }
+    public string Domain { get; set; } = "";
+    public string OrgName { get; set; } = "";
+    public string ReportId { get; set; } = "";
+    public DateTimeOffset BeginAt { get; set; }
+    public DateTimeOffset EndAt { get; set; }
+    public DateTimeOffset ReceivedAt { get; set; }
+}
+
+/// <summary>
+/// One line of a report. DMARC: messages from <see cref="Source"/> (an IP) with the given disposition and the
+/// DMARC-aligned DKIM/SPF results. TLS-RPT: <see cref="Source"/> is the policy type (sts, tlsa, no-policy-found),
+/// <see cref="Count"/> the successful sessions and <see cref="Failed"/> the failed ones.
+/// </summary>
+public class AggregateReportRow : ITenantOwned
+{
+    public long Id { get; set; }
+    public Guid TenantId { get; set; }
+    public long ReportId { get; set; }
+    public string Source { get; set; } = "";
+    public long Count { get; set; }
+    public long Failed { get; set; }
+    public string? Disposition { get; set; }
+    public bool? DkimPass { get; set; }
+    public bool? SpfPass { get; set; }
+    public string? HeaderFrom { get; set; }
+    public string? Detail { get; set; }
+}

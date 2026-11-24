@@ -83,6 +83,7 @@ public static class ApplicationServices
         services.AddSingleton(new Features.Sending.AbuseOptions());
         services.AddScoped<Features.Sending.SenderReputation>();
         services.AddScoped<Features.Sending.FeedbackProcessor>();
+        services.AddScoped<Features.Sending.AggregateReportProcessor>();
         services.AddScoped<Features.Sending.ConfidentialService>();
         services.AddScoped<Features.Rules.SystemMail>();
         services.AddScoped<Features.Rules.MailboxRules>();

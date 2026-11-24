@@ -1089,7 +1089,9 @@
         "MAIL_BY_DAY": "Thư theo ngày",
         "SPAM_RATE": "Tỉ lệ thư rác",
         "STORAGE_BY_USER": "Dung lượng theo người dùng",
-        "USERS_WITHOUT_2FA": "Người dùng chưa bật xác minh hai bước"
+        "USERS_WITHOUT_2FA": "Người dùng chưa bật xác minh hai bước",
+        "DMARC_REPORTS": "Báo cáo DMARC nhận về",
+        "TLS_REPORTS": "Báo cáo TLS nhận về"
       },
       "col": {
         "day": "Ngày",
@@ -1107,7 +1109,18 @@
         "used_percent": "% đã dùng",
         "name": "Họ tên",
         "admin": "Quản trị",
-        "last_login": "Đăng nhập gần nhất"
+        "last_login": "Đăng nhập gần nhất",
+        "domain": "Tên miền",
+        "reporter": "Bên báo cáo",
+        "source_ip": "IP gửi",
+        "messages": "Số thư",
+        "dkim": "DKIM",
+        "spf": "SPF",
+        "disposition": "Chính sách đã áp",
+        "policy": "Chính sách",
+        "successful": "Phiên thành công",
+        "failed": "Phiên lỗi",
+        "failures": "Loại lỗi"
       }
     },
     "tenants": {

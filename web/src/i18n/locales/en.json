@@ -1089,7 +1089,9 @@
         "MAIL_BY_DAY": "Mail by day",
         "SPAM_RATE": "Spam rate",
         "STORAGE_BY_USER": "Storage by user",
-        "USERS_WITHOUT_2FA": "Users without two-step verification"
+        "USERS_WITHOUT_2FA": "Users without two-step verification",
+        "DMARC_REPORTS": "DMARC reports received",
+        "TLS_REPORTS": "TLS reports received"
       },
       "col": {
         "day": "Day",
@@ -1107,7 +1109,18 @@
         "used_percent": "Used %",
         "name": "Name",
         "admin": "Admin",
-        "last_login": "Last sign-in"
+        "last_login": "Last sign-in",
+        "domain": "Domain",
+        "reporter": "Reported by",
+        "source_ip": "Sending IP",
+        "messages": "Messages",
+        "dkim": "DKIM",
+        "spf": "SPF",
+        "disposition": "Applied policy",
+        "policy": "Policy",
+        "successful": "Successful sessions",
+        "failed": "Failed sessions",
+        "failures": "Failure types"
       }
     },
     "tenants": {

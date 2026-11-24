@@ -2,6 +2,7 @@ using System.Globalization;
 using BlueMail.Application.Common;
 using BlueMail.Domain.Admin;
 using BlueMail.Domain.Identity;
+using BlueMail.Domain.Mail;
 using BlueMail.Infrastructure.Localization;
 using BlueMail.Infrastructure.Persistence;
 using MediatR;
@@ -22,7 +23,7 @@ public sealed class ReportHandler(BlueMailDbContext db) : IRequestHandler<Report
 {
     public const int Limit = 50_000;
     public const double SpamScore = 5.0;
-    public static readonly string[] Kinds = ["MAIL_BY_DAY", "SPAM_RATE", "STORAGE_BY_USER", "USERS_WITHOUT_2FA"];
+    public static readonly string[] Kinds = ["MAIL_BY_DAY", "SPAM_RATE", "STORAGE_BY_USER", "USERS_WITHOUT_2FA", "DMARC_REPORTS", "TLS_REPORTS"];
 
     public async Task<ReportDto> Handle(ReportQuery q, CancellationToken ct)
     {
@@ -88,10 +89,40 @@ public sealed class ReportHandler(BlueMailDbContext db) : IRequestHandler<Report
                     rows.Select(r => (IReadOnlyList<object?>)[r.PrimaryEmail, r.DisplayName, r.IsTenantAdmin ? "yes" : "no", r.LastLoginAt]).ToList());
             }
 
+            case "DMARC_REPORTS":
+            {
+                // Aggregate reports received about our domains (PROMPT 7.6): who sent mail as the domain, and whether it passed.
+                var rows = await (from r in db.AggregateReports.AsNoTracking()
+                                  join x in db.AggregateReportRows.AsNoTracking() on r.Id equals x.ReportId
+                                  where r.Kind == AggregateReportKind.Dmarc && r.BeginAt >= @from && r.BeginAt < to
+                                  group x by new { Day = r.BeginAt.Date, r.Domain, r.OrgName, x.Source, x.Disposition, x.DkimPass, x.SpfPass } into g
+                                  orderby g.Key.Day, g.Key.Domain, g.Key.OrgName, g.Key.Source
+                                  select new { g.Key.Day, g.Key.Domain, g.Key.OrgName, g.Key.Source, Messages = g.Sum(x => x.Count), g.Key.DkimPass, g.Key.SpfPass, g.Key.Disposition })
+                    .Take(Limit + 1).ToListAsync(ct);
+                return Build(q.Kind, from, to, ["day", "domain", "reporter", "source_ip", "messages", "dkim", "spf", "disposition"],
+                    rows.Select(r => (IReadOnlyList<object?>)[r.Day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), r.Domain, r.OrgName, r.Source, r.Messages,
+                        PassFail(r.DkimPass), PassFail(r.SpfPass), r.Disposition]).ToList());
+            }
+
+            case "TLS_REPORTS":
+            {
+                var rows = await (from r in db.AggregateReports.AsNoTracking()
+                                  join x in db.AggregateReportRows.AsNoTracking() on r.Id equals x.ReportId
+                                  where r.Kind == AggregateReportKind.TlsRpt && r.BeginAt >= @from && r.BeginAt < to
+                                  orderby r.BeginAt, r.Domain, r.OrgName
+                                  select new { r.BeginAt, r.Domain, r.OrgName, x.Source, x.Count, x.Failed, x.Detail })
+                    .Take(Limit + 1).ToListAsync(ct);
+                return Build(q.Kind, from, to, ["day", "domain", "reporter", "policy", "successful", "failed", "failures"],
+                    rows.Select(r => (IReadOnlyList<object?>)[r.BeginAt.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), r.Domain, r.OrgName, r.Source,
+                        r.Count, r.Failed, r.Detail]).ToList());
+            }
+
             default:
                 throw AppException.BadRequest("invalid_option");
         }
     }
+
+    private static string? PassFail(bool? pass) => pass switch { true => "pass", false => "fail", null => null };
 
     private static ReportDto Build(string kind, DateTimeOffset from, DateTimeOffset to, IReadOnlyList<string> columns, List<IReadOnlyList<object?>> rows) =>
         new(kind, from, to, columns, rows.Take(Limit).ToList(), rows.Count > Limit, Limit);

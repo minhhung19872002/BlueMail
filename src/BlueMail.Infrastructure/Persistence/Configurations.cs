@@ -564,6 +564,36 @@ internal sealed class FeedbackEventConfig : IEntityTypeConfiguration<FeedbackEve
     }
 }
 
+internal sealed class AggregateReportConfig : IEntityTypeConfiguration<AggregateReport>
+{
+    public void Configure(EntityTypeBuilder<AggregateReport> b)
+    {
+        b.ToTable("aggregate_reports", "mta");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.Kind).HasMaxLength(20);
+        b.Property(x => x.Domain).HasMaxLength(253);
+        b.Property(x => x.OrgName).HasMaxLength(255);
+        b.Property(x => x.ReportId).HasMaxLength(255);
+        b.HasIndex(x => new { x.Kind, x.OrgName, x.ReportId, x.Domain }).IsUnique();
+        b.HasIndex(x => new { x.TenantId, x.Kind, x.BeginAt });
+    }
+}
+
+internal sealed class AggregateReportRowConfig : IEntityTypeConfiguration<AggregateReportRow>
+{
+    public void Configure(EntityTypeBuilder<AggregateReportRow> b)
+    {
+        b.ToTable("aggregate_report_rows", "mta");
+        b.Property(x => x.Id).UseIdentityAlwaysColumn();
+        b.Property(x => x.Source).HasMaxLength(64);
+        b.Property(x => x.Disposition).HasMaxLength(20);
+        b.Property(x => x.HeaderFrom).HasMaxLength(253);
+        b.Property(x => x.Detail).HasMaxLength(1000);
+        b.HasOne<AggregateReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(x => x.ReportId);
+    }
+}
+
 internal sealed class TlsResultConfig : IEntityTypeConfiguration<TlsResult>
 {
     public void Configure(EntityTypeBuilder<TlsResult> b)

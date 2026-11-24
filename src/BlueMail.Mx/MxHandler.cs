@@ -23,7 +23,7 @@ public sealed record MxOptions
 {
     public required string Hostname { get; init; }
 
-    /// <summary>authserv-id of Authentication-Results; headers with this id coming from outside are removed (RFC 8601 5).</summary>
+    /// <summary>authserv-id of Authentication-Results; headers with this id coming from outside are not trusted (RFC 8601 5; see OnMessageAsync).</summary>
     public string AuthServId => Hostname;
 
     public long MaxMessageBytes { get; init; } = 50L * 1024 * 1024;
@@ -31,6 +31,12 @@ public sealed record MxOptions
 
     /// <summary>Address registered with mailbox providers' feedback loops (ARF complaints, RFC 6449); env BM_FEEDBACK_ADDRESS.</summary>
     public string? FeedbackAddress { get; init; }
+
+    /// <summary>
+    /// Addresses the DNS records ask other systems to send aggregate reports to (DMARC rua dmarc-reports@platform,
+    /// TLS-RPT tls-reports@platform; DomainRecordPlanner). Their mail is read into reports, not stored as mail.
+    /// </summary>
+    public IReadOnlySet<string> ReportAddresses { get; init; } = new HashSet<string>();
 }
 
 /// <summary>
@@ -53,6 +59,7 @@ public sealed class MxHandler(
 
     /// <summary>Late bounces / complaints: VERP return paths (-> queued message) and the feedback-loop address (null).</summary>
     private readonly Dictionary<string, Guid?> _feedback = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _reports = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Per-recipient size limit from the tenant policy (checked again on the real size after DATA).</summary>
     private readonly Dictionary<string, long> _maxBytes = new(StringComparer.OrdinalIgnoreCase);
@@ -90,6 +97,7 @@ public sealed class MxHandler(
         _recipients.Clear();
         _srsBounces.Clear();
         _feedback.Clear();
+        _reports.Clear();
         _maxBytes.Clear();
         _moderated.Clear();
         var spf = new SpfEvaluator(new DnsClientSpfDns(dns));
@@ -106,6 +114,12 @@ public sealed class MxHandler(
     public async ValueTask<SmtpReply?> OnRecipientAsync(SmtpEnvelope session, SmtpPath recipient, CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
+        if (options.ReportAddresses.Contains(recipient.Address))
+        {
+            _reports.Add(recipient.Address);
+            return null;
+        }
+
         if (options.FeedbackAddress is { } fbl && recipient.Address.Equals(fbl, StringComparison.OrdinalIgnoreCase))
         {
             _feedback[recipient.Address] = null;
@@ -237,13 +251,24 @@ public sealed class MxHandler(
             {
                 await processor.HandleAsync(report, queued, ct);
             }
+        }
 
-            if (session.Recipients.All(rc => _feedback.ContainsKey(rc.Address)))
-            {
-                var reportAccepted = new SmtpReply(250, "2.0.0", "Report received");
-                await LogAllAsync(scope, session, null, message.Length, MailLogStatus.Delivered, reportAccepted, null, new { feedback = _feedback.Count }, ct);
-                return reportAccepted;
-            }
+        if (_reports.Count > 0)
+        {
+            // DMARC and TLS aggregate reports about our domains (PROMPT 7.6): read into admin reports, not stored as mail.
+            message.Position = 0;
+            var reportBytes = new byte[message.Length];
+            await message.ReadExactlyAsync(reportBytes, ct);
+            var reportsStored = await scope.ServiceProvider.GetRequiredService<Application.Features.Sending.AggregateReportProcessor>().HandleAsync(reportBytes, ct);
+            log.LogInformation("Aggregate report message from {From}: {Stored} report(s) stored", session.From?.Address, reportsStored);
+        }
+
+        if (_feedback.Count + _reports.Count > 0 && session.Recipients.All(rc => _feedback.ContainsKey(rc.Address) || _reports.Contains(rc.Address)))
+        {
+            var reportAccepted = new SmtpReply(250, "2.0.0", "Report received");
+            await LogAllAsync(scope, session, null, message.Length, MailLogStatus.Delivered, reportAccepted, null,
+                new { feedback = _feedback.Count, reports = _reports.Count }, ct);
+            return reportAccepted;
         }
 
         var keys = new DnsDkimKeyResolver(dns);

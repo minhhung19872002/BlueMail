@@ -67,6 +67,8 @@ public class BlueMailDbContext(DbContextOptions<BlueMailDbContext> options, ITen
     public DbSet<SendingIpDay> SendingIpDays => Set<SendingIpDay>();
     public DbSet<FeedbackEvent> FeedbackEvents => Set<FeedbackEvent>();
     public DbSet<TlsResult> TlsResults => Set<TlsResult>();
+    public DbSet<AggregateReport> AggregateReports => Set<AggregateReport>();
+    public DbSet<AggregateReportRow> AggregateReportRows => Set<AggregateReportRow>();
     public DbSet<ConfidentialMessage> ConfidentialMessages => Set<ConfidentialMessage>();
     public DbSet<ConfidentialRecipient> ConfidentialRecipients => Set<ConfidentialRecipient>();
     public DbSet<SpamSettings> SpamSettings => Set<SpamSettings>();

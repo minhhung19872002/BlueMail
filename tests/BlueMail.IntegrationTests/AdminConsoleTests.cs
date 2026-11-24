@@ -275,6 +275,74 @@ public class AdminConsoleTests(StackFixture stack)
     }
 
     [Fact]
+    public async Task Dmarc_and_tls_reports_received_are_stored_once_for_the_owner_and_shown_in_reports()
+    {
+        // PROMPT 7.6: "tổng hợp báo cáo DMARC và TLS-RPT nhận về". Reports arrive at MX for dmarc-reports@ / tls-reports@.
+        var id = Guid.NewGuid().ToString("N");
+        var begin = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds();
+        static byte[] Gz(string s)
+        {
+            using var ms = new MemoryStream();
+            using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionLevel.Fastest, leaveOpen: true))
+            {
+                gz.Write(System.Text.Encoding.UTF8.GetBytes(s));
+            }
+
+            return ms.ToArray();
+        }
+
+        static byte[] Mail(string type, byte[] payload) => System.Text.Encoding.ASCII.GetBytes(
+            "From: reports@reporter.test\r\nTo: dmarc-reports@bluemail.test\r\nSubject: report\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=\"b\"\r\n\r\n" +
+            $"--b\r\nContent-Type: text/plain\r\n\r\ncover\r\n--b\r\nContent-Type: {type}; name=\"r.gz\"\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
+            Convert.ToBase64String(payload, Base64FormattingOptions.InsertLineBreaks) + "\r\n--b--\r\n");
+
+        string Dmarc(string domain) =>
+            $"<feedback><report_metadata><org_name>reporter.test</org_name><report_id>{id}</report_id><date_range><begin>{begin}</begin><end>{begin + 86399}</end></date_range></report_metadata>" +
+            $"<policy_published><domain>{domain}</domain><p>none</p></policy_published>" +
+            "<record><row><source_ip>198.51.100.7</source_ip><count>4</count><policy_evaluated><disposition>none</disposition><dkim>pass</dkim><spf>fail</spf></policy_evaluated></row>" +
+            "<identifiers><header_from>bluemail.test</header_from></identifiers></record></feedback>";
+
+        var tls = "{\"organization-name\":\"reporter.test\",\"report-id\":\"" + id + "\",\"date-range\":{\"start-datetime\":\"" +
+                  DateTimeOffset.FromUnixTimeSeconds(begin).ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture) + "\",\"end-datetime\":\"" +
+                  DateTimeOffset.FromUnixTimeSeconds(begin + 86399).ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture) + "\"}," +
+                  "\"policies\":[{\"policy\":{\"policy-type\":\"sts\",\"policy-domain\":\"bluemail.test\"},\"summary\":{\"total-successful-session-count\":90,\"total-failure-session-count\":2}," +
+                  "\"failure-details\":[{\"result-type\":\"certificate-expired\",\"failed-session-count\":2}]}]}";
+
+        async Task<int> Handle(byte[] raw)
+        {
+            await using var scope = stack.ApiScope();
+            return await scope.ServiceProvider.GetRequiredService<Application.Features.Sending.AggregateReportProcessor>().HandleAsync(raw, default);
+        }
+
+        (await Handle(Mail("application/gzip", Gz(Dmarc("bluemail.test"))))).Should().Be(1);
+        (await Handle(Mail("application/gzip", Gz(Dmarc("bluemail.test"))))).Should().Be(0, "the same report delivered again is kept once");
+        (await Handle(Mail("application/gzip", Gz(Dmarc("nobody-owns-this.example"))))).Should().Be(0, "reports about domains nobody here owns are dropped");
+        (await Handle(Mail("application/tlsrpt+gzip", Gz(tls)))).Should().Be(1);
+
+        var lanTenant = await Db(db => db.Users.IgnoreQueryFilters().Where(u => u.PrimaryEmail == "lan@bluemail.test").Select(u => u.TenantId).SingleAsync());
+        (await Db(db => db.AggregateReports.IgnoreQueryFilters().Where(r => r.ReportId == id).Select(r => r.TenantId).ToListAsync()))
+            .Should().HaveCount(2).And.OnlyContain(t => t == lanTenant);
+
+        using var admin = await Client("lan@bluemail.test");
+        var dmarc = await Data(await admin.GetAsync("/api/v1/admin/reports/dmarc_reports"));
+        var cols = dmarc.GetProperty("columns").EnumerateArray().Select(c => c.GetString()).ToList();
+        var row = dmarc.GetProperty("rows").EnumerateArray().Single(r => r[cols.IndexOf("source_ip")].GetString() == "198.51.100.7");
+        row[cols.IndexOf("messages")].GetInt64().Should().Be(4);
+        row[cols.IndexOf("dkim")].GetString().Should().Be("pass");
+        row[cols.IndexOf("spf")].GetString().Should().Be("fail");
+
+        var tlsReport = await Data(await admin.GetAsync("/api/v1/admin/reports/tls_reports"));
+        var tcols = tlsReport.GetProperty("columns").EnumerateArray().Select(c => c.GetString()).ToList();
+        tlsReport.GetProperty("rows").EnumerateArray().Should().Contain(r => r[tcols.IndexOf("failures")].GetString() == "certificate-expired:2"
+                                                                             && r[tcols.IndexOf("successful")].GetInt64() == 90);
+
+        // Another organisation's administrator does not see them.
+        using var other = await Client("olivia@acme.test");
+        var theirs = await Data(await other.GetAsync("/api/v1/admin/reports/dmarc_reports"));
+        theirs.GetProperty("rows").EnumerateArray().Should().NotContain(r => r[cols.IndexOf("source_ip")].GetString() == "198.51.100.7");
+    }
+
+    [Fact]
     public async Task Platform_admin_manages_tenants_and_support_sign_in_is_audited_and_announced()
     {
         // Another test turns on two-step verification for the platform administrator; this one signs in with the password only.

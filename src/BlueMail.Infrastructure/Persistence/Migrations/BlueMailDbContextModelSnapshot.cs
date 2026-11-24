@@ -1733,6 +1733,131 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.ToTable("user_aliases", "identity");
                 });
 
+            modelBuilder.Entity("BlueMail.Domain.Mail.AggregateReport", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("BeginAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("begin_at");
+
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("domain");
+
+                    b.Property<DateTimeOffset>("EndAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("OrgName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("org_name");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("ReportId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("report_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_aggregate_reports");
+
+                    b.HasIndex("TenantId", "Kind", "BeginAt")
+                        .HasDatabaseName("ix_aggregate_reports_tenant_id_kind_begin_at");
+
+                    b.HasIndex("Kind", "OrgName", "ReportId", "Domain")
+                        .IsUnique()
+                        .HasDatabaseName("ix_aggregate_reports_kind_org_name_report_id_domain");
+
+                    b.ToTable("aggregate_reports", "mta");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.AggregateReportRow", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("Count")
+                        .HasColumnType("bigint")
+                        .HasColumnName("count");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("detail");
+
+                    b.Property<string>("Disposition")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("disposition");
+
+                    b.Property<bool?>("DkimPass")
+                        .HasColumnType("boolean")
+                        .HasColumnName("dkim_pass");
+
+                    b.Property<long>("Failed")
+                        .HasColumnType("bigint")
+                        .HasColumnName("failed");
+
+                    b.Property<string>("HeaderFrom")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("header_from");
+
+                    b.Property<long>("ReportId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("report_id");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("source");
+
+                    b.Property<bool?>("SpfPass")
+                        .HasColumnType("boolean")
+                        .HasColumnName("spf_pass");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_aggregate_report_rows");
+
+                    b.HasIndex("ReportId")
+                        .HasDatabaseName("ix_aggregate_report_rows_report_id");
+
+                    b.ToTable("aggregate_report_rows", "mta");
+                });
+
             modelBuilder.Entity("BlueMail.Domain.Mail.Attachment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5961,6 +6086,16 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_aliases_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("BlueMail.Domain.Mail.AggregateReportRow", b =>
+                {
+                    b.HasOne("BlueMail.Domain.Mail.AggregateReport", null)
+                        .WithMany()
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_aggregate_report_rows_aggregate_reports_report_id");
                 });
 
             modelBuilder.Entity("BlueMail.Domain.Mail.ConfidentialRecipient", b =>
