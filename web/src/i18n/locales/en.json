@@ -229,6 +229,25 @@
       "menu": "Clean up conversation",
       "none": "Nothing to clean up: no message is quoted in full by a later one.",
       "done": "{count, plural, one {# redundant message} other {# redundant messages}} moved to Trash."
+    },
+    "sort": {
+      "label": "Sort: {order}",
+      "tooBig": "This list is too large to sort that way; it is shown newest first.",
+      "date": {
+        "desc": "Date (newest on top)"
+      },
+      "from": {
+        "asc": "From (A to Z)",
+        "desc": "From (Z to A)"
+      },
+      "subject": {
+        "asc": "Subject (A to Z)",
+        "desc": "Subject (Z to A)"
+      },
+      "size": {
+        "desc": "Size (largest on top)",
+        "asc": "Size (smallest on top)"
+      }
     }
   },
   "sessions": {

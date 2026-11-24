@@ -36,7 +36,7 @@ answer `404` (indistinguishable from "does not exist").
 | GET | `/api/v1/me` | self | Profile, effective locale/time zone, permissions, tenant branding |
 | GET | `/api/v1/mail/labels?mailboxId=` | self (via `IMailStore.OpenAsync`) | Labels with total/unread counts computed from rows; used/quota bytes |
 | POST / PUT / DELETE | `/api/v1/mail/labels[/{id}]?mailboxId=` | self | Create (`{ name, parentId?, colorBg?, colorText? }`), rename/recolour, delete a user label (messages keep their other labels) |
-| GET | `/api/v1/mail/conversations?mailboxId=&labelId=&view=all&threads=true&unreadOnly=&cursor=&limit=` | self | Cursor page of conversations (key: latest message time + id); `total` exact; `view=all` = everything except Spam/Trash |
+| GET | `/api/v1/mail/conversations?mailboxId=&labelId=&view=all&threads=true&unreadOnly=&cursor=&limit=&sort=date\|from\|subject\|size&asc=` | self | Cursor page of conversations (key: latest message time + id); `total` exact; `view=all` = everything except Spam/Trash; other sorts only for lists of ≤ 10,000 matching messages (`sort` in the answer says which order was used) |
 | GET | `/api/v1/mail/threads/{id}` | self | Messages of a conversation with attachments (signed `downloadUrl`/`viewUrl`; none for infected files) and signed `rawUrl` |
 | GET | `/api/v1/mail/messages/{id}/body?showImages=` | self | `htmlDocument` (HtmlSanitizer + CSP document for an iframe sandbox), `text`, remote-image state, `zipUrl` |
 | GET | `/api/v1/mail/messages/{id}/original` | self | Raw headers (first 512 KB) + stored SPF/DKIM/DMARC/ARC results |

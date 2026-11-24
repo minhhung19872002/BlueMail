@@ -1,4 +1,5 @@
 import { api } from "../../api/client";
+import type { ListSort } from "../../api/types";
 import type { ConversationPage, MailChanges, MessageBody, Original, Thread } from "../../api/types";
 
 // Calls of the mail reading API (docs/05-api.md). Query keys live here so invalidation stays consistent.
@@ -14,10 +15,13 @@ export const mailKeys = {
 export interface ListScope {
   labelId: string | null; // null = All Mail
   q?: string; // Gmail-style search query (PROMPT 6.7)
+  /** Outlook "Sort by"; date (newest first) when absent. */
+  sort?: ListSort;
+  asc?: boolean;
 }
 
 export function scopeKey(s: ListScope): string {
-  return (s.labelId ?? "all") + (s.q ? "?" + s.q : "");
+  return (s.labelId ?? "all") + (s.q ? "?" + s.q : "") + (s.sort && s.sort !== "date" ? `#${s.sort}${s.asc ? "+" : "-"}` : "");
 }
 
 export function listConversations(scope: ListScope, cursor: string | null, limit = 50, threads = true): Promise<ConversationPage> {
@@ -26,6 +30,10 @@ export function listConversations(scope: ListScope, cursor: string | null, limit
   if (scope.labelId) q.set("labelId", scope.labelId);
   else q.set("view", "all");
   if (scope.q) q.set("q", scope.q);
+  if (scope.sort && scope.sort !== "date") {
+    q.set("sort", scope.sort);
+    if (scope.asc) q.set("asc", "true");
+  }
   if (cursor) q.set("cursor", cursor);
   return api.get<ConversationPage>(`/api/v1/mail/conversations?${q.toString()}`);
 }

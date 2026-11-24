@@ -1,5 +1,6 @@
 import { useParams, useSearchParams } from "react-router-dom";
 import { Grid, Segmented, Spin, Typography } from "antd";
+import type { ListSort } from "../../api/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api } from "../../api/client";
@@ -37,6 +38,10 @@ export function MailboxPage() {
   // Quick filter above the list (Outlook "All / Unread"), kept in the URL like the open conversation.
   const filter = (search.get("f") ?? "all") as "all" | "unread" | "starred" | "attachments";
   const filterQuery = { all: "", unread: "is:unread", starred: "is:starred", attachments: "has:attachment" }[filter] ?? "";
+  // Sort by (Outlook), kept in the URL: s=from-asc, s=size-desc…
+  const [sortName, sortDir] = (search.get("s") ?? "date-desc").split("-");
+  const sort = (["date", "from", "subject", "size"].includes(sortName ?? "") ? sortName : "date") as ListSort;
+  const asc = sortDir === "asc";
   const view = labelId ? undefined : systemViews.find((v) => v.route === (query ? "all" : label));
   const userLabel = labelId ? all.find((l) => l.id === labelId) : undefined;
   const systemLabel = view?.systemKey ? all.find((l) => l.systemKey === view.systemKey) : undefined;
@@ -61,9 +66,10 @@ export function MailboxPage() {
   const inboxTabs = view?.systemKey === "INBOX" && !query && tabs.length > 1;
   const list = (
     <ConversationList
-      key={(scopeLabelId ?? "all") + query + (inboxTabs ? tab : "") + filter}
+      key={(scopeLabelId ?? "all") + query + (inboxTabs ? tab : "") + filter + sort + asc}
       scope={{ labelId: view?.route === "all" ? null : scopeLabelId,
-        q: [query || (inboxTabs ? `category:${tab.toLowerCase()}` : ""), filterQuery].filter(Boolean).join(" ") || undefined }}
+        q: [query || (inboxTabs ? `category:${tab.toLowerCase()}` : ""), filterQuery].filter(Boolean).join(" ") || undefined, sort, asc }}
+      onSort={(s, a) => setSearch((p) => { if (s === "date" && !a) p.delete("s"); else p.set("s", `${s}-${a ? "asc" : "desc"}`); p.delete("t"); return p; })}
       systemKey={view?.systemKey ?? null}
       labels={all}
       title={title}

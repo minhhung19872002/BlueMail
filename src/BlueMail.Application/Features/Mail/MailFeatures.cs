@@ -29,7 +29,7 @@ public sealed class MailboxOpener(IMailStore store, ICurrentUser me)
 // ---------- list ----------
 
 public sealed record ListConversationsQuery(Guid? MailboxId, Guid? LabelId, string? View, bool UnreadOnly, bool Threads, string? Cursor, int Limit,
-    string? Q = null) : IRequest<ConversationPage>;
+    string? Q = null, string Sort = ConversationSort.Date, bool Ascending = false) : IRequest<ConversationPage>;
 
 public sealed class ListConversationsValidator : AbstractValidator<ListConversationsQuery>
 {
@@ -39,6 +39,7 @@ public sealed class ListConversationsValidator : AbstractValidator<ListConversat
         RuleFor(x => x.View).Must(v => v is null or "label" or "all").WithErrorCode("invalid_view");
         RuleFor(x => x.LabelId).NotNull().When(x => x.View is null or "label");
         RuleFor(x => x.Cursor).MaximumLength(200);
+        RuleFor(x => x.Sort).Must(ConversationSort.All.Contains).WithErrorCode("invalid_sort");
         RuleFor(x => x.Q).MaximumLength(MailStore.Search.SearchParser.MaxLength).WithErrorCode(ValidationCodes.TooLong);
     }
 }
@@ -58,7 +59,7 @@ public sealed class ListConversationsHandler(MailboxOpener opener, PgMailStore s
             me = owner.Addresses;
         }
 
-        return await store.ListConversationsAsync(access, new ConversationQuery(view, q.LabelId, q.UnreadOnly, q.Threads, q.Cursor, q.Limit, search, me), ct);
+        return await store.ListConversationsAsync(access, new ConversationQuery(view, q.LabelId, q.UnreadOnly, q.Threads, q.Cursor, q.Limit, search, me, q.Sort, q.Ascending), ct);
     }
 }
 

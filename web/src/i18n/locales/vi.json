@@ -229,6 +229,25 @@
       "menu": "Dọn dẹp hội thoại",
       "none": "Không có gì để dọn: không thư nào được trích nguyên văn trong thư sau.",
       "done": "Đã chuyển {count, number} thư thừa vào Thùng rác."
+    },
+    "sort": {
+      "label": "Sắp xếp: {order}",
+      "tooBig": "Danh sách quá lớn để sắp theo cách này; đang hiện mới nhất trước.",
+      "date": {
+        "desc": "Ngày (mới nhất trên cùng)"
+      },
+      "from": {
+        "asc": "Người gửi (A đến Z)",
+        "desc": "Người gửi (Z đến A)"
+      },
+      "subject": {
+        "asc": "Tiêu đề (A đến Z)",
+        "desc": "Tiêu đề (Z đến A)"
+      },
+      "size": {
+        "desc": "Kích thước (lớn nhất trên cùng)",
+        "asc": "Kích thước (nhỏ nhất trên cùng)"
+      }
     }
   },
   "sessions": {

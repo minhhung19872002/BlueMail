@@ -331,3 +331,5 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 }
 
 .bm-break-all { word-break: break-all; }
+
+.bm-sort-note { font-size: 12px; }

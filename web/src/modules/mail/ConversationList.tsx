@@ -16,6 +16,7 @@ import { useShortcuts } from "./ShortcutHost";
 import { inverse } from "./shortcuts";
 import { useSettings } from "../settings/settingsApi";
 import { avatarColor, dateGroup, initials, senderParts, type DateGroup } from "./mailView";
+import type { ListSort } from "../../api/types";
 
 export const dragType = "application/x-bluemail-threads";
 
@@ -28,10 +29,12 @@ interface Props {
   onOpen: (threadId: string, latestMessageId: string) => void;
   /** Narrow list beside the reading pane: each conversation as a three-line card (Outlook). */
   cards?: boolean;
+  /** Changes the list order (Outlook "Sort by"); the menu is hidden without it. */
+  onSort?: (sort: ListSort, asc: boolean) => void;
 }
 
 /** Conversation list (PROMPT 6.2): cursor pages, selection, bulk and hover actions, drag to a label. */
-export function ConversationList({ scope, systemKey, labels, title, openThreadId, onOpen, cards = false }: Props) {
+export function ConversationList({ scope, systemKey, labels, title, openThreadId, onOpen, cards = false, onSort }: Props) {
   const { t } = useTranslation();
   const { message } = App.useApp();
   const me = useMe();
@@ -170,6 +173,17 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
       <Tooltip title={t("mail.refresh")}>
         <Button type="text" icon={<ReloadOutlined />} aria-label={t("mail.refresh")} onClick={() => void page.refetch()} />
       </Tooltip>
+      {onSort && (
+        <Dropdown trigger={["click"]} menu={{
+          selectable: true,
+          selectedKeys: [`${scope.sort ?? "date"}:${scope.asc ? "asc" : "desc"}`],
+          items: ([["date", false], ["from", true], ["from", false], ["subject", true], ["subject", false], ["size", false], ["size", true]] as [ListSort, boolean][])
+            .map(([s, a]) => ({ key: `${s}:${a ? "asc" : "desc"}`, label: t(`mail.sort.${s}.${a ? "asc" : "desc"}`) })),
+          onClick: ({ key }) => { const [s, a] = key.split(":"); onSort(s as ListSort, a === "asc"); },
+        }}>
+          <Button type="text" size="small">{t("mail.sort.label", { order: t(`mail.sort.${scope.sort ?? "date"}.${scope.asc ? "asc" : "desc"}`) })}</Button>
+        </Dropdown>
+      )}
       {selected.size > 0 && (
         <Space size={0} wrap>
           {!inTrash && !inSpam && systemKey === "INBOX" && (
@@ -201,6 +215,7 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
         </Space>
       )}
       <span className="bm-header-spacer" />
+      {page.data && (scope.sort ?? "date") !== page.data.sort && <Typography.Text type="secondary" className="bm-sort-note">{t("mail.sort.tooBig")}</Typography.Text>}
       {page.data && page.data.total > 0 && (
         <Typography.Text type="secondary" className="bm-range">
           {page.data.totalExact
@@ -243,7 +258,9 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
         <ul className={cards ? "bm-conv-list bm-cards" : "bm-conv-list"} aria-label={title}>
           {items.map((c, i) => {
             // Date headings, as Outlook groups the list "By date" (snoozed mail is ordered by wake-up time: no headings).
-            const group: DateGroup | null = systemKey === "SNOOZED" ? null : dateGroup(new Date(c.lastMessageAt), now, fmt.timeZone, me.weekStart ?? 1);
+            // Date headings only make sense when the list is by date.
+            const byDate = (page.data?.sort ?? "date") === "date";
+            const group: DateGroup | null = systemKey === "SNOOZED" || !byDate ? null : dateGroup(new Date(c.lastMessageAt), now, fmt.timeZone, me.weekStart ?? 1);
             const prev = i > 0 && systemKey !== "SNOOZED" ? dateGroup(new Date(items[i - 1]!.lastMessageAt), now, fmt.timeZone, me.weekStart ?? 1) : null;
             return (
             <Fragment key={c.threadId}>

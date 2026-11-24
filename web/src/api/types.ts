@@ -129,7 +129,11 @@ export interface ConversationPage {
   total: number;
   /** False for very large lists: total is then a lower bound ("1–50 of many"). */
   totalExact: boolean;
+  /** The order applied: very large lists stay by date even when another order was asked for. */
+  sort: ListSort;
 }
+
+export type ListSort = "date" | "from" | "subject" | "size";
 
 export interface Address {
   name: string | null;

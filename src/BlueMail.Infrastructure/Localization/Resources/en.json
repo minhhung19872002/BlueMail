@@ -291,5 +291,6 @@
   "error.cannot_share_with_self": "This is your own calendar.",
   "error.too_many_shares": "A calendar can be shared with at most 50 people.",
   "error.invalid_permission": "Choose view, edit or stop sharing.",
-  "error.invalid_detail": "Choose times only or full details."
+  "error.invalid_detail": "Choose times only or full details.",
+  "error.invalid_sort": "Unknown sort order."
 }

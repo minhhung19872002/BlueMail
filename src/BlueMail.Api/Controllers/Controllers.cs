@@ -77,8 +77,8 @@ public sealed class MailController(ISender mediator) : ControllerBase
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.MailStore.ConversationPage>> Conversations([FromQuery] Guid? mailboxId, [FromQuery] Guid? labelId, [FromQuery] string? view,
         [FromQuery] bool unreadOnly = false, [FromQuery] bool threads = true, [FromQuery] string? cursor = null, [FromQuery] int limit = 50, [FromQuery] string? q = null,
-        CancellationToken ct = default) =>
-        ApiResponses.Ok(await mediator.Send(new ListConversationsQuery(mailboxId, labelId, view, unreadOnly, threads, cursor, limit, q), ct));
+        [FromQuery] string sort = "date", [FromQuery] bool asc = false, CancellationToken ct = default) =>
+        ApiResponses.Ok(await mediator.Send(new ListConversationsQuery(mailboxId, labelId, view, unreadOnly, threads, cursor, limit, q, sort, asc), ct));
 
     [HttpGet("threads/{id:guid}")]
     [SelfGuarded(Guarded)]

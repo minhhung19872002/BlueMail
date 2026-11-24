@@ -405,6 +405,9 @@ bằng cách duyệt thư mới nhất trước theo chỉ mục `(tenant, mailb
 thư mới nhất của hội thoại cuối trang (thời gian, id theo thứ tự uuid của PostgreSQL) — cả hai đường dùng chung nghĩa,
 phép thử `ConversationPagingTests` buộc chúng cho cùng kết quả. Chỉ mục bao phủ hẹp `ix_messages_list_cover` và trigram
 đúng biểu thức tìm `subject:`/`from:` (migration `MessageListCoverIndex`).
+Sắp xếp theo người gửi / tiêu đề / kích thước (Outlook "Sort by") chỉ dùng đường gom trong bộ nhớ: cùng một lần đọc lấy thêm
+`from_name/from_addr`, `normalized_subject`, `size`, sắp các hội thoại rồi chia trang bằng con trỏ vị trí `o:<n>`. Danh sách vượt
+`CountCap` vẫn theo ngày; `ConversationPage.Sort` cho web biết thứ tự đã dùng để báo người dùng.
 
 ## D31. Tiến trình `worker`, kích thước pool kết nối
 

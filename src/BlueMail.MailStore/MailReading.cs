@@ -24,7 +24,19 @@ public sealed record ConversationQuery(
     string? Cursor = null,
     int Limit = 50,
     Search.SearchNode? Search = null,
-    IReadOnlyList<string>? MyAddresses = null);
+    IReadOnlyList<string>? MyAddresses = null,
+    string Sort = ConversationSort.Date,
+    bool Ascending = false);
+
+/// <summary>
+/// List orders (Outlook "Sort by"). Date is the keyset-paged default; the others sort conversations in memory and so
+/// only apply to lists the store can hold exactly (at most CountCap messages); bigger lists stay by date (docs/00 D30).
+/// </summary>
+public static class ConversationSort
+{
+    public const string Date = "date", From = "from", Subject = "subject", Size = "size";
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.Ordinal) { Date, From, Subject, Size };
+}
 
 public sealed record Participant(string? Name, string Address, bool Unread);
 
@@ -45,7 +57,7 @@ public sealed record ConversationSummary(
     bool Muted);
 
 /// <summary>A page of a list. <see cref="Total"/> is exact when <see cref="TotalExact"/>, otherwise a lower bound.</summary>
-public sealed record ConversationPage(IReadOnlyList<ConversationSummary> Items, string? NextCursor, long Total, bool TotalExact = true);
+public sealed record ConversationPage(IReadOnlyList<ConversationSummary> Items, string? NextCursor, long Total, bool TotalExact = true, string Sort = ConversationSort.Date);
 
 public sealed record AddressDto(string? Name, string Address);
 
@@ -139,6 +151,9 @@ public sealed partial class PgMailStore
         // CountCap" and the page comes from walking messages newest first (PROMPT 8.2; counting or grouping every
         // conversation of a huge label on each view, or walking 1M messages for a rare phrase, is what was slow).
         var hits = new List<(Guid Id, Guid Key, DateTimeOffset At, bool Seen)>();
+        var sort = ConversationSort.All.Contains(q.Sort) ? q.Sort : ConversationSort.Date;
+        var byOther = sort != ConversationSort.Date;
+        var extra = new Dictionary<Guid, (string From, string Subject, long Size)>();
 
         // A big label without a query: its (cached, exact) message count already says "more than CountCap", so the
         // read below would only be thrown away.
@@ -146,21 +161,35 @@ public sealed partial class PgMailStore
                        && (await LabelCountsAsync(access, ct)).TryGetValue(lid, out var lc) && lc.Total > CountCap;
         if (!knownBig)
         {
-            await using var cmd = new NpgsqlCommand($"SELECT m.id, {key}, m.received_at, m.seen FROM mail.messages m WHERE {where} LIMIT {CountCap + 1}", c);
+            var columns = byOther ? ", lower(coalesce(nullif(m.from_name, ''), m.from_addr, '')), lower(coalesce(m.normalized_subject, '')), m.size" : "";
+            await using var cmd = new NpgsqlCommand($"SELECT m.id, {key}, m.received_at, m.seen{columns} FROM mail.messages m WHERE {where} LIMIT {CountCap + 1}", c);
             Bind(cmd);
             await using var rd = await cmd.ExecuteReaderAsync(ct);
             while (await rd.ReadAsync(ct))
             {
                 hits.Add((rd.GetGuid(0), rd.GetGuid(1), rd.GetFieldValue<DateTimeOffset>(2), rd.GetBoolean(3)));
+                if (byOther)
+                {
+                    extra[rd.GetGuid(0)] = (rd.GetString(4), rd.GetString(5), rd.GetInt64(6));
+                }
             }
         }
 
         var exact = !knownBig && hits.Count <= CountCap;
         long total = CountCap;
+        if (!exact)
+        {
+            sort = ConversationSort.Date; // too big to sort in memory: newest first, the caller is told
+        }
+
+        // Other orders page by position ("o:<offset>"); date keeps its keyset cursor.
+        var offsetPaging = sort != ConversationSort.Date;
+        var offset = offsetPaging && q.Cursor is { } oc && oc.StartsWith("o:", StringComparison.Ordinal)
+                     && int.TryParse(oc.AsSpan(2), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var o) ? o : 0;
 
         // Page order: conversations by their newest message (time, then id in PostgreSQL's uuid order). The cursor is
         // that newest message of the last conversation shown; a conversation with a match at or above it was shown.
-        var (cursorAt, cursorId) = DecodeCursor(q.Cursor);
+        var (cursorAt, cursorId) = offsetPaging || (q.Cursor?.StartsWith("o:", StringComparison.Ordinal) ?? false) ? default : DecodeCursor(q.Cursor);
         var page = new List<(Guid Key, DateTimeOffset Last, int Count, int Unread, DateTimeOffset FirstAt, Guid FirstId)>();
         var met = new HashSet<Guid>();
         var (afterAt, afterId) = (cursorAt, cursorId);
@@ -177,11 +206,31 @@ public sealed partial class PgMailStore
                 .Where(x => !q.UnreadOnly || x.Unread > 0)
                 .ToList();
             total = groups.Count;
+            if (offsetPaging)
+            {
+                var sizes = sort == ConversationSort.Size ? hits.GroupBy(h => h.Key).ToDictionary(g => g.Key, g => g.Sum(h => extra[h.Id].Size)) : null;
+                // Sort key of a conversation: its newest message's sender or subject, or the size of all its matches.
+                IComparable Key((Guid Key, DateTimeOffset Last, Guid TopId, int Count, int Unread) g) => sort switch
+                {
+                    ConversationSort.From => extra[g.TopId].From,
+                    ConversationSort.Subject => extra[g.TopId].Subject,
+                    _ => sizes![g.Key],
+                };
+                var keyed = groups.Select(g => (g, k: Key(g))).ToList();
+                var sorted = q.Ascending
+                    ? keyed.OrderBy(x => x.k)
+                    : keyed.OrderByDescending(x => x.k);
+                page.AddRange(sorted.ThenByDescending(x => x.g.Last).ThenByDescending(x => x.g.TopId, UuidOrder.Instance)
+                    .Skip(offset).Take(limit + 1).Select(x => (x.g.Key, x.g.Last, x.g.Count, x.g.Unread, x.g.Last, x.g.TopId)));
+            }
+            else
+            {
             page.AddRange(groups
                 .Where(x => cursorAt is not { } cAt || x.Last < cAt || (x.Last == cAt && UuidOrder.Instance.Compare(x.TopId, cursorId) < 0))
                 .OrderByDescending(x => x.Last).ThenByDescending(x => x.TopId, UuidOrder.Instance)
                 .Take(limit + 1)
                 .Select(x => (x.Key, x.Last, x.Count, x.Unread, x.Last, x.TopId)));
+            }
         }
 
         while (page.Count <= limit && !exhausted)
@@ -253,13 +302,15 @@ public sealed partial class PgMailStore
         if (page.Count > limit)
         {
             page.RemoveRange(limit, page.Count - limit);
-            next = EncodeCursor(page[^1].FirstAt, page[^1].FirstId);
+            next = offsetPaging
+                ? "o:" + (offset + limit).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : EncodeCursor(page[^1].FirstAt, page[^1].FirstId);
         }
 
         var items = await SummariesAsync(access, page.Select(p => p.Key).ToArray(), q, ct);
         var ordered = page.Select(p => items.TryGetValue(p.Key, out var s) ? s with { MessageCount = p.Count, UnreadCount = p.Unread, LastMessageAt = p.Last } : null)
             .Where(s => s is not null).Select(s => s!).ToList();
-        return new ConversationPage(ordered, next, total, exact);
+        return new ConversationPage(ordered, next, total, exact, sort);
     }
 
     /// <summary>Above this many matching messages a list reports "more than" instead of counting (PROMPT 8.2).</summary>
