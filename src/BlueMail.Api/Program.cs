@@ -54,6 +54,12 @@ if (runJobs)
     builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Rules.FilterJobWorker>());
 }
 
+builder.Services.AddSingleton<BlueMail.Application.Features.Mail.BulkMailJobWorker>();
+if (runJobs)
+{
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Features.Mail.BulkMailJobWorker>());
+}
+
 builder.Services.AddSingleton<BlueMail.Application.Features.Mail.MailMaintenanceWorker>();
 if (runJobs)
 {

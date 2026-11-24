@@ -155,7 +155,14 @@
     "blockSenderBody": "Thư sau này từ người gửi này sẽ vào Thư rác.",
     "blocked": "Đã chặn {address}.",
     "unsubscribe": "Hủy đăng ký",
-    "unsubscribed": "Đã hủy đăng ký."
+    "unsubscribed": "Đã hủy đăng ký.",
+    "bulk": {
+      "running": "Đang xử lý hội thoại: {done, number}/{total, number}…",
+      "done": "Đã xử lý {count, number} hội thoại.",
+      "failed": "Tác vụ dừng sau {done, number}/{total, number} hội thoại.",
+      "allSelected": "Đã chọn tất cả {count, number} hội thoại trong danh sách này.",
+      "selectFirst": "Chọn {max, number} hội thoại đầu tiên trong danh sách này"
+    }
   },
   "sessions": {
     "title": "Bảo mật và thiết bị",

@@ -155,7 +155,14 @@
     "blockSenderBody": "Future messages from this sender will go to Spam.",
     "blocked": "{address} is blocked.",
     "unsubscribe": "Unsubscribe",
-    "unsubscribed": "You are unsubscribed."
+    "unsubscribed": "You are unsubscribed.",
+    "bulk": {
+      "running": "Changing conversations: {done, number} of {total, number}…",
+      "done": "{count, plural, one {# conversation changed.} other {# conversations changed.}}",
+      "failed": "The task stopped after {done, number} of {total, number} conversations.",
+      "allSelected": "All {count, number} conversations of this list are selected.",
+      "selectFirst": "Select the first {max, number} conversations of this list"
+    }
   },
   "sessions": {
     "title": "Security and devices",

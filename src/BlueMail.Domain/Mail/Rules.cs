@@ -36,6 +36,35 @@ public class FilterJob : ITenantOwned
     public DateTimeOffset? LockedUntil { get; set; }
 }
 
+/// <summary>
+/// A mail action on more conversations than one request may carry (PROMPT 6.3 "select all N", 8.3): the matching
+/// conversations of a list or search are taken when the job starts and changed in batches in the background.
+/// </summary>
+public class BulkMailJob : ITenantOwned
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid UserId { get; set; }
+    public Guid MailboxId { get; set; }
+    public string Action { get; set; } = "";
+    public Guid? LabelId { get; set; }
+    public Guid? FromLabelId { get; set; }
+    public DateTimeOffset? SnoozeUntil { get; set; }
+
+    /// <summary>The list the selection came from: a label (null = All Mail) and an optional search.</summary>
+    public Guid? ScopeLabelId { get; set; }
+
+    public string? Query { get; set; }
+    public FilterJobStatus Status { get; set; }
+    public int Total { get; set; }
+    public int Done { get; set; }
+    public string? Error { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? FinishedAt { get; set; }
+    public DateTimeOffset? LockedUntil { get; set; }
+}
+
 /// <summary>Blocked sender: an address or a whole domain ("@domain" or "domain"). Later mail goes to Spam.</summary>
 public class BlockedSender : TenantEntity
 {

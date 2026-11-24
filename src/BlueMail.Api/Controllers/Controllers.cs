@@ -122,6 +122,20 @@ public sealed class MailController(ISender mediator) : ControllerBase
         ApiResponses.Ok(await mediator.Send(new MailActionCommand(mailboxId, body.Action, body.ThreadIds ?? [], body.MessageIds ?? [], body.LabelId, body.FromLabelId,
             body.SnoozeUntil), ct));
 
+    public sealed record BulkJobBody(string Action, Guid? LabelId, Guid? FromLabelId, DateTimeOffset? SnoozeUntil, Guid? ScopeLabelId, string? Query);
+
+    /// <summary>An action on every conversation of a list or search, run in the background (PROMPT 8.3).</summary>
+    [HttpPost("bulk-jobs")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Mail.BulkJobDto>> StartBulkJob([FromQuery] Guid? mailboxId, [FromBody] BulkJobBody body, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.StartBulkJobCommand(mailboxId, body.Action, body.LabelId, body.FromLabelId, body.SnoozeUntil,
+            body.ScopeLabelId, body.Query), ct));
+
+    [HttpGet("bulk-jobs/{id:guid}")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Mail.BulkJobDto>> BulkJob(Guid id, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.GetBulkJobQuery(id), ct));
+
     [HttpGet("changes")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.MailStore.MailChanges>> Changes([FromQuery] Guid? mailboxId, [FromQuery] long sinceModseq, CancellationToken ct) =>

@@ -68,8 +68,24 @@ export interface ActionRequest {
   snoozeUntil?: string;
 }
 
-/** Server limit per request; larger selections are refused (background bulk jobs: PROMPT 8.3). */
+/** Server limit per request; "select all" beyond it runs as a background bulk job (PROMPT 8.3). */
 export const maxSelection = 500;
+
+/** Most conversations one bulk job changes (BulkMailJobWorker.MaxThreads). */
+export const maxBulk = 50_000;
+
+export interface BulkJob {
+  id: string;
+  status: "QUEUED" | "RUNNING" | "DONE" | "FAILED";
+  total: number;
+  done: number;
+  error: string | null;
+}
+
+export const startBulkJob = (r: { action: MailAction; labelId?: string; fromLabelId?: string; snoozeUntil?: string; scopeLabelId: string | null; query?: string }) =>
+  api.post<BulkJob>("/api/v1/mail/bulk-jobs", r);
+
+export const getBulkJob = (id: string) => api.get<BulkJob>(`/api/v1/mail/bulk-jobs/${id}`);
 
 export const act = (r: ActionRequest) => api.post<{ messages: number; modseq: number }>("/api/v1/mail/actions", r);
 

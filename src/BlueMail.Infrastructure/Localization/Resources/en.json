@@ -247,5 +247,6 @@
   "import.error.malicious": "Dangerous content: not imported",
   "import.error.import_failed": "Error while importing",
   "error.app_password_limit": "You already have the maximum of 20 app passwords.",
-  "error.app_password_not_found": "The app password was not found."
+  "error.app_password_not_found": "The app password was not found.",
+  "error.too_many_jobs": "You already have several large tasks running. Wait until one finishes."
 }

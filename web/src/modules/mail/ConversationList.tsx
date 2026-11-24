@@ -10,7 +10,7 @@ import type { ConversationSummary, LabelSummary } from "../../api/types";
 import { ApiError } from "../../api/client";
 import { dateTime, listTime } from "../../format";
 import { useMe, useUserFormat } from "../../session";
-import { act, getSnoozed, listConversations, mailKeys, maxSelection, scopeKey, type ListScope, type MailAction } from "./mailApi";
+import { act, getBulkJob, getSnoozed, listConversations, mailKeys, maxBulk, maxSelection, scopeKey, startBulkJob, type ListScope, type MailAction } from "./mailApi";
 import { SnoozeMenu } from "./SnoozeMenu";
 import { useShortcuts } from "./ShortcutHost";
 import { inverse } from "./shortcuts";
@@ -36,7 +36,13 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
   const fmt = useUserFormat();
   const qc = useQueryClient();
   const [cursors, setCursors] = useState<(string | null)[]>([null]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelectedRaw] = useState<Set<string>>(new Set());
+  // "All N conversations of this list" beyond one request's limit: the action becomes a background job (PROMPT 8.3).
+  const [allMatching, setAllMatching] = useState(false);
+  const setSelected = (v: Set<string> | ((s: Set<string>) => Set<string>)) => {
+    setAllMatching(false);
+    setSelectedRaw(v);
+  };
   const cursor = cursors[cursors.length - 1] ?? null;
   const key = scopeKey(scope);
 
@@ -56,7 +62,29 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
   const snoozed = useQuery({ queryKey: ["snoozed"], queryFn: getSnoozed, enabled: systemKey === "SNOOZED" });
   const snoozedUntil = useMemo(() => new Map((snoozed.data ?? []).map((s) => [s.threadId, s.untilAt])), [snoozed.data]);
 
+  const runBulk = async (action: MailAction, labelId?: string, snoozeUntil?: Date) => {
+    const key = "bm-bulk";
+    try {
+      let job = await startBulkJob({ action, labelId, fromLabelId: action === "moveTo" ? scope.labelId ?? undefined : undefined,
+        snoozeUntil: snoozeUntil?.toISOString(), scopeLabelId: scope.labelId, query: scope.q });
+      setSelected(new Set());
+      while (job.status === "QUEUED" || job.status === "RUNNING") {
+        void message.open({ key, type: "loading", content: t("mail.bulk.running", { done: job.done, total: job.total }), duration: 0 });
+        await new Promise((r) => window.setTimeout(r, 1500));
+        job = await getBulkJob(job.id);
+      }
+      if (job.status === "DONE") void message.open({ key, type: "success", content: t("mail.bulk.done", { count: job.done }) });
+      else void message.open({ key, type: "error", content: t("mail.bulk.failed", { done: job.done, total: job.total }) });
+    } catch (e) {
+      void message.open({ key, type: "error", content: e instanceof ApiError && e.title ? e.title : t("errors.actionFailed") });
+    }
+    await qc.invalidateQueries({ queryKey: mailKeys.lists });
+    await qc.invalidateQueries({ queryKey: mailKeys.labels });
+    if (action === "snooze" || action === "unsnooze") await qc.invalidateQueries({ queryKey: ["snoozed"] });
+  };
+
   const run = async (action: MailAction, threadIds: string[], labelId?: string, snoozeUntil?: Date) => {
+    if (allMatching) return runBulk(action, labelId, snoozeUntil);
     if (threadIds.length === 0) return;
     if (threadIds.length > maxSelection) {
       message.warning(t("mail.selectionTooLarge", { max: maxSelection }));
@@ -197,9 +225,13 @@ export function ConversationList({ scope, systemKey, labels, title, openThreadId
       {allOnPage && page.data && page.data.total > items.length && (
         <div className="bm-select-all" role="status">
           {t("mail.allOnPageSelected", { count: items.length })}{" "}
-          {page.data.total <= maxSelection
-            ? <Button type="link" onClick={() => void selectAllMatching(scope, page.data!.total, setSelected)}>{t("mail.selectAllMatching", { count: page.data.total })}</Button>
-            : <Typography.Text type="secondary">{t("mail.selectionTooLarge", { max: maxSelection })}</Typography.Text>}
+          {allMatching
+            ? <Typography.Text strong>{t("mail.bulk.allSelected", { count: Math.min(page.data.total, maxBulk) })}</Typography.Text>
+            : page.data.total <= maxSelection
+              ? <Button type="link" onClick={() => void selectAllMatching(scope, page.data!.total, setSelected)}>{t("mail.selectAllMatching", { count: page.data.total })}</Button>
+              : <Button type="link" onClick={() => setAllMatching(true)}>
+                  {page.data.total > maxBulk ? t("mail.bulk.selectFirst", { max: maxBulk }) : t("mail.selectAllMatching", { count: page.data.total })}
+                </Button>}
         </div>
       )}
       {items.length === 0 ? (

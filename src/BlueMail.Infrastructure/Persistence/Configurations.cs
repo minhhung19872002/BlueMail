@@ -744,6 +744,19 @@ internal sealed class FilterJobConfig : IEntityTypeConfiguration<FilterJob>
     }
 }
 
+internal sealed class BulkMailJobConfig : IEntityTypeConfiguration<BulkMailJob>
+{
+    public void Configure(EntityTypeBuilder<BulkMailJob> b)
+    {
+        b.ToTable("bulk_jobs", "mail");
+        b.Property(x => x.Action).HasMaxLength(32);
+        b.Property(x => x.Query).HasMaxLength(2000);
+        b.Property(x => x.Error).HasMaxLength(1000);
+        b.HasIndex(x => new { x.Status, x.CreatedAt });
+        b.HasIndex(x => new { x.UserId, x.CreatedAt });
+    }
+}
+
 internal sealed class BlockedSenderConfig : IEntityTypeConfiguration<BlockedSender>
 {
     public void Configure(EntityTypeBuilder<BlockedSender> b)

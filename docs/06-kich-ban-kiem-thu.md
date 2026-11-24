@@ -143,7 +143,7 @@ Chạy: `dotnet test --filter "MailReadingApi|UnitTests.Mail"`; web `npx vitest 
 
 Chưa làm trong Phase 4 (đúng phase sau theo mục 13): trả lời/chuyển tiếp và phản hồi lời mời lịch (Phase 5); nút
 hủy đăng ký, tạm ẩn, biểu ngữ "người gửi lần đầu" (cần danh bạ), phím tắt (Phase 8); thao tác hàng loạt > 500 thư
-chạy nền (cần Hangfire, Phase 7/8 khi có việc nền đầu tiên) — hiện API giới hạn 500/lần và giao diện báo rõ.
+chạy nền (cần Hangfire, Phase 7/8 khi có việc nền đầu tiên) — hiện API giới hạn 500/lần và giao diện báo rõ. **Đã làm 2026-11-24:** việc nền `mail.bulk_jobs` (P13-15).
 
 ## Phase 5 — gửi thư (soạn, nháp, BlueMail.Outbound)
 
@@ -358,3 +358,4 @@ bằng `cleanup.sql`); đo qua HTTP thật: `tests/perf/api_latency.py` (hoặc 
 | P13-12 | Dữ liệu mẫu chặn thư rác | Thư "trúng thưởng" mẫu | Trước: 2,3 điểm (vào Hộp thư đến); thêm luật `ADVANCE_FEE`: vào Thư rác; bộ thư mẫu: bắt nhầm 0/495 | ✅ |
 | P13-13 | Gợi ý khi gõ ở ô tìm kiếm (PROMPT 6.7) | Gõ "test" trên bản chạy ở VM | Gợi ý người liên hệ, nhãn, tìm gần đây; không dấu | Hiện "BlueMail Test <test@bm.bluestar.com.vn>"; chọn → `from:test@bm.bluestar.com.vn`; ô trống hiện lần tìm gần đây; ảnh chụp 375 px không tràn; `search.test.ts` 4 ca | ✅ |
 | P13-14 | Báo cáo DMARC/TLS-RPT nhận về (PROMPT 7.6) | Gửi báo cáo DMARC (gzip) qua SMTP tới `dmarc-reports@bluemail.test` ở MX dev; test tích hợp với báo cáo TLS-RPT | Lưu theo tổ chức sở hữu tên miền, một lần, không cất làm thư; hiện ở Báo cáo | MX trả 250 "Report received", lưu 1 báo cáo 7 thư DKIM pass; gửi lại không trùng; tên miền lạ bị bỏ; quản trị tổ chức khác không thấy; XXE và bom nén bị chặn (`AggregateReportParserTests` 6 ca) | ✅ |
+| P13-15 | Thao tác hàng loạt > 500 hội thoại (PROMPT 6.3, 8.3) | "Chọn tất cả N" rồi gắn sao / đánh dấu đã đọc trên một tìm kiếm | Chạy nền theo lô 500, có tiến độ, có trần (50.000 hội thoại; 3 việc/người) | `RulesTests.Select_all_of_a_search…`: QUEUED → DONE 3/3, người khác không xem được việc (404), việc thứ 4 bị từ chối `too_many_jobs`; giao diện hiện "Đang xử lý x/y" (chưa thử tay trên hộp thư > 500 hội thoại: API dev đang dừng) | ✅ |

@@ -247,5 +247,6 @@
   "import.error.malicious": "Nội dung nguy hiểm: không nhập",
   "import.error.import_failed": "Lỗi khi nhập",
   "error.app_password_limit": "Bạn đã có tối đa 20 mật khẩu ứng dụng.",
-  "error.app_password_not_found": "Không tìm thấy mật khẩu ứng dụng."
+  "error.app_password_not_found": "Không tìm thấy mật khẩu ứng dụng.",
+  "error.too_many_jobs": "Bạn đang có vài tác vụ lớn đang chạy. Hãy đợi một tác vụ xong rồi thử lại."
 }

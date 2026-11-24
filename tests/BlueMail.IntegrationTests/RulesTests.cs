@@ -49,6 +49,52 @@ public partial class RulesTests(StackFixture stack)
 
     private async Task<HttpClient> Client(string email) => OidcLogin.ApiClient(stack, await OidcLogin.LoginAsync(stack, email, StackFixture.UserPassword));
 
+    [Fact]
+    public async Task Select_all_of_a_search_runs_as_a_background_job_with_progress()
+    {
+        // PROMPT 6.3 / 8.3: "select all N" beyond one request's limit becomes a bulk job over the list or search.
+        var tag = "bulk" + Guid.NewGuid().ToString("N")[..8];
+        var ids = new List<Guid>();
+        for (var i = 0; i < 3; i++)
+        {
+            ids.Add(await Receive("quang@bluemail.test", $"From: tin@partner.test\nTo: quang@bluemail.test\nSubject: {tag} {i}\nMessage-ID: <{tag}{i}@t>\n\nx\n"));
+        }
+
+        using var api = await Client("quang@bluemail.test");
+        var job = await Data(await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "star", scopeLabelId = (Guid?)null, query = $"subject:{tag}" }));
+        job.GetProperty("status").GetString().Should().Be("QUEUED");
+        var id = job.GetProperty("id").GetGuid();
+
+        using var other = await Client("minh@bluemail.test");
+        (await other.GetAsync($"/api/v1/mail/bulk-jobs/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound, "a job is visible to its owner only");
+
+        (await stack.Api.Services.GetRequiredService<Application.Features.Mail.BulkMailJobWorker>().RunOnceAsync(default)).Should().BeTrue();
+        var status = await Data(await api.GetAsync($"/api/v1/mail/bulk-jobs/{id}"));
+        status.GetProperty("status").GetString().Should().Be("DONE");
+        status.GetProperty("total").GetInt32().Should().Be(3);
+        status.GetProperty("done").GetInt32().Should().Be(3);
+        foreach (var m in ids)
+        {
+            (await Labels(m)).Should().Contain(SystemLabels.Starred);
+        }
+
+        // At most a few waiting jobs per user; an unknown action is refused before anything is queued.
+        (await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "explode", query = tag })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        for (var i = 0; i < Application.Features.Mail.StartBulkJobHandler.MaxActivePerUser; i++)
+        {
+            await Data(await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "markRead", query = $"subject:{tag}" }));
+        }
+
+        var refused = await api.PostAsJsonAsync("/api/v1/mail/bulk-jobs", new { action = "markRead", query = $"subject:{tag}" });
+        refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await refused.Content.ReadAsStringAsync()).Should().Contain("too_many_jobs");
+        while (await stack.Api.Services.GetRequiredService<Application.Features.Mail.BulkMailJobWorker>().RunOnceAsync(default))
+        {
+        }
+
+        (await Db(db => db.Messages.IgnoreQueryFilters().Where(m => ids.Contains(m.Id)).AllAsync(m => m.Seen))).Should().BeTrue();
+    }
+
     private static async Task<JsonElement> Data(HttpResponseMessage r)
     {
         var body = await r.Content.ReadAsStringAsync();
