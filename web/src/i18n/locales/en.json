@@ -1636,10 +1636,12 @@
       "title": "Title",
       "titleRequired": "Give the task a title.",
       "due": "Due date",
-      "notes": "Notes"
+      "notes": "Notes",
+      "category": "Category"
     },
     "addFromMail": "Add to To Do",
-    "addedFromMail": "Added to To Do."
+    "addedFromMail": "Added to To Do.",
+    "noCategory": "No category"
   },
   "quickSteps": {
     "title": "Quick Steps",

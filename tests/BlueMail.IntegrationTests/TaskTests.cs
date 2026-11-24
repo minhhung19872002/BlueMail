@@ -63,6 +63,11 @@ public class TaskTests(StackFixture stack)
         (await amara.DeleteAsync($"/api/v1/tasks/{due.GetProperty("id").GetGuid()}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await amara.PostAsJsonAsync("/api/v1/tasks", new { messageId = first.GetProperty("latestMessageId").GetGuid() })).StatusCode.Should().Be(HttpStatusCode.NotFound);
 
+        // Categorize (a colour of the calendar palette).
+        var coloured = await Data(await joao.PutAsJsonAsync($"/api/v1/tasks/{id}", new { title = "Call the bank " + tag, category = "green" }));
+        coloured.GetProperty("category").GetString().Should().Be("green");
+        (await joao.PutAsJsonAsync($"/api/v1/tasks/{id}", new { title = "x", category = "pink" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
         await Data(await joao.DeleteAsync($"/api/v1/tasks/{due.GetProperty("id").GetGuid()}"));
         (await Titles(joao, "my")).Should().NotContain("Send report " + tag);
     }

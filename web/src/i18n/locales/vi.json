@@ -1636,10 +1636,12 @@
       "title": "Tiêu đề",
       "titleRequired": "Hãy đặt tiêu đề cho việc.",
       "due": "Hạn",
-      "notes": "Ghi chú"
+      "notes": "Ghi chú",
+      "category": "Nhóm màu"
     },
     "addFromMail": "Thêm vào Việc cần làm",
-    "addedFromMail": "Đã thêm vào Việc cần làm."
+    "addedFromMail": "Đã thêm vào Việc cần làm.",
+    "noCategory": "Không nhóm"
   },
   "quickSteps": {
     "title": "Quick Steps",

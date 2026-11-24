@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { App, Button, Checkbox, DatePicker, Drawer, Empty, Form, Input, Segmented, Space, Spin, Tag, Tooltip, Typography } from "antd";
+import { App, Button, Checkbox, DatePicker, Drawer, Empty, Form, Input, Segmented, Select, Space, Spin, Tag, Tooltip, Typography } from "antd";
 import { CalendarOutlined, DeleteOutlined, MailOutlined, PlusOutlined, StarFilled, StarOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { ApiError } from "../../api/client";
 import { useUserFormat } from "../../session";
 import { dueState, inputOf, taskKeys, tasksApi, type TaskItem, type TaskView } from "./tasksApi";
 import { act, listConversations, mailKeys } from "../mail/mailApi";
+import { eventColors } from "../calendar/calendarView";
 
 /** To-dos like Outlook / Microsoft To Do: smart lists, quick add, important, due dates, tasks made from messages. */
 export function TasksPage() {
@@ -67,6 +68,7 @@ export function TasksPage() {
               <li key={task.id} className={"bm-task" + (task.completedAt ? " bm-task-done" : "")}>
                 <Checkbox checked={task.completedAt !== null} aria-label={t(task.completedAt ? "tasks.markOpen" : "tasks.markDone", { title: task.title })}
                   onChange={(e) => void change(task, { completed: e.target.checked })} />
+                {task.category && <span className="bm-cal-swatch" style={{ background: eventColors[task.category] }} aria-label={t(`calendar.colors.${task.category}`)} />}
                 <button type="button" className="bm-task-main" onClick={() => setOpen(task)}>
                   <span className="bm-task-title" dir="auto">{task.title}</span>
                   <span className="bm-task-meta">
@@ -100,10 +102,10 @@ export function TasksPage() {
 function TaskDrawer({ task, onClose, onSaved, onOpenMail }: { task: TaskItem; onClose: () => void; onSaved: () => void; onOpenMail: (threadId: string) => void }) {
   const { t } = useTranslation();
   const { message, modal } = App.useApp();
-  const [form] = Form.useForm<{ title: string; notes?: string; due: dayjs.Dayjs | null }>();
-  const save = async (v: { title: string; notes?: string; due: dayjs.Dayjs | null }) => {
+  const [form] = Form.useForm<{ title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null }>();
+  const save = async (v: { title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null }) => {
     try {
-      await tasksApi.update(task.id, inputOf(task, { title: v.title.trim(), notes: v.notes?.trim() || null, dueDate: v.due ? v.due.format("YYYY-MM-DD") : null }));
+      await tasksApi.update(task.id, inputOf(task, { title: v.title.trim(), notes: v.notes?.trim() || null, dueDate: v.due ? v.due.format("YYYY-MM-DD") : null, category: v.category ?? null }));
       onSaved();
     } catch (e) {
       message.error(e instanceof ApiError ? e.title : t("errors.actionFailed"));
@@ -121,11 +123,16 @@ function TaskDrawer({ task, onClose, onSaved, onOpenMail }: { task: TaskItem; on
       </Space>
     }>
       <Form form={form} layout="vertical" onFinish={(v) => void save(v)} requiredMark={false}
-        initialValues={{ title: task.title, notes: task.notes ?? undefined, due: task.dueDate ? dayjs(task.dueDate) : null }}>
+        initialValues={{ title: task.title, notes: task.notes ?? undefined, due: task.dueDate ? dayjs(task.dueDate) : null, category: task.category }}>
         <Form.Item name="title" label={t("tasks.fields.title")} rules={[{ required: true, whitespace: true, message: t("tasks.fields.titleRequired") }, { max: 500 }]}>
           <Input dir="auto" />
         </Form.Item>
         <Form.Item name="due" label={t("tasks.fields.due")}><DatePicker format="YYYY-MM-DD" /></Form.Item>
+        <Form.Item name="category" label={t("tasks.fields.category")}>
+          <Select allowClear placeholder={t("tasks.noCategory")} options={Object.entries(eventColors).map(([k, c]) => ({
+            value: k, label: <span><span className="bm-cal-swatch" style={{ background: c }} aria-hidden /> {t(`calendar.colors.${k}`)}</span>,
+          }))} />
+        </Form.Item>
         <Form.Item name="notes" label={t("tasks.fields.notes")}><Input.TextArea rows={6} maxLength={8000} dir="auto" /></Form.Item>
       </Form>
       {task.threadId && <Button icon={<MailOutlined />} onClick={() => onOpenMail(task.threadId!)}>{t("tasks.openMail")}</Button>}

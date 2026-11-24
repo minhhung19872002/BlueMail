@@ -10,8 +10,8 @@ describe("tasks", () => {
   });
 
   it("keeps every field when one changes", () => {
-    const t: TaskItem = { id: "1", title: "A", notes: "n", dueDate: "2026-12-01", important: true, completedAt: null, messageId: null, threadId: null, createdAt: "" };
-    expect(inputOf(t, { completed: true })).toEqual({ title: "A", notes: "n", dueDate: "2026-12-01", important: true, completed: true });
+    const t: TaskItem = { id: "1", title: "A", notes: "n", dueDate: "2026-12-01", important: true, completedAt: null, messageId: null, threadId: null, createdAt: "", category: "green" };
+    expect(inputOf(t, { completed: true })).toEqual({ title: "A", notes: "n", dueDate: "2026-12-01", important: true, completed: true, category: "green" });
   });
 });
 

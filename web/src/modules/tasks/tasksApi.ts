@@ -15,6 +15,8 @@ export interface TaskItem {
   messageId: string | null;
   threadId: string | null;
   createdAt: string;
+  /** Outlook "Categorize": a colour name of the calendar palette. */
+  category: string | null;
 }
 
 export interface TaskInput {
@@ -24,6 +26,7 @@ export interface TaskInput {
   important: boolean;
   completed: boolean;
   messageId?: string | null;
+  category?: string | null;
 }
 
 export const taskKeys = { all: ["tasks"] as const, view: (v: TaskView) => ["tasks", v] as const };
@@ -38,7 +41,7 @@ export const tasksApi = {
 };
 
 export const inputOf = (t: TaskItem, change: Partial<TaskInput> = {}): TaskInput => ({
-  title: t.title, notes: t.notes, dueDate: t.dueDate, important: t.important, completed: t.completedAt !== null, ...change,
+  title: t.title, notes: t.notes, dueDate: t.dueDate, important: t.important, completed: t.completedAt !== null, category: t.category, ...change,
 });
 
 /** "overdue", "today", "soon" (within 7 days) or "later", by calendar date in the user's zone. */

@@ -22,4 +22,7 @@ public class TaskItem : TenantEntity
     public Guid? MessageId { get; set; }
 
     public Guid? ThreadId { get; set; }
+
+    /// <summary>Outlook "Categorize": a colour name (the calendar palette), or null.</summary>
+    public string? Category { get; set; }
 }

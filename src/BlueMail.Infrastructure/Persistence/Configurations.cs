@@ -788,6 +788,7 @@ internal sealed class TaskItemConfig : IEntityTypeConfiguration<BlueMail.Domain.
         b.ToTable("tasks", "cal");
         b.Property(x => x.Title).HasMaxLength(500);
         b.Property(x => x.Notes).HasMaxLength(8000);
+        b.Property(x => x.Category).HasMaxLength(16);
         b.HasIndex(x => new { x.UserId, x.CompletedAt, x.DueDate });
     }
 }

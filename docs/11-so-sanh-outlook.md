@@ -76,7 +76,8 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | To-Do List gồm thư gắn cờ | ✅ | Danh sách "Thư gắn cờ"; xong = bỏ sao |
 | Hạn, Quan trọng, ghi chú | ✅ | Danh sách Quan trọng / Có hạn / Đã xong |
 | Việc tạo từ thư, mở lại thư | ✅ | |
-| Categorize task, giao việc (Assign/Reply/Forward task) | ❌ | |
+| Categorize task | ✅ | Nhóm màu (cùng bảng màu với Lịch) |
+| Giao việc (Assign/Reply/Forward task) | ❌ | |
 | Nhắc cho việc | ❌ | |
 
 ## Việc nên làm tiếp (theo mức dùng thường gặp)

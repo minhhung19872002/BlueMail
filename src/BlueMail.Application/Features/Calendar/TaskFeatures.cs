@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BlueMail.Application.Features.Calendar;
 
 public sealed record TaskDto(Guid Id, string Title, string? Notes, DateOnly? DueDate, bool Important, DateTimeOffset? CompletedAt, Guid? MessageId,
-    Guid? ThreadId, DateTimeOffset CreatedAt);
+    Guid? ThreadId, DateTimeOffset CreatedAt, string? Category = null);
 
 public static class TaskViews
 {
@@ -18,7 +18,7 @@ public static class TaskViews
     public static readonly string[] All = ["my", "important", "planned", "completed"];
     public const int MaxOpen = 2000;
 
-    public static TaskDto Dto(TaskItem t) => new(t.Id, t.Title, t.Notes, t.DueDate, t.Important, t.CompletedAt, t.MessageId, t.ThreadId, t.CreatedAt);
+    public static TaskDto Dto(TaskItem t) => new(t.Id, t.Title, t.Notes, t.DueDate, t.Important, t.CompletedAt, t.MessageId, t.ThreadId, t.CreatedAt, t.Category);
 }
 
 public sealed record ListTasksQuery(string View) : IRequest<IReadOnlyList<TaskDto>>;
@@ -47,8 +47,8 @@ public sealed class ListTasksHandler(BlueMailDbContext db, ICurrentUser me) : IR
     }
 }
 
-public sealed record SaveTaskCommand(Guid? Id, string? Title, string? Notes, DateOnly? DueDate, bool Important, bool Completed, Guid? MessageId)
-    : IRequest<TaskDto>;
+public sealed record SaveTaskCommand(Guid? Id, string? Title, string? Notes, DateOnly? DueDate, bool Important, bool Completed, Guid? MessageId,
+    string? Category = null) : IRequest<TaskDto>;
 
 public sealed class SaveTaskValidator : AbstractValidator<SaveTaskCommand>
 {
@@ -58,6 +58,7 @@ public sealed class SaveTaskValidator : AbstractValidator<SaveTaskCommand>
         RuleFor(x => x.Title).MaximumLength(500);
         RuleFor(x => x.Notes).MaximumLength(8000);
         RuleFor(x => x.DueDate).Must(d => d is null || (d.Value.Year >= 2000 && d.Value.Year <= 2200)).WithErrorCode("invalid_date");
+        RuleFor(x => x.Category).Must(c => c is null || CalendarLimits.Colors.Contains(c)).WithErrorCode("invalid_color");
     }
 }
 
@@ -101,6 +102,7 @@ public sealed class SaveTaskHandler(BlueMailDbContext db, ICurrentUser me, Mailb
         t.Notes = string.IsNullOrWhiteSpace(c.Notes) ? null : c.Notes.Trim();
         t.DueDate = c.DueDate;
         t.Important = c.Important;
+        t.Category = c.Category;
         t.CompletedAt = c.Completed ? t.CompletedAt ?? DateTimeOffset.UtcNow : null;
         await db.SaveChangesAsync(ct);
         return TaskViews.Dto(t);
