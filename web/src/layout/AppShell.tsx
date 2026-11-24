@@ -295,7 +295,7 @@ export function AppShell() {
             </Tooltip>
           </nav>
         )}
-        {!(/^/(calendar|tasks)/.test(location.pathname) && !narrow) && <Sider
+        {!(/^\/(calendar|tasks)(\/|$)/.test(location.pathname) && !narrow) && <Sider
           className={narrow ? "bm-sider bm-sider-overlay" : "bm-sider"}
           width={256}
           collapsedWidth={narrow ? 0 : 72}
