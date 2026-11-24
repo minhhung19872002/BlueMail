@@ -184,7 +184,9 @@
       "unread": "Chưa đọc",
       "starred": "Gắn sao",
       "attachments": "Có tệp đính kèm",
-      "label": "Hiển thị"
+      "label": "Hiển thị",
+      "toMe": "Gửi cho tôi",
+      "important": "Quan trọng"
     },
     "fav": {
       "heading": "Yêu thích",

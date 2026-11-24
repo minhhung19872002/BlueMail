@@ -184,7 +184,9 @@
       "unread": "Unread",
       "starred": "Starred",
       "attachments": "Has attachments",
-      "label": "Show"
+      "label": "Show",
+      "toMe": "To me",
+      "important": "Important"
     },
     "fav": {
       "heading": "Favorites",

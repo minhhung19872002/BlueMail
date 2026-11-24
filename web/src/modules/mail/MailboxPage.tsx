@@ -1,5 +1,6 @@
 import { useParams, useSearchParams } from "react-router-dom";
-import { Grid, Segmented, Spin, Typography } from "antd";
+import { Grid, Select, Spin, Typography } from "antd";
+import { FilterOutlined } from "@ant-design/icons";
 import type { ListSort } from "../../api/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -36,8 +37,9 @@ export function MailboxPage() {
   const tabs = settings?.inboxCategories ?? [];
   const tab = (search.get("c") as Category | null) ?? "PRIMARY";
   // Quick filter above the list (Outlook "All / Unread"), kept in the URL like the open conversation.
-  const filter = (search.get("f") ?? "all") as "all" | "unread" | "starred" | "attachments";
-  const filterQuery = { all: "", unread: "is:unread", starred: "is:starred", attachments: "has:attachment" }[filter] ?? "";
+  const filters = { all: "", unread: "is:unread", starred: "is:starred", toMe: "to:me", important: "is:important", attachments: "has:attachment" } as const;
+  const filter = (search.get("f") ?? "all") in filters ? (search.get("f") ?? "all") as keyof typeof filters : "all";
+  const filterQuery = filters[filter];
   // Sort by (Outlook), kept in the URL: s=from-asc, s=size-desc…
   const [sortName, sortDir] = (search.get("s") ?? "date-desc").split("-");
   const sort = (["date", "from", "subject", "size"].includes(sortName ?? "") ? sortName : "date") as ListSort;
@@ -79,9 +81,11 @@ export function MailboxPage() {
     />
   );
   const filterBar = (
-    <Segmented className="bm-list-filter" size="small" aria-label={t("mail.filter.label")} value={filter}
-      options={(["all", "unread", "starred", "attachments"] as const).map((f) => ({ value: f, label: t(`mail.filter.${f}`) }))}
-      onChange={(v) => setSearch((s) => { if (v === "all") s.delete("f"); else s.set("f", String(v)); s.delete("t"); return s; })} />
+    // Outlook "Filter": one drop-down, so it fits a phone too.
+    <Select className="bm-list-filter" size="small" variant="borderless" aria-label={t("mail.filter.label")} value={filter} popupMatchSelectWidth={false}
+      labelRender={({ label }) => <span><FilterOutlined /> {label}</span>}
+      options={(Object.keys(filters) as (keyof typeof filters)[]).map((f) => ({ value: f, label: t(`mail.filter.${f}`) }))}
+      onChange={(v: string) => setSearch((s) => { if (v === "all") s.delete("f"); else s.set("f", v); s.delete("t"); return s; })} />
   );
   const listWithTabs = (
     <>
