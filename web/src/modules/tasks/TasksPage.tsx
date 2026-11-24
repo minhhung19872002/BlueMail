@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { App, Button, Checkbox, DatePicker, Drawer, Empty, Form, Input, Segmented, Select, Space, Spin, Tag, Tooltip, Typography } from "antd";
-import { CalendarOutlined, DeleteOutlined, MailOutlined, PlusOutlined, StarFilled, StarOutlined } from "@ant-design/icons";
+import { App, Button, Checkbox, DatePicker, Drawer, Empty, Form, Input, Modal, Segmented, Select, Space, Spin, Tag, Tooltip, Typography } from "antd";
+import { CalendarOutlined, DeleteOutlined, MailOutlined, PlusOutlined, StarFilled, StarOutlined, UserOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -73,6 +73,8 @@ export function TasksPage() {
                   <span className="bm-task-title" dir="auto">{task.title}</span>
                   <span className="bm-task-meta">
                     {task.threadId && <span><MailOutlined /> {t("tasks.fromMail")}</span>}
+                    {task.assignedTo && <Tag icon={<UserOutlined />}>{t("tasks.assignedTo", { name: task.assignedTo })}</Tag>}
+                    {task.assignedBy && <Tag icon={<UserOutlined />} color="purple">{t("tasks.assignedBy", { name: task.assignedBy })}</Tag>}
                     {task.dueDate && (
                       <Tag color={due === "overdue" ? "red" : due === "today" ? "blue" : undefined} icon={<CalendarOutlined />}>
                         {due === "today" ? t("tasks.today") : dueLabel(task.dueDate)}
@@ -102,6 +104,8 @@ export function TasksPage() {
 function TaskDrawer({ task, onClose, onSaved, onOpenMail }: { task: TaskItem; onClose: () => void; onSaved: () => void; onOpenMail: (threadId: string) => void }) {
   const { t } = useTranslation();
   const { message, modal } = App.useApp();
+  const [assigning, setAssigning] = useState(false);
+  const [assignee, setAssignee] = useState("");
   const [form] = Form.useForm<{ title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null }>();
   const save = async (v: { title: string; notes?: string; due: dayjs.Dayjs | null; category: string | null }) => {
     try {
@@ -135,7 +139,27 @@ function TaskDrawer({ task, onClose, onSaved, onOpenMail }: { task: TaskItem; on
         </Form.Item>
         <Form.Item name="notes" label={t("tasks.fields.notes")}><Input.TextArea rows={6} maxLength={8000} dir="auto" /></Form.Item>
       </Form>
-      {task.threadId && <Button icon={<MailOutlined />} onClick={() => onOpenMail(task.threadId!)}>{t("tasks.openMail")}</Button>}
+      <Space wrap>
+        {task.threadId && <Button icon={<MailOutlined />} onClick={() => onOpenMail(task.threadId!)}>{t("tasks.openMail")}</Button>}
+        {!task.assignedTo && !task.assignedBy && !task.completedAt && <Button icon={<UserOutlined />} onClick={() => setAssigning(true)}>{t("tasks.assign")}</Button>}
+      </Space>
+      {task.assignedTo && <Typography.Paragraph type="secondary" className="bm-mt-8">{t("tasks.assignedNote", { name: task.assignedTo })}</Typography.Paragraph>}
+      {assigning && (
+        <Modal open title={t("tasks.assign")} onCancel={() => setAssigning(false)} okButtonProps={{ disabled: !assignee.trim() }}
+          onOk={async () => {
+            try {
+              await tasksApi.assign(task.id, assignee.trim());
+              message.success(t("tasks.assignedTo", { name: assignee.trim() }));
+              setAssigning(false);
+              onSaved();
+            } catch (e) {
+              message.error(e instanceof ApiError ? e.title : t("errors.actionFailed"));
+            }
+          }}>
+          <Typography.Paragraph type="secondary">{t("tasks.assignHelp")}</Typography.Paragraph>
+          <Input autoFocus type="email" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder={t("tasks.assignEmail")} aria-label={t("tasks.assignEmail")} maxLength={320} />
+        </Modal>
+      )}
     </Drawer>
   );
 }

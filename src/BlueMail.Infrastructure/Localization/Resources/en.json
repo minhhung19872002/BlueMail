@@ -292,5 +292,7 @@
   "error.too_many_shares": "A calendar can be shared with at most 50 people.",
   "error.invalid_permission": "Choose view, edit or stop sharing.",
   "error.invalid_detail": "Choose times only or full details.",
-  "error.invalid_sort": "Unknown sort order."
+  "error.invalid_sort": "Unknown sort order.",
+  "error.task_not_assignable": "This task is already assigned or completed.",
+  "error.cannot_assign_to_self": "This task is already yours."
 }

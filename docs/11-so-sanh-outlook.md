@@ -77,7 +77,7 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Hạn, Quan trọng, ghi chú | ✅ | Danh sách Quan trọng / Có hạn / Đã xong |
 | Việc tạo từ thư, mở lại thư | ✅ | |
 | Categorize task | ✅ | Nhóm màu (cùng bảng màu với Lịch) |
-| Giao việc (Assign/Reply/Forward task) | ❌ | |
+| Giao việc (Assign task) | ✅ | Trong cùng tổ chức: người nhận có bản riêng trong Việc cần làm; việc của người giao tự xong khi người nhận làm xong (không gửi VTODO ra ngoài) |
 | Nhắc cho việc | ❌ | |
 
 ## Việc nên làm tiếp (theo mức dùng thường gặp)

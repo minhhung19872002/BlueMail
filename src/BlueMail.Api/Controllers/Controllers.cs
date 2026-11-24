@@ -441,5 +441,12 @@ public sealed class TasksController(ISender mediator) : ControllerBase
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<bool>> Delete(Guid id, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.DeleteTaskCommand(id), ct));
+
+    public sealed record AssignBody(string Email);
+
+    [HttpPost("{id:guid}/assign")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.TaskDto>> Assign(Guid id, [FromBody] AssignBody b, CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.AssignTaskCommand(id, b.Email ?? ""), ct));
 }
 

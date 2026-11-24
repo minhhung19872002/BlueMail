@@ -17,6 +17,9 @@ export interface TaskItem {
   createdAt: string;
   /** Outlook "Categorize": a colour name of the calendar palette. */
   category: string | null;
+  /** Assigned within the organisation: the assignee's name on the assigner's task, the assigner's on the copy. */
+  assignedTo: string | null;
+  assignedBy: string | null;
 }
 
 export interface TaskInput {
@@ -36,6 +39,7 @@ export const tasksApi = {
   create: (t: TaskInput) => api.post<TaskItem>("/api/v1/tasks", t),
   update: (id: string, t: TaskInput) => api.put<TaskItem>(`/api/v1/tasks/${id}`, t),
   remove: (id: string) => api.delete<boolean>(`/api/v1/tasks/${id}`),
+  assign: (id: string, email: string) => api.post<TaskItem>(`/api/v1/tasks/${id}/assign`, { email }),
   fromMessage: (messageId: string) =>
     api.post<TaskItem>("/api/v1/tasks", { title: null, notes: null, dueDate: null, important: false, completed: false, messageId }),
 };

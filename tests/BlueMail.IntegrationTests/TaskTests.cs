@@ -68,7 +68,21 @@ public class TaskTests(StackFixture stack)
         coloured.GetProperty("category").GetString().Should().Be("green");
         (await joao.PutAsJsonAsync($"/api/v1/tasks/{id}", new { title = "x", category = "pink" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
+        // Assign (same organisation): amara gets a copy; completing it completes joao's task.
+        var dueId = due.GetProperty("id").GetGuid();
+        (await joao.PostAsJsonAsync($"/api/v1/tasks/{dueId}/assign", new { email = "joao@acme.test" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await joao.PostAsJsonAsync($"/api/v1/tasks/{dueId}/assign", new { email = "nobody@acme.test" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var assigned = await Data(await joao.PostAsJsonAsync($"/api/v1/tasks/{dueId}/assign", new { email = "amara@acme.test" }));
+        assigned.GetProperty("assignedTo").GetString().Should().NotBeNullOrEmpty();
+        (await joao.PostAsJsonAsync($"/api/v1/tasks/{dueId}/assign", new { email = "amara@acme.test" })).StatusCode.Should().Be(HttpStatusCode.BadRequest, "already assigned");
+        var theirs = (await Data(await amara.GetAsync("/api/v1/tasks?view=my"))).EnumerateArray().Single(x => x.GetProperty("title").GetString() == "Send report " + tag);
+        theirs.GetProperty("assignedBy").GetString().Should().NotBeNullOrEmpty();
+        theirs.GetProperty("dueDate").GetString().Should().Be("2026-12-01");
+        await Data(await amara.PutAsJsonAsync($"/api/v1/tasks/{theirs.GetProperty("id").GetGuid()}", new { title = "Send report " + tag, dueDate = "2026-12-01", completed = true }));
+        (await Titles(joao, "completed")).Should().Contain("Send report " + tag, "the assigner's task completes with the assignee's");
+        await Data(await amara.DeleteAsync($"/api/v1/tasks/{theirs.GetProperty("id").GetGuid()}"));
+
         await Data(await joao.DeleteAsync($"/api/v1/tasks/{due.GetProperty("id").GetGuid()}"));
-        (await Titles(joao, "my")).Should().NotContain("Send report " + tag);
+        (await Titles(joao, "completed")).Should().NotContain("Send report " + tag);
     }
 }

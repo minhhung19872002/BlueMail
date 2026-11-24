@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BlueMail.Application.Features.Calendar;
 
 public sealed record TaskDto(Guid Id, string Title, string? Notes, DateOnly? DueDate, bool Important, DateTimeOffset? CompletedAt, Guid? MessageId,
-    Guid? ThreadId, DateTimeOffset CreatedAt, string? Category = null);
+    Guid? ThreadId, DateTimeOffset CreatedAt, string? Category = null, string? AssignedTo = null, string? AssignedBy = null);
 
 public static class TaskViews
 {
@@ -18,7 +18,22 @@ public static class TaskViews
     public static readonly string[] All = ["my", "important", "planned", "completed"];
     public const int MaxOpen = 2000;
 
-    public static TaskDto Dto(TaskItem t) => new(t.Id, t.Title, t.Notes, t.DueDate, t.Important, t.CompletedAt, t.MessageId, t.ThreadId, t.CreatedAt, t.Category);
+    public static TaskDto Dto(TaskItem t, IReadOnlyDictionary<Guid, string>? names = null) =>
+        new(t.Id, t.Title, t.Notes, t.DueDate, t.Important, t.CompletedAt, t.MessageId, t.ThreadId, t.CreatedAt, t.Category,
+            t.AssignedToId is { } to ? names?.GetValueOrDefault(to) : null, t.AssignedById is { } by ? names?.GetValueOrDefault(by) : null);
+
+    /// <summary>Display names (or addresses) of the people tasks were assigned to or by, in the user's organisation.</summary>
+    public static async Task<IReadOnlyDictionary<Guid, string>> NamesAsync(BlueMailDbContext db, IEnumerable<TaskItem> tasks, CancellationToken ct)
+    {
+        var ids = tasks.SelectMany(t => new[] { t.AssignedToId, t.AssignedById }).OfType<Guid>().Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var rows = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).Select(u => new { u.Id, u.DisplayName, u.PrimaryEmail }).ToListAsync(ct);
+        return rows.ToDictionary(u => u.Id, u => string.IsNullOrWhiteSpace(u.DisplayName) ? u.PrimaryEmail : u.DisplayName);
+    }
 }
 
 public sealed record ListTasksQuery(string View) : IRequest<IReadOnlyList<TaskDto>>;
@@ -43,7 +58,8 @@ public sealed class ListTasksHandler(BlueMailDbContext db, ICurrentUser me) : IR
             _ => await mine.Where(t => t.CompletedAt == null).OrderByDescending(t => t.Important).ThenBy(t => t.DueDate == null).ThenBy(t => t.DueDate)
                 .ThenByDescending(t => t.CreatedAt).Take(TaskViews.MaxOpen).ToListAsync(ct),
         };
-        return rows.Select(TaskViews.Dto).ToList();
+        var names = await TaskViews.NamesAsync(db, rows, ct);
+        return rows.Select(t => TaskViews.Dto(t, names)).ToList();
     }
 }
 
@@ -104,8 +120,18 @@ public sealed class SaveTaskHandler(BlueMailDbContext db, ICurrentUser me, Mailb
         t.Important = c.Important;
         t.Category = c.Category;
         t.CompletedAt = c.Completed ? t.CompletedAt ?? DateTimeOffset.UtcNow : null;
+        if (t.OriginTaskId is { } origin)
+        {
+            // An assigned task reports its progress to the assigner's copy (Outlook "status report").
+            var theirs = await db.Tasks.FirstOrDefaultAsync(x => x.Id == origin && x.AssignedToId == me.UserId, ct);
+            if (theirs is not null)
+            {
+                theirs.CompletedAt = t.CompletedAt;
+            }
+        }
+
         await db.SaveChangesAsync(ct);
-        return TaskViews.Dto(t);
+        return TaskViews.Dto(t, await TaskViews.NamesAsync(db, [t], ct));
     }
 }
 
@@ -119,5 +145,52 @@ public sealed class DeleteTaskHandler(BlueMailDbContext db, ICurrentUser me) : I
         t.DeletedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
         return true;
+    }
+}
+
+/// <summary>
+/// Outlook "Assign task", within the organisation: the assignee gets their own copy in To Do; the assigner keeps the task
+/// (marked with the assignee) and it completes when the assignee completes theirs.
+/// </summary>
+public sealed record AssignTaskCommand(Guid Id, string Email) : IRequest<TaskDto>;
+
+public sealed class AssignTaskValidator : AbstractValidator<AssignTaskCommand>
+{
+    public AssignTaskValidator() => RuleFor(x => x.Email).NotEmpty().MaximumLength(320).EmailAddress();
+}
+
+public sealed class AssignTaskHandler(BlueMailDbContext db, ICurrentUser me) : IRequestHandler<AssignTaskCommand, TaskDto>
+{
+    public async Task<TaskDto> Handle(AssignTaskCommand c, CancellationToken ct)
+    {
+        var t = await db.Tasks.FirstOrDefaultAsync(x => x.Id == c.Id && x.UserId == me.UserId, ct) ?? throw AppException.NotFound("task_not_found");
+        if (t.AssignedToId is not null || t.CompletedAt is not null)
+        {
+            throw AppException.BadRequest("task_not_assignable");
+        }
+
+        var email = c.Email.Trim().ToLowerInvariant();
+        // Same organisation only (tenant query filter); other tenants look like unknown addresses.
+        var assignee = await db.Users.AsNoTracking().Where(u => u.PrimaryEmail == email && u.DeletedAt == null && u.Status == BlueMail.Domain.Identity.UserStatus.Active)
+                           .Select(u => (Guid?)u.Id).FirstOrDefaultAsync(ct)
+                       ?? throw AppException.NotFound("user_not_found");
+        if (assignee == me.UserId)
+        {
+            throw AppException.BadRequest("cannot_assign_to_self");
+        }
+
+        if (await db.Tasks.CountAsync(x => x.UserId == assignee && x.CompletedAt == null, ct) >= TaskViews.MaxOpen)
+        {
+            throw AppException.BadRequest("too_many_tasks");
+        }
+
+        db.Tasks.Add(new TaskItem
+        {
+            Id = Guid.NewGuid(), TenantId = me.TenantId, UserId = assignee, Title = t.Title, Notes = t.Notes, DueDate = t.DueDate,
+            Important = t.Important, Category = t.Category, AssignedById = me.UserId, OriginTaskId = t.Id,
+        });
+        t.AssignedToId = assignee;
+        await db.SaveChangesAsync(ct);
+        return TaskViews.Dto(t, await TaskViews.NamesAsync(db, [t], ct));
     }
 }

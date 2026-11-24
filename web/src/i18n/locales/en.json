@@ -1648,7 +1648,13 @@
     },
     "addFromMail": "Add to To Do",
     "addedFromMail": "Added to To Do.",
-    "noCategory": "No category"
+    "noCategory": "No category",
+    "assign": "Assign task",
+    "assignEmail": "Colleague's email address",
+    "assignHelp": "They get the task in their To Do; yours completes when they complete it.",
+    "assignedTo": "Assigned to {name}",
+    "assignedBy": "From {name}",
+    "assignedNote": "Assigned to {name}: this task completes when they complete it."
   },
   "quickSteps": {
     "title": "Quick Steps",

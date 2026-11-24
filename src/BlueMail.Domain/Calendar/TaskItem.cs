@@ -25,4 +25,12 @@ public class TaskItem : TenantEntity
 
     /// <summary>Outlook "Categorize": a colour name (the calendar palette), or null.</summary>
     public string? Category { get; set; }
+
+    /// <summary>Outlook "Assign task" (same organisation): on the assigner's task, who it was given to.</summary>
+    public Guid? AssignedToId { get; set; }
+
+    /// <summary>On the assignee's copy: who gave it and the assigner's task, which completes with this one.</summary>
+    public Guid? AssignedById { get; set; }
+
+    public Guid? OriginTaskId { get; set; }
 }

@@ -292,5 +292,7 @@
   "error.too_many_shares": "Một lịch chia sẻ được tối đa cho 50 người.",
   "error.invalid_permission": "Chọn xem, sửa hoặc ngừng chia sẻ.",
   "error.invalid_detail": "Chọn chỉ thời gian hoặc đầy đủ chi tiết.",
-  "error.invalid_sort": "Kiểu sắp xếp không hợp lệ."
+  "error.invalid_sort": "Kiểu sắp xếp không hợp lệ.",
+  "error.task_not_assignable": "Việc này đã được giao hoặc đã xong.",
+  "error.cannot_assign_to_self": "Việc này đã là của bạn."
 }

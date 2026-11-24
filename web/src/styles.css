@@ -335,3 +335,5 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 .bm-sort-note { font-size: 12px; }
 
 .bm-merge-preview { padding: 8px 12px; border: 1px dashed var(--bm-border); border-radius: 8px; }
+
+.bm-mt-8 { margin-block-start: 8px; }

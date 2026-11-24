@@ -482,6 +482,14 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("gen_random_uuid()");
 
+                    b.Property<Guid?>("AssignedById")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_by_id");
+
+                    b.Property<Guid?>("AssignedToId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assigned_to_id");
+
                     b.Property<string>("Category")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
@@ -521,6 +529,10 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasMaxLength(8000)
                         .HasColumnType("character varying(8000)")
                         .HasColumnName("notes");
+
+                    b.Property<Guid?>("OriginTaskId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("origin_task_id");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")

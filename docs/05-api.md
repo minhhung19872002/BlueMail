@@ -219,3 +219,4 @@ Draft state gains `confidential: { expiresDays: 1|7|30|90|365, requireCode }`. S
 | POST | `/api/v1/tasks` | self | `{ title, notes?, dueDate? (YYYY-MM-DD), important, completed, messageId? }`; with `messageId` (own mailbox) the subject is the default title and the task links to the conversation; ≤ 2,000 open tasks |
 | PUT / DELETE | `/api/v1/tasks/{id}` | self | Change (same body, no messageId) or delete |
 
+| POST | `/api/v1/tasks/{id}/assign` `{ email }` | self | Assign an open, unassigned task to a colleague of the same organisation; their copy completes yours |

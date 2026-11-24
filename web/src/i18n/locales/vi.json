@@ -1648,7 +1648,13 @@
     },
     "addFromMail": "Thêm vào Việc cần làm",
     "addedFromMail": "Đã thêm vào Việc cần làm.",
-    "noCategory": "Không nhóm"
+    "noCategory": "Không nhóm",
+    "assign": "Giao việc",
+    "assignEmail": "Địa chỉ email đồng nghiệp",
+    "assignHelp": "Người đó nhận việc trong Việc cần làm của họ; việc của bạn tự xong khi họ làm xong.",
+    "assignedTo": "Đã giao cho {name}",
+    "assignedBy": "Từ {name}",
+    "assignedNote": "Đã giao cho {name}: việc này tự đánh dấu xong khi họ làm xong."
   },
   "quickSteps": {
     "title": "Quick Steps",
