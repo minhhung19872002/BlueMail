@@ -266,3 +266,39 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
 .bm-nav-fav[aria-pressed="true"] { color: var(--bm-warning, #b8860b); }
 .bm-invite { margin-block: 8px; border-inline-start: 3px solid var(--bm-primary); }
 .bm-invite-title { font-size: 15px; }
+
+/* Calendar (Outlook on the web style): toolbar, month grid, day/week time grid. */
+.bm-cal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block-end: 12px; }
+.bm-cal-title.ant-typography { margin: 0 8px; flex: 1 1 auto; font-size: 18px; }
+.bm-cal-month { border: 1px solid var(--bm-border); border-radius: 8px; overflow: hidden; background: var(--bm-surface); }
+.bm-cal-month-head, .bm-cal-month-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.bm-cal-month-head > div { padding: 6px 8px; font-size: 12px; color: var(--bm-textMuted); border-block-end: 1px solid var(--bm-border); }
+.bm-cal-cell { min-block-size: 104px; padding: 4px; border-inline-end: 1px solid var(--bm-border); border-block-end: 1px solid var(--bm-border);
+  display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+.bm-cal-other { background: color-mix(in srgb, var(--bm-bg) 70%, var(--bm-surface)); color: var(--bm-textMuted); }
+.bm-cal-daynum { all: unset; cursor: pointer; align-self: flex-start; min-inline-size: 24px; text-align: center; border-radius: 12px; font-size: 13px; }
+.bm-cal-daynum:focus-visible, .bm-cal-chip:focus-visible, .bm-cal-event:focus-visible, .bm-cal-more:focus-visible { outline: 2px solid var(--bm-primary); outline-offset: 1px; }
+.bm-cal-today .bm-cal-daynum, .bm-cal-week-day.bm-cal-today { color: #fff; background: var(--bm-primary); }
+.bm-cal-week-day.bm-cal-today { border-radius: 6px; }
+.bm-cal-chip { all: unset; cursor: pointer; display: block; font-size: 12px; padding: 1px 4px; border-inline-start: 3px solid; border-radius: 3px;
+  background: color-mix(in srgb, var(--bm-primary) 10%, var(--bm-surface)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-cal-chip-time { color: var(--bm-textMuted); }
+.bm-cal-tentative { background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--bm-text) 6%, transparent) 6px 12px); }
+.bm-cal-more { all: unset; cursor: pointer; font-size: 12px; color: var(--bm-primary); }
+.bm-cal-week { border: 1px solid var(--bm-border); border-radius: 8px; overflow: hidden; background: var(--bm-surface); }
+.bm-cal-week-head, .bm-cal-allday { display: grid; grid-template-columns: 56px repeat(var(--bm-cal-days), minmax(0, 1fr)); border-block-end: 1px solid var(--bm-border); }
+.bm-cal-week-day { padding: 6px; text-align: center; font-size: 13px; }
+.bm-cal-allday-cell { min-block-size: 28px; padding: 2px; border-inline-start: 1px solid var(--bm-border); display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+.bm-cal-gutter { font-size: 11px; color: var(--bm-textMuted); padding: 4px; }
+.bm-cal-scroll { display: grid; grid-template-columns: 56px repeat(var(--bm-cal-days), minmax(0, 1fr)); max-block-size: calc(100vh - 260px); overflow-y: auto; }
+.bm-cal-hour { font-size: 11px; color: var(--bm-textMuted); text-align: end; padding-inline-end: 6px; transform: translateY(-7px); }
+.bm-cal-col { position: relative; border-inline-start: 1px solid var(--bm-border); cursor: cell;
+  background-image: repeating-linear-gradient(to bottom, var(--bm-border) 0 1px, transparent 1px 48px); }
+.bm-cal-event { all: unset; position: absolute; box-sizing: border-box; cursor: pointer; padding: 2px 4px; font-size: 12px; overflow: hidden;
+  border-inline-start: 3px solid; border-radius: 4px; display: flex; flex-direction: column; color: var(--bm-text); }
+.bm-cal-event-time { color: var(--bm-textMuted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bm-cal-now { position: absolute; inset-inline: 0; border-block-start: 2px solid #c01c28; z-index: 2; pointer-events: none; }
+.bm-cal-guests { margin: 4px 0 0; padding-inline-start: 20px; }
+.bm-cal-swatch { display: inline-block; inline-size: 10px; block-size: 10px; border-radius: 50%; vertical-align: middle; }
+.bm-pre-wrap { white-space: pre-wrap; }
+@media (max-width: 767px) { .bm-cal-cell { min-block-size: 64px; } .bm-cal-chip-time { display: none; } }

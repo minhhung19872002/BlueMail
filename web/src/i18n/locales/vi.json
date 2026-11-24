@@ -42,7 +42,8 @@
     "contacts": "Danh bạ",
     "admin": "Quản trị",
     "apps": "Ứng dụng",
-    "mail": "Thư"
+    "mail": "Thư",
+    "calendar": "Lịch"
   },
   "theme": {
     "title": "Chủ đề",
@@ -1453,6 +1454,76 @@
       "TENTATIVE": "{name} có thể tham dự.",
       "DECLINED": "{name} đã từ chối.",
       "OTHER": "{name} đã trả lời."
+    }
+  },
+  "calendar": {
+    "toolbar": "Thao tác lịch",
+    "newEvent": "Sự kiện mới",
+    "editEvent": "Sửa sự kiện",
+    "today": "Hôm nay",
+    "previous": "Trước",
+    "next": "Sau",
+    "view": "Chế độ xem",
+    "views": {
+      "day": "Ngày",
+      "week": "Tuần",
+      "month": "Tháng"
+    },
+    "allDay": "Cả ngày",
+    "more": "{count, plural, other {+# nữa}}",
+    "edit": "Sửa",
+    "delete": "Xoá",
+    "deleted": "Đã xoá sự kiện.",
+    "deleteTitle": "Xoá sự kiện này?",
+    "deleteNotice": "Khách mời sẽ được báo là sự kiện bị huỷ.",
+    "deleteRecurring": "Sự kiện này lặp lại.",
+    "deleteThis": "Chỉ lần này",
+    "deleteSeries": "Cả chuỗi",
+    "save": "Lưu",
+    "saved": "Đã lưu sự kiện.",
+    "savedInvited": "Đã lưu sự kiện; đã gửi thư mời tới {count, number} khách.",
+    "response": {
+      "NEEDS-ACTION": "Chưa trả lời",
+      "ACCEPTED": "Tham dự",
+      "TENTATIVE": "Có thể",
+      "DECLINED": "Không tham dự"
+    },
+    "fields": {
+      "title": "Tiêu đề",
+      "titleRequired": "Hãy đặt tiêu đề cho sự kiện.",
+      "start": "Bắt đầu",
+      "end": "Kết thúc",
+      "endAfterStart": "Giờ kết thúc phải sau giờ bắt đầu.",
+      "repeat": "Lặp lại",
+      "location": "Địa điểm",
+      "guests": "Khách mời",
+      "guestsHint": "Nhập địa chỉ email; khách nhận thư mời và trả lời được.",
+      "badGuest": "Có khách mời không phải địa chỉ email.",
+      "reminder": "Nhắc nhở",
+      "color": "Màu",
+      "description": "Ghi chú"
+    },
+    "repeat": {
+      "none": "Không lặp lại",
+      "daily": "Hằng ngày",
+      "weekdays": "Các ngày trong tuần (T2–T6)",
+      "weekly": "Hằng tuần",
+      "monthly": "Hằng tháng",
+      "yearly": "Hằng năm",
+      "custom": "Tuỳ chỉnh (theo lời mời)"
+    },
+    "reminder": {
+      "none": "Không nhắc",
+      "before": "{count, plural, =0 {Lúc bắt đầu} other {Trước # phút}}"
+    },
+    "colors": {
+      "blue": "Xanh dương",
+      "green": "Xanh lá",
+      "red": "Đỏ",
+      "purple": "Tím",
+      "orange": "Cam",
+      "teal": "Xanh ngọc",
+      "gray": "Xám"
     }
   }
 }

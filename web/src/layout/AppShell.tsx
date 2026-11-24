@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Alert, App, Avatar, Button, Dropdown, Grid, Input, Layout, Menu, Modal, Progress, Tooltip, type MenuProps } from "antd";
 import {
-  BulbOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
+  BulbOutlined, CalendarOutlined, CoffeeOutlined, ContactsOutlined, SettingOutlined, DeleteOutlined, EditOutlined, FilterOutlined, ForwardOutlined, LayoutOutlined, LogoutOutlined,
   MenuOutlined, PlusOutlined, SafetyOutlined, SignatureFilled, TeamOutlined, UndoOutlined, UserOutlined, StarOutlined, StarFilled, MailOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -172,6 +172,14 @@ export function AppShell() {
         </span>
       ),
     })));
+    if (narrow) {
+      // Phones have no app rail: the other apps are reached from the menu.
+      items.unshift(
+        { key: "/calendar", icon: <CalendarOutlined />, label: t("nav.calendar") },
+        { key: "/contacts", icon: <ContactsOutlined />, label: t("nav.contacts") },
+        { type: "divider" },
+      );
+    }
     if (favItems.length > 0) {
       items.unshift(
         { key: "fav-head", className: "bm-nav-heading", label: <span className="bm-nav-item"><span>{t("mail.fav.heading")}</span></span> },
@@ -185,7 +193,7 @@ export function AppShell() {
     }
     return items;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [labels.data, canAdmin, adminSections, t, qc, message, modal, location.pathname, navigate, settings?.favorites]);
+  }, [labels.data, canAdmin, adminSections, t, qc, message, modal, location.pathname, navigate, settings?.favorites, narrow]);
 
   const saveLabel = async () => {
     const name = newLabel?.trim();
@@ -272,13 +280,17 @@ export function AppShell() {
               <Button type="text" icon={<MailOutlined />} aria-label={t("nav.mail")} aria-current={location.pathname.startsWith("/mail") ? "page" : undefined}
                 onClick={() => navigate("/mail/inbox")} />
             </Tooltip>
+            <Tooltip title={t("nav.calendar")} placement="right">
+              <Button type="text" icon={<CalendarOutlined />} aria-label={t("nav.calendar")} aria-current={location.pathname.startsWith("/calendar") ? "page" : undefined}
+                onClick={() => navigate("/calendar")} />
+            </Tooltip>
             <Tooltip title={t("nav.contacts")} placement="right">
               <Button type="text" icon={<ContactsOutlined />} aria-label={t("nav.contacts")} aria-current={location.pathname.startsWith("/contacts") ? "page" : undefined}
                 onClick={() => navigate("/contacts")} />
             </Tooltip>
           </nav>
         )}
-        <Sider
+        {!(location.pathname.startsWith("/calendar") && !narrow) && <Sider
           className={narrow ? "bm-sider bm-sider-overlay" : "bm-sider"}
           width={256}
           collapsedWidth={narrow ? 0 : 72}
@@ -312,7 +324,7 @@ export function AppShell() {
               {t("storage.used", { used: bytes(used, me.locale), quota: bytes(quota, me.locale) })}
             </div>
           )}
-        </Sider>
+        </Sider>}
         <Modal open={newLabel !== null} title={t("mail.newLabel")} okText={t("mail.create")} onOk={() => void saveLabel()}
           onCancel={() => setNewLabel(null)} okButtonProps={{ disabled: !newLabel?.trim() }}>
           <Input autoFocus maxLength={225} value={newLabel ?? ""} onChange={(e) => setNewLabel(e.target.value)} onPressEnter={() => void saveLabel()}

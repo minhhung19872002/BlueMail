@@ -42,7 +42,8 @@
     "contacts": "Contacts",
     "admin": "Administration",
     "apps": "Apps",
-    "mail": "Mail"
+    "mail": "Mail",
+    "calendar": "Calendar"
   },
   "theme": {
     "title": "Theme",
@@ -1453,6 +1454,76 @@
       "TENTATIVE": "{name} might attend.",
       "DECLINED": "{name} declined.",
       "OTHER": "{name} answered."
+    }
+  },
+  "calendar": {
+    "toolbar": "Calendar actions",
+    "newEvent": "New event",
+    "editEvent": "Edit event",
+    "today": "Today",
+    "previous": "Previous",
+    "next": "Next",
+    "view": "View",
+    "views": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month"
+    },
+    "allDay": "All day",
+    "more": "{count, plural, one {# more} other {# more}}",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleted": "Event deleted.",
+    "deleteTitle": "Delete this event?",
+    "deleteNotice": "The guests will be told it is cancelled.",
+    "deleteRecurring": "This event repeats.",
+    "deleteThis": "Only this one",
+    "deleteSeries": "The whole series",
+    "save": "Save",
+    "saved": "Event saved.",
+    "savedInvited": "Event saved; {count, plural, one {# guest was} other {# guests were}} invited by email.",
+    "response": {
+      "NEEDS-ACTION": "No answer yet",
+      "ACCEPTED": "Going",
+      "TENTATIVE": "Maybe",
+      "DECLINED": "Not going"
+    },
+    "fields": {
+      "title": "Title",
+      "titleRequired": "Give the event a title.",
+      "start": "Start",
+      "end": "End",
+      "endAfterStart": "The end must be after the start.",
+      "repeat": "Repeat",
+      "location": "Location",
+      "guests": "Guests",
+      "guestsHint": "Type email addresses; they receive an invitation they can answer.",
+      "badGuest": "One of the guests is not an email address.",
+      "reminder": "Reminder",
+      "color": "Colour",
+      "description": "Notes"
+    },
+    "repeat": {
+      "none": "Does not repeat",
+      "daily": "Every day",
+      "weekdays": "Every weekday (Mon–Fri)",
+      "weekly": "Every week",
+      "monthly": "Every month",
+      "yearly": "Every year",
+      "custom": "Custom (from the invitation)"
+    },
+    "reminder": {
+      "none": "No reminder",
+      "before": "{count, plural, =0 {At the start} one {# minute before} other {# minutes before}}"
+    },
+    "colors": {
+      "blue": "Blue",
+      "green": "Green",
+      "red": "Red",
+      "purple": "Purple",
+      "orange": "Orange",
+      "teal": "Teal",
+      "gray": "Grey"
     }
   }
 }
