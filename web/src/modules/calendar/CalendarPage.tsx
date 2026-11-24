@@ -10,6 +10,7 @@ import { ApiError } from "../../api/client";
 import { useMe, useUserFormat } from "../../session";
 import { calendarApi, calendarKeys, type CalendarEvent, type EventInput, type SharedCalendar } from "./calendarApi";
 import { CalendarSharing } from "./CalendarSharing";
+import { CalendarGroups } from "./CalendarGroups";
 import { availability, eventColors, eventDates, layoutDay, repeatKind, ruleFor, step, visibleDays, type CalendarView, type RepeatKind } from "./calendarView";
 
 const HourPx = 48;
@@ -87,6 +88,9 @@ export function CalendarPage() {
           <Select mode="multiple" allowClear maxTagCount="responsive" style={{ minInlineSize: 200 }} placeholder={t("calendar.share.others")}
             aria-label={t("calendar.share.others")} value={shown} onChange={setShown}
             options={(shares.data?.withMe ?? []).map((s: SharedCalendar) => ({ value: s.userId, label: s.name }))} />
+        )}
+        {(shares.data?.withMe.length ?? 0) > 0 && (
+          <CalendarGroups shown={shown} available={(shares.data?.withMe ?? []).map((s) => s.userId)} onOpen={setShown} />
         )}
         <CalendarSharing />
         <Segmented value={view} onChange={(v) => setView(v as CalendarView)} aria-label={t("calendar.view")}

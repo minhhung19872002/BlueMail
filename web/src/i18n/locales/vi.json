@@ -1599,6 +1599,13 @@
       "renew": "Tạo đường dẫn mới",
       "remove": "Gỡ đường dẫn",
       "active": "Đang có đường dẫn ({detail}). Để an toàn, đường dẫn chỉ hiện một lần; tạo đường dẫn mới để xem."
+    },
+    "groups": {
+      "button": "Nhóm lịch",
+      "save": "Lưu các lịch đang hiện thành nhóm",
+      "delete": "Xoá nhóm",
+      "name": "Tên nhóm",
+      "deleteOne": "Xoá nhóm \"{name}\"?"
     }
   },
   "tasks": {

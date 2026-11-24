@@ -158,4 +158,22 @@ public class UnsubscribeAndSettingsTests
         s.QuickSteps[1].Name.Should().HaveLength(40);
         s.QuickSteps[1].Id.Should().NotBeEmpty();
     }
+
+    [Fact]
+    public void Calendar_groups_are_normalised()
+    {
+        var a = Guid.NewGuid();
+        var s = MailSettings.Normalize(new MailSettings
+        {
+            CalendarGroups =
+            [
+                new CalendarGroup("g1", "  Team  ", [a, a, Guid.Empty]),
+                new CalendarGroup("g2", "Empty", [Guid.Empty]),
+                new CalendarGroup("g1", "Duplicate", [a]),
+                new CalendarGroup("", " ", [a]),
+            ],
+        });
+        s.CalendarGroups.Should().ContainSingle();
+        s.CalendarGroups[0].Should().BeEquivalentTo(new CalendarGroup("g1", "Team", [a]));
+    }
 }

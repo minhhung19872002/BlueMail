@@ -40,6 +40,12 @@ public sealed record MailSettings
     public const int MaxQuickSteps = 20;
     public const int MaxQuickStepActions = 5;
 
+    /// <summary>Outlook "Calendar groups": named sets of calendars shared with the user, opened together.</summary>
+    public IReadOnlyList<CalendarGroup> CalendarGroups { get; init; } = [];
+
+    public const int MaxCalendarGroups = 20;
+    public const int MaxCalendarGroupMembers = 30;
+
     /// <summary>What a Quick Step may do: reversible actions only (no delete forever, no spam/phishing reports).</summary>
     public static readonly IReadOnlySet<string> QuickStepActions = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -87,6 +93,12 @@ public sealed record MailSettings
                         .Select(a => new QuickStepAction(a.Action, a.Action is "addLabel" or "removeLabel" or "moveTo" ? a.LabelId : null))
                         .Take(MaxQuickStepActions).ToList()))
                 .Where(q => q.Actions.Count > 0).DistinctBy(q => q.Id).Take(MaxQuickSteps).ToList(),
+            // Members are user ids; who may be seen is checked when the calendar is read (CalendarPermissions).
+            CalendarGroups = (s.CalendarGroups ?? []).Where(g => g is not null && !string.IsNullOrWhiteSpace(g.Name))
+                .Select(g => new CalendarGroup(g.Id is { Length: > 0 and <= 40 } id ? id : Guid.NewGuid().ToString("N"),
+                    g.Name.Trim().Length > 40 ? g.Name.Trim()[..40] : g.Name.Trim(),
+                    (g.Members ?? []).Where(m => m != Guid.Empty).Distinct().Take(MaxCalendarGroupMembers).ToList()))
+                .Where(g => g.Members.Count > 0).DistinctBy(g => g.Id).Take(MaxCalendarGroups).ToList(),
         };
     }
 }
@@ -154,4 +166,6 @@ public sealed class SaveProfileHandler(BlueMailDbContext db, ICurrentUser me, IS
 public sealed record QuickStepAction(string Action, Guid? LabelId);
 
 public sealed record QuickStep(string Id, string Name, IReadOnlyList<QuickStepAction> Actions);
+
+public sealed record CalendarGroup(string Id, string Name, IReadOnlyList<Guid> Members);
 

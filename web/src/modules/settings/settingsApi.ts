@@ -25,6 +25,14 @@ export interface MailSettings {
   favorites: string[];
   /** Outlook "Quick Steps": named sequences of mail actions. */
   quickSteps: QuickStep[];
+  /** Outlook "Calendar groups": named sets of shared calendars (user ids). */
+  calendarGroups: CalendarGroup[];
+}
+
+export interface CalendarGroup {
+  id: string;
+  name: string;
+  members: string[];
 }
 
 export interface QuickStepAction {

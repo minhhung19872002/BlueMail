@@ -1599,6 +1599,13 @@
       "renew": "Make a new link",
       "remove": "Remove link",
       "active": "A link is active ({detail}). For safety it is shown only once; make a new link to see one."
+    },
+    "groups": {
+      "button": "Calendar groups",
+      "save": "Save shown calendars as a group",
+      "delete": "Delete a group",
+      "name": "Group name",
+      "deleteOne": "Delete the group \"{name}\"?"
     }
   },
   "tasks": {
