@@ -77,6 +77,7 @@ public sealed class StackFixture : IAsyncLifetime
             ["BM_MAIL_HOSTNAME"] = "mx.bluemail.test",
             ["BM_OIDC_SIGNING_KEY"] = signing,
             ["BM_OIDC_ENCRYPTION_KEY"] = encryption,
+            ["BM_PSL_URL"] = "off", // tests never download; PublicSuffixFeedTests drive the feed directly
             ["BM_LOG_DIR"] = Path.Combine(Path.GetTempPath(), "bluemail-tests-" + Guid.NewGuid().ToString("N")),
             ["BM_PLATFORM_ADMIN_EMAIL"] = PlatformAdmin,
             ["BM_PLATFORM_ADMIN_PASSWORD"] = PlatformAdminPassword,
@@ -140,7 +141,7 @@ public sealed class StackFixture : IAsyncLifetime
         await Garage("layout", "assign", "-z", "dc1", "-c", "1G", node);
         await Garage("layout", "apply", "--version", "1");
         await Garage("key", "import", "--yes", "-n", "bluemail", S3AccessKey, S3SecretKey);
-        foreach (var bucket in new[] { "bm-messages", "bm-attachments-large", "bm-exports" })
+        foreach (var bucket in new[] { "bm-messages", "bm-attachments-large", "bm-exports", "bm-backups" })
         {
             await Garage("bucket", "create", bucket);
             await Garage("bucket", "allow", "--read", "--write", "--owner", bucket, "--key", S3AccessKey);

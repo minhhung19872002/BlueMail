@@ -7,6 +7,7 @@
     <ProjectReference Include="..\BlueMail.Scanner\BlueMail.Scanner.csproj" />
     <ProjectReference Include="..\BlueMail.Antispam\BlueMail.Antispam.csproj" />
     <ProjectReference Include="..\BlueMail.Dns\BlueMail.Dns.csproj" />
+    <ProjectReference Include="..\BlueMail.Auth\BlueMail.Auth.csproj" />
     <ProjectReference Include="..\BlueMail.Infrastructure\BlueMail.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>

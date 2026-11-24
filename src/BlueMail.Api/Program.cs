@@ -45,6 +45,8 @@ builder.Services.Configure<ApiBehaviorOptions>(o =>
 builder.Services.AddSingleton<BlueMail.Scanner.MalwareHashList>();
 builder.Services.AddSingleton<BlueMail.Scanner.PatternRuleScanner>();
 builder.Services.AddHostedService<BlueMail.Application.Scanning.ScannerFeeds>();
+builder.Services.AddSingleton<BlueMail.Application.Scanning.PublicSuffixFeed>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Scanning.PublicSuffixFeed>());
 builder.Services.AddSingleton<BlueMail.Scanner.IFileScanner>(sp => BlueMail.Scanner.BlueMailScanners.Create(sp.GetRequiredService<BlueMail.Scanner.MalwareHashList>(), sp.GetRequiredService<BlueMail.Scanner.PatternRuleScanner>()));
 builder.Services.AddSignalR().AddJsonProtocol(o => WebJson.Configure(o.PayloadSerializerOptions));
 builder.Services.AddHostedService<BlueMail.Api.Realtime.MailEventRelay>();

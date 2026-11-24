@@ -22,7 +22,36 @@ public sealed class PublicSuffixList
         return Load(r);
     });
 
-    public static PublicSuffixList Default => Embedded.Value;
+    private static PublicSuffixList? _current;
+
+    /// <summary>The list in use: a newer downloaded copy once <see cref="Use"/> installed one, else the embedded list.</summary>
+    public static PublicSuffixList Default => Volatile.Read(ref _current) ?? Embedded.Value;
+
+    /// <summary>Installs a newer list for every later <see cref="Default"/> (evaluations already running keep theirs).</summary>
+    public static void Use(PublicSuffixList list) => Volatile.Write(ref _current, list);
+
+    /// <summary>Largest list file accepted (the real one is about 300 KB).</summary>
+    public const int MaxBytes = 4 * 1024 * 1024;
+
+    /// <summary>Fewest rules a full list has (about 10,000 today); a shorter download is truncated or not the list.</summary>
+    public const int MinRules = 5000;
+
+    /// <summary>
+    /// Parses a downloaded list and accepts it only when it looks complete: under <see cref="MaxBytes"/>, with the ICANN
+    /// and PRIVATE section markers and at least <see cref="MinRules"/> rules. Null otherwise (the current list stays).
+    /// </summary>
+    public static PublicSuffixList? TryParseDownloaded(string text)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length > MaxBytes
+            || !text.Contains("===BEGIN ICANN DOMAINS===", StringComparison.Ordinal)
+            || !text.Contains("===END PRIVATE DOMAINS===", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var list = Load(new StringReader(text));
+        return list.RuleCount >= MinRules ? list : null;
+    }
 
     public int RuleCount => _rules.Count + _wildcards.Count + _exceptions.Count;
 

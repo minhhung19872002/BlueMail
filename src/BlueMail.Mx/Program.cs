@@ -60,6 +60,8 @@ builder.Services.AddSingleton(new DnsClient(new DnsClientOptions { Servers = dns
 builder.Services.AddSingleton<MalwareHashList>();
 builder.Services.AddSingleton<PatternRuleScanner>();
 builder.Services.AddHostedService<BlueMail.Application.Scanning.ScannerFeeds>();
+builder.Services.AddSingleton<BlueMail.Application.Scanning.PublicSuffixFeed>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<BlueMail.Application.Scanning.PublicSuffixFeed>());
 builder.Services.AddSingleton<IFileScanner>(sp => BlueMailScanners.Create(sp.GetRequiredService<MalwareHashList>(), sp.GetRequiredService<PatternRuleScanner>()));
 
 var smtpPort = Int("BM_MX_PORT", 25);
