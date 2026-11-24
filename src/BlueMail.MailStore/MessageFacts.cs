@@ -40,6 +40,17 @@ public sealed record MessageFacts(
         {
             parts.Add(new PartInfo(e.PartPath, e.MediaType, e.Charset, e.TransferEncoding, SearchText.Clean(e.FileName), SearchText.Clean(e.ContentId),
                 e.IsInline, e.IsAttachment, e.BodyOffset, e.BodyLength));
+        }
+
+        // Files: an attached message counts as one file (.eml); what is inside it belongs to that message, not this one.
+        foreach (var e in m.Root.WalkOwn())
+        {
+            if (e != m.Root && e.IsAttachedMessage)
+            {
+                attachments.Add(new AttachmentFact(e.PartPath, SearchText.Clean(e.FileName) ?? "message.eml", e.MediaType, e.BodyLength, null, false));
+                continue;
+            }
+
             var isFile = e.IsLeaf && (e.IsAttachment || (e.FileName is not null && !e.MediaType.StartsWith("text/", StringComparison.Ordinal))
                                       || (e.ContentId is not null && e.MediaType.StartsWith("image/", StringComparison.Ordinal)));
             if (isFile)

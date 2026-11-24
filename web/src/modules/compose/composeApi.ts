@@ -2,7 +2,7 @@ import { api } from "../../api/client";
 import type { Recipient } from "./compose";
 
 export interface DraftAttachment {
-  kind: "upload" | "part";
+  kind: "upload" | "part" | "message";
   uploadId: string | null;
   messageId: string | null;
   partPath: string | null;
@@ -84,7 +84,7 @@ export const emptyDraft = (): DraftState => ({
 
 export const composeApi = {
   fromOptions: () => api.get<FromOption[]>("/api/v1/mail/compose/from-options"),
-  fromMessage: (messageId: string, mode: "reply" | "replyAll" | "forward") =>
+  fromMessage: (messageId: string, mode: "reply" | "replyAll" | "forward" | "forwardAttachment") =>
     api.get<DraftState>(`/api/v1/mail/compose/from-message/${messageId}?mode=${mode}`),
   suggest: (q: string) => api.get<Suggestion[]>(`/api/v1/mail/compose/suggest?q=${encodeURIComponent(q)}`),
   save: (draftId: string | null, version: number | null, state: DraftState) => api.post<DraftDto>("/api/v1/mail/drafts", { draftId, version, state }),

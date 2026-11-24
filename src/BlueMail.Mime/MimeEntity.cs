@@ -50,6 +50,29 @@ public sealed class MimeEntity
 
     public bool IsInline => ContentDisposition?.Value == "inline";
 
+    /// <summary>A whole message carried as a file (forward as attachment, .eml): message/rfc822 not marked inline.</summary>
+    public bool IsAttachedMessage => IsMessage && ContentDisposition?.Value != "inline";
+
+    /// <summary>Like <see cref="Walk"/> but an attached message is one entity: its own body and files are not this message's.</summary>
+    public IEnumerable<MimeEntity> WalkOwn() => WalkOwn(true);
+
+    private IEnumerable<MimeEntity> WalkOwn(bool top)
+    {
+        yield return this;
+        if (IsAttachedMessage && !top)
+        {
+            yield break;
+        }
+
+        foreach (var c in Children)
+        {
+            foreach (var d in c.WalkOwn(false))
+            {
+                yield return d;
+            }
+        }
+    }
+
     public IEnumerable<MimeEntity> Walk()
     {
         yield return this;

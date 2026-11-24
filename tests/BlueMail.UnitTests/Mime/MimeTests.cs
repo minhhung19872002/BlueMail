@@ -321,6 +321,74 @@ public class BuilderTests
     public void Chooses_transfer_encoding(string text, string expected) =>
         MessageBuilder.ChooseTextEncoding(Encoding.UTF8.GetBytes(text)).Should().Be(expected);
 
+    [Theory]
+    [InlineData("Subject: a\r\n\r\nhello\r\n", "7bit")]
+    [InlineData("Subject: Chào\r\n\r\nxin chào\r\n", "8bit")]
+    [InlineData("Subject: a\n\nbare LF\n", null)]
+    [InlineData("Subject: a\r\n\r\nNUL\0\r\n", null)]
+    public void Embedded_message_encoding(string raw, string? expected) =>
+        MessageBuilder.EmbeddedMessageEncoding(Encoding.UTF8.GetBytes(raw)).Should().Be(expected);
+
+    [Fact]
+    public void A_long_line_makes_an_embedded_message_need_base64() =>
+        MessageBuilder.EmbeddedMessageEncoding(Encoding.ASCII.GetBytes("Subject: a\r\n\r\n" + new string('x', 999) + "\r\n")).Should().BeNull();
+
+    [Fact]
+    public void Forward_as_attachment_writes_the_original_as_message_rfc822_unencoded()
+    {
+        var original = "From: An <an@doitac.test>\r\nSubject: Báo giá\r\nMessage-ID: <o1@doitac.test>\r\n\r\nNội dung gốc\r\n";
+        var bytes = new MessageBuilder
+        {
+            From = new MailboxAddress("Minh", "minh@bluemail.test"), To = [new MailboxAddress(null, "lan@bluemail.test")], MessageId = "f1@bluemail.test",
+            Subject = "Fwd: Báo giá", HtmlBody = "<p>FYI</p>",
+            Attachments = [new BuilderAttachment { FileName = "Báo giá.eml", ContentType = "message/rfc822", Open = () => new MemoryStream(Encoding.UTF8.GetBytes(original)) }],
+        }.ToBytes();
+
+        var msg = MimeMessage.Parse(bytes);
+        var part = msg.Root.Walk().Single(p => p.MediaType == "message/rfc822");
+        part.FileName.Should().Be("Báo giá.eml");
+        Encoding.UTF8.GetString(part.ReadDecodedBody(new MemoryStream(bytes))).Should().Be(original);
+        Encoding.UTF8.GetString(bytes).Should().Contain("Content-Transfer-Encoding: 8bit");
+    }
+
+    [Fact]
+    public void An_attached_message_is_one_file_and_its_insides_are_not_this_messages_files()
+    {
+        var inner = new MessageBuilder
+        {
+            From = new MailboxAddress(null, "an@doitac.test"), MessageId = "o2@doitac.test", Subject = "Hoá đơn", TextBody = "inner body",
+            Attachments = [new BuilderAttachment { FileName = "hoá-đơn.pdf", ContentType = "application/pdf", Open = () => new MemoryStream("%PDF-1.4"u8.ToArray()) }],
+        }.ToBytes();
+        var outer = new MessageBuilder
+        {
+            From = new MailboxAddress(null, "minh@bluemail.test"), MessageId = "f3@bluemail.test", TextBody = "outer body",
+            Attachments = [new BuilderAttachment { FileName = "Hoá đơn.eml", ContentType = "message/rfc822", Open = () => new MemoryStream(inner) }],
+        }.ToBytes();
+
+        var parsed = MimeMessage.Parse(outer);
+        var facts = BlueMail.MailStore.MessageFacts.Extract(parsed, new MemoryStream(outer));
+        facts.Attachments.Should().ContainSingle().Which.FileName.Should().Be("Hoá đơn.eml");
+        facts.HasAttachments.Should().BeTrue();
+        parsed.Root.WalkOwn().Should().NotContain(e => e.FileName == "hoá-đơn.pdf");
+        parsed.Root.Walk().Should().Contain(e => e.FileName == "hoá-đơn.pdf", "the full walk still sees inside (scanning)");
+    }
+
+    [Fact]
+    public void An_original_that_is_not_valid_8bit_goes_as_an_eml_file_in_base64()
+    {
+        var original = "Subject: a\n\nbare LF\n";
+        var bytes = new MessageBuilder
+        {
+            From = new MailboxAddress(null, "minh@bluemail.test"), MessageId = "f2@bluemail.test", TextBody = "x",
+            Attachments = [new BuilderAttachment { FileName = "a.eml", ContentType = "message/rfc822", Open = () => new MemoryStream(Encoding.ASCII.GetBytes(original)) }],
+        }.ToBytes();
+
+        var msg = MimeMessage.Parse(bytes);
+        var part = msg.Root.Walk().Single(p => p.FileName == "a.eml");
+        part.MediaType.Should().Be("application/octet-stream");
+        Encoding.ASCII.GetString(part.ReadDecodedBody(new MemoryStream(bytes))).Should().Be(original);
+    }
+
     [Fact]
     public void Smtputf8_needed_only_for_international_addresses()
     {

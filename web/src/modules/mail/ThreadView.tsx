@@ -12,6 +12,7 @@ import { bytes, dateTime } from "../../format";
 import { useMe, useUserFormat } from "../../session";
 import { act, getBody, getOriginal, getThread, mailKeys, trustImages, unsubscribe, type MailAction } from "./mailApi";
 import { SnoozeMenu } from "./SnoozeMenu";
+import { SweepButton } from "./Sweep";
 import { useShortcuts } from "./ShortcutHost";
 import { ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike } from "./mailView";
@@ -38,6 +39,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showOlder, setShowOlder] = useState(false);
   const markedRead = useRef<string | null>(null);
+  const me = useMe();
 
   const msgs = thread.data?.messages ?? [];
   // Open by default: unread messages and the last one (PROMPT 6.3).
@@ -104,6 +106,9 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
       message.error(e instanceof ApiError ? e.title : t("errors.actionFailed"));
     }
   };
+  // Sweep needs the other party: the newest sender that is not me, and the inbox to sweep.
+  const sweepSender = [...msgs].reverse().map((m) => m.message.from?.address).find((a) => a && a.toLowerCase() !== me.email.toLowerCase());
+  const inboxLabelId = labels.find((l) => l.systemKey === "INBOX")?.id;
   const userLabelIds = new Set(msgs.flatMap((m) => m.message.labelIds));
   const chips = labels.filter((l) => l.systemKey === null && userLabelIds.has(l.id));
   const hidden = !showOlder && msgs.length > 4 ? msgs.slice(1, -2).filter((m) => !defaultOpen.has(m.message.id)) : [];
@@ -117,6 +122,7 @@ export function ThreadView({ threadId, labels, systemKey, onClose }: Props) {
         {systemKey !== "SPAM" && <Tooltip title={t("mail.reportSpam")}><Button type="text" icon={<ExclamationCircleOutlined />} aria-label={t("mail.reportSpam")} onClick={() => void run("spam")} /></Tooltip>}
         {systemKey === "SPAM" && <Button type="text" onClick={() => void run("notSpam")}>{t("mail.notSpam")}</Button>}
         {systemKey !== "TRASH" && <Tooltip title={t("mail.delete")}><Button type="text" icon={<DeleteOutlined />} aria-label={t("mail.delete")} onClick={() => void run("trash")} /></Tooltip>}
+        {systemKey === "INBOX" && sweepSender && inboxLabelId && <SweepButton sender={sweepSender} inboxLabelId={inboxLabelId} onDone={onClose} />}
         {systemKey !== "SNOOZED" && systemKey !== "TRASH" && systemKey !== "SPAM" && (
           <SnoozeMenu onSnooze={(until) => void run("snooze", true, until).then(() => message.success(t("mail.done.snoozed", { count: 1 })))} />
         )}
@@ -188,6 +194,7 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
   const msg = m.message;
   const body = useQuery({ queryKey: mailKeys.body(msg.id, showImages), queryFn: () => getBody(msg.id, showImages), enabled: open });
   const qc = useQueryClient();
+  const openCompose = useCompose((s) => s.open);
 
   const warnings = authWarnings(msg.authResults);
   const fromDomain = msg.from ? domainOf(msg.from.address) : "";
@@ -207,13 +214,22 @@ function MessageItem({ m, open, toggle, inSpam }: { m: ThreadMessage; open: bool
   }
 
   const sender = msg.from?.address;
+  const startCompose = (mode: "reply" | "replyAll" | "forward" | "forwardAttachment") =>
+    void composeApi.fromMessage(msg.id, mode).then((initial) => openCompose({ initial }), () => message.error(t("errors.actionFailed")));
   const more: MenuProps = {
     items: [
+      // Per-message actions like Outlook's "..." on a message in a conversation.
+      { key: "reply", label: t("compose.reply") },
+      { key: "replyAll", label: t("compose.replyAll") },
+      { key: "forward", label: t("compose.forward") },
+      { key: "forwardAttachment", label: t("compose.forwardAttachment") },
+      { type: "divider" },
       { key: "original", label: t("mail.showOriginal") },
       { key: "eml", label: <a href={m.rawUrl} download>{t("mail.downloadEml")}</a> },
       ...(sender && sender.toLowerCase() !== me.email.toLowerCase() ? [{ key: "block", danger: true, label: t("mail.blockSender", { address: sender }) }] : []),
     ],
     onClick: ({ key }) => {
+      if (key === "reply" || key === "replyAll" || key === "forward" || key === "forwardAttachment") startCompose(key);
       if (key === "original") setOriginal(true);
       if (key === "block" && sender) {
         modal.confirm({

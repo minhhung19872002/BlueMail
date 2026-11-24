@@ -186,6 +186,16 @@
       "heading": "Yêu thích",
       "add": "Thêm vào Yêu thích",
       "remove": "Bỏ khỏi Yêu thích"
+    },
+    "sweep": {
+      "button": "Dọn sạch",
+      "title": "Dọn sạch",
+      "ok": "Dọn sạch",
+      "intro": "Chuyển các hội thoại từ {address} ra khỏi Hộp thư đến vào Thùng rác:",
+      "all": "Tất cả hội thoại từ người gửi này trong Hộp thư đến",
+      "allAndBlock": "Tất cả, và chặn thư từ người gửi này về sau",
+      "older": "Chỉ những hội thoại cũ hơn 10 ngày",
+      "done": "Đã chuyển {count, number} hội thoại từ {address} vào Thùng rác."
     }
   },
   "sessions": {
@@ -363,7 +373,8 @@
       "attachment_infected": "Có tệp đính kèm nguy hiểm, không thể gửi.",
       "upload_incomplete": "Có tệp đính kèm chưa tải lên xong.",
       "no_recipients": "Hãy thêm ít nhất một người nhận."
-    }
+    },
+    "forwardAttachment": "Chuyển tiếp dưới dạng tệp đính kèm"
   },
   "signatures": {
     "title": "Chữ ký và mẫu thư",

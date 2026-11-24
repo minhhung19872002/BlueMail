@@ -183,6 +183,35 @@ public sealed class MessageBuilder
     private static void WriteLeaf(StreamWriter w, Stream output, Leaf leaf)
     {
         var contentType = leaf.ContentType;
+        if (contentType.Equals("message/rfc822", StringComparison.OrdinalIgnoreCase))
+        {
+            // A message forwarded as an attachment. RFC 2046 5.2.1 allows only 7bit/8bit/binary here, so the message is
+            // written as it is; one that is not valid 8bit (long lines, bare CR/LF, NUL) goes as an .eml file in base64.
+            using var src = leaf.Open();
+            using var ms = new MemoryStream();
+            src.CopyTo(ms);
+            var raw = ms.ToArray();
+            var cte = EmbeddedMessageEncoding(raw);
+            if (cte is not null)
+            {
+                WriteHeader(w, "Content-Type", "message/rfc822" + (leaf.FileName is null ? "" : "; name=\"" + QuoteParam(EncodedWords.Encode(leaf.FileName)) + "\""));
+                WriteHeader(w, "Content-Disposition", "attachment" + (leaf.FileName is null ? "" : "; " + Rfc2231FileName(leaf.FileName)));
+                WriteHeader(w, "Content-Transfer-Encoding", cte);
+                w.WriteLine();
+                w.Flush();
+                output.Write(raw);
+                if (raw.Length > 0 && !raw.AsSpan().EndsWith("\r\n"u8))
+                {
+                    w.WriteLine();
+                }
+
+                return;
+            }
+
+            leaf = leaf with { ContentType = "application/octet-stream", Open = () => new MemoryStream(raw, writable: false) };
+            contentType = leaf.ContentType;
+        }
+
         if (leaf.FileName is not null)
         {
             contentType += "; name=\"" + QuoteParam(EncodedWords.Encode(leaf.FileName)) + "\"";
@@ -232,6 +261,43 @@ public sealed class MessageBuilder
         {
             w.Write(TransferDecoding.EncodeBase64Lines(buffer.AsSpan(0, n)));
         }
+    }
+
+    /// <summary>"7bit" or "8bit" when the bytes are a valid line-based message of that kind (CRLF only, lines of at most
+    /// 998 octets, no NUL); null when they need base64.</summary>
+    internal static string? EmbeddedMessageEncoding(ReadOnlySpan<byte> raw)
+    {
+        var eightBit = false;
+        var line = 0;
+        for (var i = 0; i < raw.Length; i++)
+        {
+            var b = raw[i];
+            if (b == 0)
+            {
+                return null;
+            }
+
+            if (b == (byte)'\r')
+            {
+                if (i + 1 >= raw.Length || raw[i + 1] != (byte)'\n')
+                {
+                    return null;
+                }
+
+                i++;
+                line = 0;
+                continue;
+            }
+
+            if (b == (byte)'\n' || ++line > 998)
+            {
+                return null;
+            }
+
+            eightBit |= b > 127;
+        }
+
+        return eightBit ? "8bit" : "7bit";
     }
 
     private static int ReadFull(Stream s, byte[] buffer)

@@ -540,7 +540,7 @@ public sealed partial class PgMailStore
         {
             MimeEntity? html = null, text = null, calendar = null;
             var cids = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var e in parsed.Root.Walk().Where(e => e.IsLeaf))
+            foreach (var e in parsed.Root.WalkOwn().Where(e => e.IsLeaf))
             {
                 if (e.ContentId is { } cid)
                 {
@@ -606,7 +606,7 @@ public sealed partial class PgMailStore
         var (row, raw, parsed) = loaded.Value;
         using (raw)
         {
-            var part = parsed.Root.Walk().FirstOrDefault(e => e.IsLeaf && e.PartPath == partPath);
+            var part = parsed.Root.Walk().FirstOrDefault(e => (e.IsLeaf || e.IsAttachedMessage) && e.PartPath == partPath);
             if (part is null)
             {
                 return null;

@@ -139,7 +139,7 @@ public sealed record ComposeFromMessageQuery(Guid? MailboxId, Guid MessageId, st
 
 public sealed class ComposeFromMessageValidator : AbstractValidator<ComposeFromMessageQuery>
 {
-    public ComposeFromMessageValidator() => RuleFor(x => x.Mode).Must(m => m is "reply" or "replyAll" or "forward").WithErrorCode("invalid_mode");
+    public ComposeFromMessageValidator() => RuleFor(x => x.Mode).Must(m => m is "reply" or "replyAll" or "forward" or "forwardAttachment").WithErrorCode("invalid_mode");
 }
 
 /// <summary>
@@ -161,6 +161,23 @@ public sealed class ComposeFromMessageHandler(MailboxOpener opener, PgMailStore 
         var subject = m.Subject ?? "";
         var quoted = Quote(m, content);
         var refs = (m.RfcMessageId is null ? [] : new List<string> { m.RfcMessageId }).ToList();
+        if (q.Mode == "forwardAttachment")
+        {
+            // Outlook "Forward as attachment": an empty body and the original as a message/rfc822 part (.eml).
+            var name = string.Concat((string.IsNullOrWhiteSpace(subject) ? "message" : subject.Trim())
+                .Select(ch => Path.GetInvalidFileNameChars().Contains(ch) || char.IsControl(ch) ? '_' : ch));
+            return new DraftState
+            {
+                From = from,
+                Subject = Prefix("Fwd:", subject, ["fwd", "fw", "tr", "wg", "rv", "enc", "ct", "chuyển tiếp"]),
+                Html = "<p></p>",
+                References = refs,
+                ReplyToMessageId = m.Id,
+                Mode = "forward",
+                Attachments = [new DraftAttachment("message", null, m.Id, null, (name.Length > 120 ? name[..120] : name) + ".eml", "message/rfc822", m.Size)],
+            };
+        }
+
         if (q.Mode == "forward")
         {
             return new DraftState

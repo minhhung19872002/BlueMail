@@ -103,6 +103,17 @@ public sealed partial class MimeComposer(UploadStore uploads, PgMailStore store,
 
                 content = part.Content;
             }
+            else if (a.Kind == "message" && a.MessageId is { } fwd)
+            {
+                // Forward as attachment: the whole original, as received (message/rfc822).
+                using var raw = new MemoryStream();
+                if (!await store.CopyRawAsync(access, fwd, raw, ct))
+                {
+                    throw new ComposeException("attachment_missing");
+                }
+
+                content = raw.ToArray();
+            }
 
             if (content is null)
             {

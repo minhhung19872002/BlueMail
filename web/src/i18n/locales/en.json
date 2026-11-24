@@ -186,6 +186,16 @@
       "heading": "Favorites",
       "add": "Add to Favorites",
       "remove": "Remove from Favorites"
+    },
+    "sweep": {
+      "button": "Sweep",
+      "title": "Sweep",
+      "ok": "Sweep",
+      "intro": "Move conversations from {address} out of the inbox to Trash:",
+      "all": "All conversations from this sender in the inbox",
+      "allAndBlock": "All of them, and block future messages from this sender",
+      "older": "Only those older than 10 days",
+      "done": "Moved {count, number} conversations from {address} to Trash."
     }
   },
   "sessions": {
@@ -363,7 +373,8 @@
       "attachment_infected": "An attachment is dangerous and cannot be sent.",
       "upload_incomplete": "An attachment has not finished uploading.",
       "no_recipients": "Add at least one recipient."
-    }
+    },
+    "forwardAttachment": "Forward as attachment"
   },
   "signatures": {
     "title": "Signatures and templates",

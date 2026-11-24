@@ -14,7 +14,7 @@ Mỗi RFC: phạm vi đã làm, chưa làm, bằng chứng kiểm thử. Cập n
 | IDNA2008 / UTS #46 | `EmailAddress` (`IdnMapping`, `UseStd3AsciiRules`) | A-label khi lưu, U-label khi hiển thị | — (cảnh báo trộn hệ chữ đã làm ở Phase 8: `mailView.ts`, luật `SpamRules`) | `Normalises_to_lower_case_and_a_label` (đối chứng `idna` của Python) |
 | WCAG 2.1 AA 1.4.3 | `web/src/theme/tokens.ts` | Tương phản ≥ 4,5:1 mọi cặp chữ/nền ở sáng và tối | — (đo toàn trang bằng Lighthouse ở Phase 13: các trang chính 100, BUG-071) | `tokens.test.ts` |
 | RFC 5322 | `BlueMail.Mime` | tiêu đề, gấp dòng, địa chỉ (nhóm, chú thích, route cũ), ngày (cả dạng cũ 4.3), Message-ID | sinh phần cục bộ quoted-string | `MimeCorpusTests`, `AddressTests`, `DateTests` |
-| RFC 2045/2046 | `BlueMail.Mime` | multipart lồng, preamble/epilogue, message/rfc822, digest, base64/QP khoan dung + luồng | CTE `binary` coi như identity | `MimeCorpusTests`, `ParserTests`, `TransferEncodingTests` |
+| RFC 2045/2046 | `BlueMail.Mime` | multipart lồng, preamble/epilogue, message/rfc822, digest, base64/QP khoan dung + luồng; khi tạo thư, message/rfc822 đính kèm chỉ dùng 7bit/8bit (5.2.1) | CTE `binary` coi như identity; thư đính kèm không hợp lệ 8bit gửi thành `.eml` base64 | `MimeCorpusTests`, `ParserTests`, `TransferEncodingTests` |
 | RFC 2047 | `BlueMail.Mime` | B/Q, ghép từ kề nhau theo byte, mã hoá theo grapheme | — | `EncodedWordTests` |
 | RFC 2231 | `BlueMail.Mime` | nối đoạn, bảng mã/ngôn ngữ, ưu tiên tham số mở rộng | — | `ParameterTests`, `Rfc2231_segments_never_split_an_escape` |
 | RFC 2183 / 2392 | `BlueMail.Mime` | inline/attachment, filename, Content-ID | tham số size/date | `MimeCorpusTests` |

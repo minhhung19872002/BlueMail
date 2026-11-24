@@ -374,4 +374,60 @@ public class SendingTests(StackFixture stack)
         thread.Should().ContainSingle("the reply joins the conversation (References/In-Reply-To)");
         thread[0].GetProperty("messageCount").GetInt32().Should().Be(2, "ivan's sent copy and jiwoo's reply");
     }
+
+    [Fact]
+    public async Task Forward_as_attachment_carries_the_whole_original_and_only_from_my_own_mailbox()
+    {
+        using var ivan = await Client("ivan@acme.test");
+        var d = await SaveDraft(ivan, new
+        {
+            to = new[] { new { address = "jiwoo@acme.test" } }, subject = "Hợp đồng mẫu", html = "<p>Bản nháp hợp đồng</p>", attachments = Array.Empty<object>(),
+        });
+        var s = await Data(await ivan.PostAsJsonAsync($"/api/v1/mail/drafts/{d}/send", new { }));
+        await MakeDue(s.GetProperty("outgoingId").GetGuid());
+        await Dispatcher.RunOnceAsync(default);
+
+        using var jiwoo = await Client("jiwoo@acme.test");
+        var list = await Data(await jiwoo.GetAsync("/api/v1/mail/conversations?view=all&limit=100"));
+        var original = list.GetProperty("items").EnumerateArray().First(c => c.GetProperty("subject").GetString() == "Hợp đồng mẫu").GetProperty("latestMessageId").GetGuid();
+
+        var fwd = await Data(await jiwoo.GetAsync($"/api/v1/mail/compose/from-message/{original}?mode=forwardAttachment"));
+        fwd.GetProperty("subject").GetString().Should().Be("Fwd: Hợp đồng mẫu");
+        fwd.GetProperty("html").GetString().Should().NotContain("Bản nháp hợp đồng", "the original travels as a file, not quoted");
+        var att = fwd.GetProperty("attachments").EnumerateArray().Should().ContainSingle().Subject;
+        att.GetProperty("kind").GetString().Should().Be("message");
+        att.GetProperty("fileName").GetString().Should().Be("Hợp đồng mẫu.eml");
+
+        // Another user cannot attach jiwoo's message by its id: the draft is built from their own mailbox only.
+        using var david = await Client("david@acme.test");
+        // (Saving a draft builds the real message, so it is refused right there.)
+        var refused = await david.PostAsJsonAsync("/api/v1/mail/drafts", new
+        {
+            state = new
+            {
+                to = new[] { new { address = "david@acme.test" } }, subject = "x", html = "<p>x</p>",
+                attachments = new[] { new { kind = "message", messageId = original, fileName = "x.eml", contentType = "message/rfc822", size = 10 } },
+            },
+        });
+        refused.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await refused.Content.ReadAsStringAsync()).Should().Contain("attachment_missing");
+
+        var state = JsonSerializer.Deserialize<Dictionary<string, object?>>(fwd.GetRawText())!;
+        state["to"] = new[] { new { address = "david@acme.test" } };
+        var fd = await Data(await jiwoo.PostAsJsonAsync("/api/v1/mail/drafts", new { state }));
+        var fs = await Data(await jiwoo.PostAsJsonAsync($"/api/v1/mail/drafts/{fd.GetProperty("id").GetGuid()}/send", new { }));
+        await MakeDue(fs.GetProperty("outgoingId").GetGuid());
+        await Dispatcher.RunOnceAsync(default);
+
+        var inbox = await Data(await david.GetAsync("/api/v1/mail/conversations?view=all&limit=100"));
+        var conv = inbox.GetProperty("items").EnumerateArray().First(c => c.GetProperty("subject").GetString() == "Fwd: Hợp đồng mẫu");
+        var thread = await Data(await david.GetAsync($"/api/v1/mail/threads/{conv.GetProperty("threadId").GetGuid()}"));
+        var file = thread.GetProperty("messages")[0].GetProperty("attachments").EnumerateArray()
+            .Should().ContainSingle(a => a.GetProperty("contentType").GetString() == "message/rfc822").Subject;
+        file.GetProperty("fileName").GetString().Should().Be("Hợp đồng mẫu.eml");
+        using var anon = stack.Api.CreateClient();
+        var url = new Uri(file.GetProperty("downloadUrl").GetString()!, UriKind.RelativeOrAbsolute);
+        var eml = await anon.GetStringAsync(url.IsAbsoluteUri ? url.PathAndQuery : url.OriginalString);
+        eml.Should().Contain("Subject: =?").And.Contain("Message-ID:");
+    }
 }
