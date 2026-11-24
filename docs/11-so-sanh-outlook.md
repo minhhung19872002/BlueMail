@@ -51,7 +51,8 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Next 7 Days, Schedule view | ❌ | |
 | Scheduling Assistant (rảnh/bận khi mời họp) | ✅ | Người trong tổ chức: rảnh / bận giờ này; ngoài tổ chức: không xem được lịch; chỉ thời gian, không lộ tiêu đề |
 | Share Calendar, Open Calendar, Permissions | ✅ | Chia sẻ cho đồng nghiệp với quyền Được xem / Được sửa; hiện lịch của người khác chồng lên lịch mình; cuộc họp có khách chỉ người tổ chức sửa |
-| Calendar Groups, Publish Online | ❌ | Xuất bản lịch công khai (ICS) chưa có |
+| Publish Online | ✅ | Đường dẫn ICS bí mật (chỉ giờ bận, hoặc đầy đủ trừ khách mời), tạo lại để thu hồi; iPhone/Google/Outlook đăng ký được |
+| Calendar Groups | ❌ | |
 | E-mail Calendar | ❌ | |
 | Teams / Skype meeting | — | Không có dịch vụ họp trực tuyến |
 
@@ -81,4 +82,4 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 ## Việc nên làm tiếp (theo mức dùng thường gặp)
 
 1. Sắp xếp danh sách thư theo người gửi / kích thước / tiêu đề (cần đường truy vấn riêng giữ được hiệu năng D30).
-2. Xuất bản lịch công khai (ICS) và nhóm lịch.
+2. Nhóm lịch (Calendar Groups).

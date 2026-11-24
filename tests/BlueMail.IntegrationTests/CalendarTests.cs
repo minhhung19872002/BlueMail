@@ -167,5 +167,38 @@ public class CalendarTests(StackFixture stack)
         (await sofia.PutAsJsonAsync("/api/v1/calendar/shares", new { email = "minh@bluemail.test", permission = "VIEW" })).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await sofia.PutAsJsonAsync("/api/v1/calendar/shares", new { email = "sofia@acme.test", permission = "VIEW" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Published_calendar_link_serves_ics_and_can_be_replaced_or_removed()
+    {
+        using var priya = await Client("priya@acme.test");
+        var day = DateTimeOffset.UtcNow.Date.AddDays(3);
+        var title = "Board prep " + Guid.NewGuid().ToString("N")[..5];
+        await Data(await priya.PostAsJsonAsync("/api/v1/calendar/events", new { summary = title, location = "Room 9", start = new DateTimeOffset(day.AddHours(9), TimeSpan.Zero),
+            end = new DateTimeOffset(day.AddHours(10), TimeSpan.Zero), allDay = false, timeZone = "Asia/Kolkata", recurrenceRule = "FREQ=WEEKLY;COUNT=3" }));
+
+        var busy = await Data(await priya.PutAsJsonAsync("/api/v1/calendar/feed", new { detail = "BUSY" }));
+        var busyUrl = new Uri(busy.GetProperty("url").GetString()!);
+        (await Data(await priya.GetAsync("/api/v1/calendar/feed"))).GetProperty("url").ValueKind.Should().Be(JsonValueKind.Null, "the link is shown once");
+
+        using var anon = stack.Api.CreateClient();
+        var res = await anon.GetAsync(busyUrl.PathAndQuery);
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        res.Content.Headers.ContentType!.MediaType.Should().Be("text/calendar");
+        var ics = await res.Content.ReadAsStringAsync();
+        ics.Should().Contain("METHOD:PUBLISH").And.Contain("SUMMARY:Busy").And.Contain("RRULE:FREQ=WEEKLY;COUNT=3").And.Contain("TZID:Asia/Kolkata")
+            .And.NotContain(title).And.NotContain("Room 9").And.NotContain("ATTENDEE");
+
+        // A FULL link replaces the old one; the old one stops working.
+        var full = await Data(await priya.PutAsJsonAsync("/api/v1/calendar/feed", new { detail = "FULL" }));
+        (await anon.GetAsync(busyUrl.PathAndQuery)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var fullIcs = await anon.GetStringAsync(new Uri(full.GetProperty("url").GetString()!).PathAndQuery);
+        fullIcs.Should().Contain("SUMMARY:" + title).And.Contain("LOCATION:Room 9");
+        BlueMail.Application.Features.Calendar.ICalendar.Parse(fullIcs)!.Summary.Should().Be(title);
+
+        await Data(await priya.PutAsJsonAsync("/api/v1/calendar/feed", new { detail = (string?)null }));
+        (await anon.GetAsync(new Uri(full.GetProperty("url").GetString()!).PathAndQuery)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await anon.GetAsync("/api/v1/calendar/feed/not-a-real-token-at-all-xxxxxxxx.ics")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
 

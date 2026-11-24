@@ -203,6 +203,8 @@ Draft state gains `confidential: { expiresDays: 1|7|30|90|365, requireCode }`. S
 | Method | Path | Guard | Notes |
 |---|---|---|---|
 | GET | `/api/v1/calendar/events?from=&to=` | self | Occurrences overlapping the window (≤ 400 days); recurring events expanded (RRULE DAILY/WEEKLY/MONTHLY/YEARLY, EXDATE) in their own zone; declined and cancelled ones left out |
+| GET / PUT | `/api/v1/calendar/feed` | self | Published calendar: `{ detail: BUSY\|FULL\|null }` makes a new secret link (shown once; the old one stops) or removes it |
+| GET | `/api/v1/calendar/feed/{token}.ics` | anonymous (secret link) | ICS (METHOD:PUBLISH) from 30 days back to a year ahead; BUSY = times as "Busy"; never guests |
 | GET / PUT | `/api/v1/calendar/shares` | self | `mine` (who sees my calendar) and `withMe`; PUT `{ email, permission: VIEW\|EDIT\|NONE }` (same organisation). Events endpoints take `owner=` for a shared calendar (VIEW reads; EDIT also writes, except meetings with guests) |
 | GET | `/api/v1/calendar/freebusy?address=&address=&from=&to=` | self (own organisation) | Busy intervals (merged, no titles) of up to 20 addresses over ≤ 31 days; `known: false` for addresses outside the organisation |
 | POST | `/api/v1/calendar/events` | self | `{ summary, location?, description?, start, end, allDay, timeZone?, recurrenceRule?, attendees?: [{ name?, address }], reminderMinutes?, color? }`; guests get an iMIP REQUEST |

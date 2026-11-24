@@ -295,6 +295,41 @@ public static class ICalendar
         return sb.ToString();
     }
 
+    /// <summary>
+    /// A published calendar (METHOD:PUBLISH, RFC 5546 3.2.1) of many events, for subscribing from other calendar apps.
+    /// Each zone's VTIMEZONE is written once; events are written as for invitations.
+    /// </summary>
+    public static string Publish(string name, IEnumerable<(CalendarEvent Event, TimeZoneInfo Zone)> events, DateTimeOffset now)
+    {
+        var sb = new StringBuilder();
+        void Add(string line) => Fold(sb, line);
+        Add("BEGIN:VCALENDAR");
+        Add("PRODID:-//BlueMail//BlueMail//EN");
+        Add("VERSION:2.0");
+        Add("METHOD:PUBLISH");
+        Add("X-WR-CALNAME:" + EscapeText(name));
+        var zones = new HashSet<string>(StringComparer.Ordinal);
+        var bodies = new StringBuilder();
+        foreach (var (e, zone) in events)
+        {
+            var one = Organizer("PUBLISH", e, zone, now);
+            var tz = one.IndexOf("BEGIN:VTIMEZONE\r\n", StringComparison.Ordinal);
+            if (tz >= 0 && zones.Add(zone.Id))
+            {
+                var tzEnd = one.IndexOf("END:VTIMEZONE\r\n", tz, StringComparison.Ordinal) + "END:VTIMEZONE\r\n".Length;
+                sb.Append(one, tz, tzEnd - tz);
+            }
+
+            var ev = one.IndexOf("BEGIN:VEVENT\r\n", StringComparison.Ordinal);
+            var evEnd = one.IndexOf("END:VEVENT\r\n", ev, StringComparison.Ordinal) + "END:VEVENT\r\n".Length;
+            bodies.Append(one, ev, evEnd - ev);
+        }
+
+        sb.Append(bodies);
+        Add("END:VCALENDAR");
+        return sb.ToString();
+    }
+
     /// <summary>VTIMEZONE (RFC 5545 3.6.5) for a zone from its adjustment rule in force at <paramref name="at"/>.</summary>
     public static IEnumerable<string> VTimeZone(TimeZoneInfo zone, DateTimeOffset at)
     {

@@ -329,3 +329,5 @@ kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bor
   .ant-picker-datetime-panel { flex-direction: column; }
   .ant-picker-dropdown { max-inline-size: calc(100vw - 16px); }
 }
+
+.bm-break-all { word-break: break-all; }

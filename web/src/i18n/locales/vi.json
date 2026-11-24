@@ -1568,6 +1568,17 @@
       "stop": "Ngừng chia sẻ",
       "others": "Hiện lịch của người khác",
       "ofOwner": "Lịch của {name}"
+    },
+    "publish": {
+      "title": "Xuất bản lịch của tôi",
+      "intro": "Một đường dẫn bí mật để ứng dụng lịch khác (iPhone, Google, Outlook) đăng ký theo dõi. Ai có đường dẫn sẽ thấy những gì bạn chọn ở đây; tạo đường dẫn mới thì đường dẫn cũ hết hiệu lực.",
+      "detail": "Đường dẫn hiện gì",
+      "busy": "Chỉ giờ tôi bận",
+      "full": "Tiêu đề, địa điểm, ghi chú",
+      "make": "Tạo đường dẫn",
+      "renew": "Tạo đường dẫn mới",
+      "remove": "Gỡ đường dẫn",
+      "active": "Đang có đường dẫn ({detail}). Để an toàn, đường dẫn chỉ hiện một lần; tạo đường dẫn mới để xem."
     }
   },
   "tasks": {

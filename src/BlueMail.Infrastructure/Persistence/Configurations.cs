@@ -803,6 +803,18 @@ internal sealed class CalendarShareConfig : IEntityTypeConfiguration<BlueMail.Do
     }
 }
 
+internal sealed class CalendarFeedConfig : IEntityTypeConfiguration<BlueMail.Domain.Calendar.CalendarFeed>
+{
+    public void Configure(EntityTypeBuilder<BlueMail.Domain.Calendar.CalendarFeed> b)
+    {
+        b.ToTable("calendar_feeds", "cal");
+        b.Property(x => x.TokenHash).HasMaxLength(64);
+        b.Property(x => x.Detail).HasMaxLength(8);
+        b.HasIndex(x => x.TokenHash).IsUnique().HasFilter("deleted_at IS NULL");
+        b.HasIndex(x => x.UserId).IsUnique().HasFilter("deleted_at IS NULL");
+    }
+}
+
 internal sealed class InviteResponseConfig : IEntityTypeConfiguration<InviteResponse>
 {
     public void Configure(EntityTypeBuilder<InviteResponse> b)

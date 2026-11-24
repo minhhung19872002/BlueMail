@@ -344,6 +344,35 @@ public sealed class CalendarController(ISender mediator) : ControllerBase
         [FromQuery] DateTimeOffset to, [FromQuery] Guid? owner, CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.ListEventsQuery(from, to, owner), ct));
 
+    /// <summary>The published-calendar link (Outlook "Publish Online"): whether one exists and its detail.</summary>
+    [HttpGet("feed")]
+    [SelfGuarded("own calendar link of the signed-in user")]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.CalendarFeedDto>> Feed(CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.GetCalendarFeedQuery(), ct));
+
+    /// <summary>{ detail: BUSY | FULL | null }: makes a new secret link (the old one stops working), or removes it.</summary>
+    [HttpPut("feed")]
+    [SelfGuarded("own calendar link of the signed-in user")]
+    public async Task<ApiResponse<BlueMail.Application.Features.Calendar.CalendarFeedDto>> Publish([FromBody] BlueMail.Application.Features.Calendar.PublishCalendarCommand body,
+        CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(body, ct));
+
+    /// <summary>The published calendar as ICS for other calendar apps; the secret in the link is the credential.</summary>
+    [HttpGet("feed/{token}.ics")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    public async Task<IActionResult> FeedIcs(string token, CancellationToken ct)
+    {
+        var ics = await mediator.Send(new BlueMail.Application.Features.Calendar.CalendarFeedIcsQuery(token), ct);
+        if (ics is null)
+        {
+            return NotFound();
+        }
+
+        Response.Headers.CacheControl = "private, max-age=300";
+        Response.Headers["X-Robots-Tag"] = "noindex";
+        return Content(ics, "text/calendar; charset=utf-8");
+    }
+
     /// <summary>Who sees my calendar, and whose calendars I may open (Outlook "Share Calendar").</summary>
     [HttpGet("shares")]
     [SelfGuarded("own calendar shares of the signed-in user")]

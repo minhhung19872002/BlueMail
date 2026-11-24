@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { App, Button, Input, List, Modal, Select, Space, Typography } from "antd";
+import { App, Button, Divider, Input, List, Modal, Select, Space, Typography } from "antd";
 import { ShareAltOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -15,6 +15,19 @@ export function CalendarSharing() {
   const [email, setEmail] = useState("");
   const [permission, setPermission] = useState<"VIEW" | "EDIT">("VIEW");
   const shares = useQuery({ queryKey: [...calendarKeys.all, "shares"], queryFn: calendarApi.shares, enabled: open });
+  // Publish Online: a secret ICS link for other calendar apps (shown once when made).
+  const feed = useQuery({ queryKey: [...calendarKeys.all, "feed"], queryFn: calendarApi.feed, enabled: open });
+  const [detail, setDetail] = useState<"BUSY" | "FULL">("BUSY");
+  const [link, setLink] = useState<string | null>(null);
+  const publish = async (d: "BUSY" | "FULL" | null) => {
+    try {
+      const r = await calendarApi.publish(d);
+      qc.setQueryData([...calendarKeys.all, "feed"], r);
+      setLink(r.url);
+    } catch (e) {
+      message.error(e instanceof ApiError ? e.title : t("errors.actionFailed"));
+    }
+  };
   const set = async (address: string, p: "VIEW" | "EDIT" | "NONE") => {
     try {
       qc.setQueryData([...calendarKeys.all, "shares"], await calendarApi.setShare(address, p));
@@ -46,6 +59,17 @@ export function CalendarSharing() {
                 <List.Item.Meta title={s.name} description={s.email} />
               </List.Item>
             )} />
+          <Divider />
+          <Typography.Title level={5}>{t("calendar.publish.title")}</Typography.Title>
+          <Typography.Paragraph type="secondary">{t("calendar.publish.intro")}</Typography.Paragraph>
+          <Space wrap>
+            <Select value={detail} onChange={setDetail} aria-label={t("calendar.publish.detail")} style={{ minInlineSize: 200 }}
+              options={[{ value: "BUSY", label: t("calendar.publish.busy") }, { value: "FULL", label: t("calendar.publish.full") }]} />
+            <Button onClick={() => void publish(detail)}>{feed.data?.active ? t("calendar.publish.renew") : t("calendar.publish.make")}</Button>
+            {feed.data?.active && <Button danger type="link" onClick={() => void publish(null)}>{t("calendar.publish.remove")}</Button>}
+          </Space>
+          {link && <Typography.Paragraph copyable={{ text: link }} className="bm-break-all" style={{ marginBlockStart: 8 }}>{link}</Typography.Paragraph>}
+          {!link && feed.data?.active && <Typography.Paragraph type="secondary" style={{ marginBlockStart: 8 }}>{t("calendar.publish.active", { detail: t(feed.data.detail === "FULL" ? "calendar.publish.full" : "calendar.publish.busy") })}</Typography.Paragraph>}
         </Modal>
       )}
     </>

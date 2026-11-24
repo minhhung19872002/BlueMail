@@ -46,6 +46,14 @@ export interface CalendarShares {
   withMe: SharedCalendar[];
 }
 
+export interface CalendarFeed {
+  active: boolean;
+  detail: "BUSY" | "FULL" | null;
+  createdAt: string | null;
+  /** Only in the answer that made the link. */
+  url: string | null;
+}
+
 export interface EventInput {
   summary: string;
   location: string | null;
@@ -66,6 +74,8 @@ export const calendarApi = {
   list: (from: string, to: string, owner?: string) =>
     api.get<CalendarEvent[]>(`/api/v1/calendar/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${owner ? `&owner=${owner}` : ""}`),
   shares: () => api.get<CalendarShares>("/api/v1/calendar/shares"),
+  feed: () => api.get<CalendarFeed>("/api/v1/calendar/feed"),
+  publish: (detail: "BUSY" | "FULL" | null) => api.put<CalendarFeed>("/api/v1/calendar/feed", { detail }),
   setShare: (email: string, permission: "VIEW" | "EDIT" | "NONE") => api.put<CalendarShares>("/api/v1/calendar/shares", { email, permission }),
   create: (e: EventInput) => api.post<CalendarEvent>("/api/v1/calendar/events", e),
   update: (id: string, e: EventInput, owner?: string) => api.put<CalendarEvent>(`/api/v1/calendar/events/${id}${owner ? `?owner=${owner}` : ""}`, e),

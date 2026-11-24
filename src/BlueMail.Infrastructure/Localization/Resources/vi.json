@@ -290,5 +290,6 @@
   "error.shared_calendar_no_guests": "Cuộc họp có khách mời chỉ người tổ chức mới lập và sửa được.",
   "error.cannot_share_with_self": "Đây là lịch của chính bạn.",
   "error.too_many_shares": "Một lịch chia sẻ được tối đa cho 50 người.",
-  "error.invalid_permission": "Chọn xem, sửa hoặc ngừng chia sẻ."
+  "error.invalid_permission": "Chọn xem, sửa hoặc ngừng chia sẻ.",
+  "error.invalid_detail": "Chọn chỉ thời gian hoặc đầy đủ chi tiết."
 }

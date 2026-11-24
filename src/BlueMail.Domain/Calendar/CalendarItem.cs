@@ -60,3 +60,16 @@ public class CalendarShare : TenantEntity
     /// <summary>VIEW or EDIT.</summary>
     public string Permission { get; set; } = "VIEW";
 }
+
+/// <summary>
+/// A published calendar (Outlook "Publish Online"): a secret link other calendar apps subscribe to. Only the SHA-256
+/// of the token is stored; making a new link replaces the old one.
+/// </summary>
+public class CalendarFeed : TenantEntity
+{
+    public Guid UserId { get; set; }
+    public string TokenHash { get; set; } = "";
+
+    /// <summary>BUSY (times only, as "Busy") or FULL (titles, places, notes; never guests).</summary>
+    public string Detail { get; set; } = "BUSY";
+}

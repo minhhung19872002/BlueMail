@@ -1568,6 +1568,17 @@
       "stop": "Stop sharing",
       "others": "Show other calendars",
       "ofOwner": "Calendar of {name}"
+    },
+    "publish": {
+      "title": "Publish my calendar",
+      "intro": "A secret link other calendar apps (iPhone, Google, Outlook) can subscribe to. Anyone with the link can see what you choose here; make a new link to stop the old one.",
+      "detail": "What the link shows",
+      "busy": "Only when I'm busy",
+      "full": "Titles, places and notes",
+      "make": "Make link",
+      "renew": "Make a new link",
+      "remove": "Remove link",
+      "active": "A link is active ({detail}). For safety it is shown only once; make a new link to see one."
     }
   },
   "tasks": {
