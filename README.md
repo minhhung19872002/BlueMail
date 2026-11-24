@@ -20,9 +20,20 @@ for the full specification.
 | 6 | Spam filtering: own rules + Bayes (global/tenant/user, multilingual tokens) + reputation + optional DNSBL (off by default), per-tenant thresholds, in-session reject, quarantine, greylisting, learning from report buttons, phishing reports, "Why is this in Spam?"; Scanner layers 7 (MalwareBazaar hashes) and 8 (byte-pattern rules). Measured: 99.6 % spam caught, 0 % false positives | done |
 | 9 | Administration console: domain wizard (records with live DNS check, verification, aliases, catch-all, DKIM rotation, MTA-STS policy), users (details, CSV import, aliases, address change, delete with transfer), groups with posting rules and external members, shared mailboxes, typed policies per org unit, routing rules, message trace, queue, suppressions, sending health, reports (XLSX, print to PDF), platform tenant management with audited support sign-in | done |
 | 10 | Compliance: legal holds (user, department, query) and retention decided inside the delete statement, eDiscovery search and export with a SHA-256 manifest, user and tenant exports behind expiring signed links; own IMAP parser and client (checked against Dovecot and Python imaplib), IMAP / mbox / .eml import without duplicates, "download my data" | done (live Gmail/Outlook.com import awaits test accounts) |
-| 11 | BlueMail.Submission (SMTP 465/587, AUTH PLAIN/LOGIN/XOAUTH2/OAUTHBEARER) and BlueMail.Imap (IMAP4rev1 + IDLE, UIDPLUS, MOVE, SPECIAL-USE, LIST-EXTENDED, CONDSTORE/QRESYNC, LITERAL+, NAMESPACE, ID, ENABLE, COMPRESS=DEFLATE; labels as folders); app passwords, immediate revocation, Thunderbird autoconfig and Outlook autodiscover. Dovecot imaptest: 0/460 base commands failed | done (real Thunderbird/Outlook/iPhone runs pending) |
-| 12 | Sending at scale: IP pools with warm-up and PTR checks, VERP return paths, late bounces and ARF complaints through MX, abuse self-lock, TLS-RPT reports; DNSSEC validation in BlueMail.Dns (agrees with dnspython on real zones) and DANE for outgoing SMTP; confidential mode (links with expiry, mailed code, revocation). docs/07 | done (real Gmail/Outlook runs from a public IP pending) |
-| 13 | Performance (inbox p95 99 ms and search p95 502 ms at 1M messages, 60 msg/s SMTP intake at p95 93 ms, 2,000 IMAP IDLE sessions), accessibility (Lighthouse 100), PWA, full production compose with worker split and sample mail over SMTP, backup/restore drill, long fuzzing, handover docs 01–04 | done (500 concurrent web users: 344 req/s, p95 301 ms, 0 errors; real mail clients pending) |
+| 11 | BlueMail.Submission (SMTP 465/587, AUTH PLAIN/LOGIN/XOAUTH2/OAUTHBEARER) and BlueMail.Imap (IMAP4rev1 + IDLE, UIDPLUS, MOVE, SPECIAL-USE, LIST-EXTENDED, CONDSTORE/QRESYNC, LITERAL+, NAMESPACE, ID, ENABLE, COMPRESS=DEFLATE; labels as folders); app passwords, immediate revocation, Thunderbird autoconfig and Outlook autodiscover. Dovecot imaptest: 0/460 base commands failed | done (Thunderbird and Outlook checked; iPhone Mail pending) |
+| 12 | Sending at scale: IP pools with warm-up and PTR checks, VERP return paths, late bounces and ARF complaints through MX, abuse self-lock, TLS-RPT reports; DNSSEC validation in BlueMail.Dns (agrees with dnspython on real zones) and DANE for outgoing SMTP; confidential mode (links with expiry, mailed code, revocation). docs/07 | done (real Gmail/Outlook delivery skipped by the owner until the provider sets PTR) |
+| 13 | Performance (inbox p95 99 ms and search p95 502 ms at 1M messages, 60 msg/s SMTP intake at p95 93 ms, 2,000 IMAP IDLE sessions), accessibility (Lighthouse 100), PWA, full production compose with worker split and sample mail over SMTP, backup/restore drill, long fuzzing, handover docs 01–04 | done (500 concurrent web users: 344 req/s, p95 301 ms, 0 errors) |
+| OL | Outlook on the web parity (owner's request, docs/11): mail list (sort, filter, quick steps, sweep, clean up, follow-up flags, favorites, shared mailboxes, attach as item), calendar (invites, recurrence, scheduling assistant, sharing, publishing, groups, schedule view, e-mail calendar, reminders), To Do (smart lists, categories, assignment, reminders), contacts (sharing, mail merge, meeting / follow-up). Playwright e2e 22/22 at 1366×768 and 375×812 | done |
+
+### Open items (need the owner)
+
+| Item | What is missing |
+|---|---|
+| P10-12 | Live import from Gmail and Outlook.com: app passwords of test accounts |
+| P11-11 | iPhone Mail run: a physical iPhone (Thunderbird and Outlook already pass) |
+| P12-12 | Skipped by the owner: delivery to Gmail/Outlook.com from 14.225.83.93 waits for the provider's PTR record |
+
+Last full run (2026-11-24): unit 867/867, integration 97/97, web 90/90, e2e 22/22.
 
 ## Quick start (development)
 
