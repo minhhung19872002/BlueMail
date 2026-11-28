@@ -26,6 +26,10 @@ export interface DraftState {
   attachments: DraftAttachment[];
   /** Confidential mode (Phase 12): outside recipients get a link that expires; optional mailed code. */
   confidential?: { expiresDays: number; requireCode: boolean } | null;
+  /** Outlook "Importance". */
+  importance?: "high" | "normal" | "low";
+  /** Outlook "Request a read receipt" (Disposition-Notification-To, RFC 8098). */
+  readReceipt?: boolean;
 }
 
 export interface DraftDto {

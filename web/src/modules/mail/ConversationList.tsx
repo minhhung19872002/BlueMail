@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { App, Button, Checkbox, Dropdown, Empty, Space, Spin, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
-  DeleteOutlined, ExclamationCircleOutlined, FolderOpenOutlined, InboxOutlined, LeftOutlined, MailOutlined,
+  ArrowDownOutlined, DeleteOutlined, ExclamationCircleOutlined, ExclamationOutlined, FolderOpenOutlined, InboxOutlined, LeftOutlined, MailOutlined,
   PaperClipOutlined, ReloadOutlined, RightOutlined, StarFilled, StarOutlined, StopOutlined, TagOutlined, UndoOutlined,
 } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -356,7 +356,7 @@ function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myA
             ))}
             {c.messageCount > 1 && <span className="bm-conv-count">{c.messageCount}</span>}
           </span>
-          <span className="bm-conv-time">{c.hasAttachments && <PaperClipOutlined aria-label={t("mail.hasAttachments")} />} {time}</span>
+          <span className="bm-conv-time"><PriorityMark priority={c.priority} />{c.hasAttachments && <PaperClipOutlined aria-label={t("mail.hasAttachments")} />} {time}</span>
         </span>
         <span className={unread ? "bm-card-subject bm-strong bm-unread-accent" : "bm-card-subject"}>
           {labels.map((l) => (
@@ -389,7 +389,7 @@ function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myA
       </button>
       )}
       {!cards && <span className="bm-conv-time">
-        {c.hasAttachments && <PaperClipOutlined aria-label={t("mail.hasAttachments")} />} {time}
+        <PriorityMark priority={c.priority} />{c.hasAttachments && <PaperClipOutlined aria-label={t("mail.hasAttachments")} />} {time}
       </span>}
       <span className="bm-conv-hover" role="group" aria-label={t("mail.quickActions")}>
         {systemKey === "INBOX" && (
@@ -404,4 +404,12 @@ function Row({ c, open, checked, onCheck, onOpen, onAction, labels, dragIds, myA
       </span>
     </li>
   );
+}
+
+/** Outlook's importance mark in the list: red "!" for high, a down arrow for low, nothing for normal. */
+function PriorityMark({ priority }: { priority: number }) {
+  const { t } = useTranslation();
+  if (priority === 1) return <ExclamationOutlined className="bm-priority-high" role="img" aria-label={t("mail.importance.high")} />;
+  if (priority === 5) return <ArrowDownOutlined className="bm-priority-low" role="img" aria-label={t("mail.importance.low")} />;
+  return null;
 }

@@ -47,6 +47,14 @@ Nút ổ khoá trong khung soạn: người nhận **bên ngoài** nhận một 
 ngày, có thể yêu cầu **mã 6 số** gửi tới email của họ. Trong thư đã gửi bạn thấy ai đã mở và có thể **thu hồi** hoặc
 cho xem lại. Lưu ý: không ngăn được người nhận chụp màn hình hay chép lại.
 
+### Mức quan trọng và xác nhận đã đọc
+
+Nút **Tùy chọn thư** trong khung soạn (như Outlook): **Mức quan trọng cao / thấp** và **Yêu cầu xác nhận đã đọc**.
+Thư quan trọng cao hiện dấu **!** đỏ trong danh sách (thấp: mũi tên xuống) và một dòng ghi chú khi mở.
+Khi thư bạn nhận có yêu cầu xác nhận, khung đọc hỏi **Gửi xác nhận / Không gửi**; Cài đặt → Xác nhận đã đọc chọn
+Hỏi mỗi lần / Luôn gửi / Không bao giờ gửi. "Luôn gửi" vẫn hỏi khi xác nhận đi tới địa chỉ khác người gửi; thư trong
+Thư rác không bao giờ gửi xác nhận. Đã trả lời (ở web hay ở Thunderbird/Outlook qua IMAP) thì không hỏi lại.
+
 ## 5. Tìm kiếm
 
 Ô tìm kiếm hiểu toán tử như Gmail, kết hợp được:

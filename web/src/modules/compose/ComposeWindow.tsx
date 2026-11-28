@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { App, Button, Checkbox, DatePicker, Dropdown, Input, Modal, Progress, Select, Space, Tag, Tooltip, Typography, type MenuProps } from "antd";
 import {
-  CloseOutlined, DeleteOutlined, DownOutlined, ExpandAltOutlined, FileTextOutlined, LockOutlined, MinusOutlined, PaperClipOutlined, ShrinkOutlined,
+  ArrowDownOutlined, CloseOutlined, ControlOutlined, DeleteOutlined, DownOutlined, ExclamationOutlined, ExpandAltOutlined, FileTextOutlined, LockOutlined,
+  MinusOutlined, PaperClipOutlined, ShrinkOutlined,
 } from "@ant-design/icons";
 import type { Editor } from "@tiptap/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -387,6 +388,7 @@ export function ComposeWindow({ w }: { w: ComposeWindowState }) {
               <Button type="text" icon={<FileTextOutlined />} aria-label={t("compose.templates")} />
             </Dropdown>
             <ConfidentialButton value={state.confidential ?? null} onChange={(v) => patch({ confidential: v })} />
+            <MessageOptions state={state} patch={patch} />
             <span className="bm-header-spacer" />
             {savedAt && <Typography.Text type="secondary" className="bm-saved">{t("compose.saved")}</Typography.Text>}
             <Tooltip title={t("compose.discard")}>
@@ -405,6 +407,35 @@ export function ComposeWindow({ w }: { w: ComposeWindowState }) {
         </>
       )}
     </div>
+  );
+}
+
+/** Outlook's message options: Importance high / low and "Request a read receipt". */
+function MessageOptions({ state, patch }: { state: DraftState; patch: (p: Partial<DraftState>) => void }) {
+  const { t } = useTranslation();
+  const importance = state.importance ?? "normal";
+  const selected = [...(importance !== "normal" ? [importance] : []), ...(state.readReceipt ? ["receipt"] : [])];
+  const icon = importance === "high" ? <ExclamationOutlined /> : importance === "low" ? <ArrowDownOutlined /> : <ControlOutlined />;
+  return (
+    <Dropdown trigger={["click"]} menu={{
+      selectable: true,
+      multiple: true,
+      selectedKeys: selected,
+      items: [
+        { key: "high", icon: <ExclamationOutlined />, label: t("compose.importance.high") },
+        { key: "low", icon: <ArrowDownOutlined />, label: t("compose.importance.low") },
+        { type: "divider" },
+        { key: "receipt", label: t("compose.readReceipt") },
+      ],
+      onClick: ({ key }) => {
+        if (key === "receipt") patch({ readReceipt: !state.readReceipt });
+        else if (key === "high" || key === "low") patch({ importance: importance === key ? "normal" : key });
+      },
+    }}>
+      <Tooltip title={t("compose.options")}>
+        <Button type={selected.length > 0 ? "link" : "text"} icon={icon} aria-label={t("compose.options")} />
+      </Tooltip>
+    </Dropdown>
   );
 }
 

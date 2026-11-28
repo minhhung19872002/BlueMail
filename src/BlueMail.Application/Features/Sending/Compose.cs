@@ -38,9 +38,26 @@ public sealed record DraftState
     /// <summary>Confidential mode (Phase 12): outside recipients get a link instead of the message.</summary>
     public DraftConfidential? Confidential { get; init; }
 
+    /// <summary>Outlook's "Importance": "high", "low" or "normal".</summary>
+    public string Importance { get; init; } = DraftImportance.Normal;
+
+    /// <summary>Outlook's "Request a read receipt": Disposition-Notification-To the From address (RFC 8098).</summary>
+    public bool ReadReceipt { get; init; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public IEnumerable<DraftAddress> AllRecipients => To.Concat(Cc).Concat(Bcc);
+}
+
+public static class DraftImportance
+{
+    public const string High = "high";
+    public const string Normal = "normal";
+    public const string Low = "low";
+
+    public static string Normalize(string? value) => value?.ToLowerInvariant() switch { High => High, Low => Low, _ => Normal };
+
+    public static short ToPriority(string? value) => Normalize(value) switch { High => MessagePriority.High, Low => MessagePriority.Low, _ => MessagePriority.Normal };
 }
 
 public sealed class ComposeException(string code) : Exception(code)
@@ -144,6 +161,13 @@ public sealed partial class MimeComposer(UploadStore uploads, PgMailStore store,
 
         // The editor shows inline images from blob: URLs; the stored HTML references them as cid:{upload}@upload.
         var text = HtmlToText.Convert(html);
+        // MessageBuilder writes MIME-Version itself (a second one here made every composed message carry two, BUG-088).
+        List<(string Name, string Value)> headers = [.. MessagePriority.Headers(DraftImportance.ToPriority(s.Importance))];
+        if (s.ReadReceipt && s.From is { Length: > 0 } dnt)
+        {
+            headers.Add(("Disposition-Notification-To", "<" + dnt.Trim() + ">"));
+        }
+
         var builder = new MessageBuilder
         {
             From = Addr(new DraftAddress(null, s.From ?? "")) with { Name = await DisplayNameAsync(access, s.From, ct) },
@@ -160,7 +184,7 @@ public sealed partial class MimeComposer(UploadStore uploads, PgMailStore store,
             TextBody = text,
             HtmlBody = html.Length == 0 ? null : html,
             Attachments = atts,
-            ExtraHeaders = [("MIME-Version", "1.0")],
+            ExtraHeaders = headers,
         };
         return builder.ToBytes();
     }
@@ -246,7 +270,7 @@ public sealed class DraftService(BlueMailDbContext db, PgMailStore store, MimeCo
     public async Task<DraftDto> SaveAsync(MailboxAccess access, Guid? draftId, int? expectedVersion, DraftState state, CancellationToken ct)
     {
         access.Require(MailboxRights.Write);
-        state = state with { From = state.From ?? await senders.DefaultFromAsync(access, ct) };
+        state = state with { From = state.From ?? await senders.DefaultFromAsync(access, ct), Importance = DraftImportance.Normalize(state.Importance) };
         Draft draft;
         if (draftId is { } id)
         {

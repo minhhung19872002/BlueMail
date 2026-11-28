@@ -121,6 +121,8 @@ export interface ConversationSummary {
   attachmentNames: string[];
   labelIds: string[];
   muted: boolean;
+  /** Sender's importance (Outlook "!"): 1 high, 3 normal, 5 low. */
+  priority: number;
 }
 
 export interface ConversationPage {
@@ -177,6 +179,12 @@ export interface MessageView {
   spamScore: number | null;
   listUnsubscribe: string | null;
   modseq: number;
+  /** Sender's importance: 1 high, 3 normal, 5 low. */
+  priority: number;
+  /** Where the sender wants a read receipt (RFC 8098); null when not asked. */
+  readReceiptTo: string | null;
+  /** A receipt was sent or declined already ($MDNSent, also from other mail programs). */
+  readReceiptSent: boolean;
 }
 
 export interface ThreadMessage {

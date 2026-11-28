@@ -466,6 +466,92 @@ public class SendingTests(StackFixture stack)
     }
 
     [Fact]
+    public async Task High_importance_with_a_read_receipt_request_and_one_receipt_back()
+    {
+        using var priya = await Client("priya@acme.test");
+        var subject = "Cần duyệt gấp " + Guid.NewGuid().ToString("N")[..8];
+        var draftId = await SaveDraft(priya, new
+        {
+            to = new[] { new { name = (string?)null, address = "tomas@acme.test" } },
+            subject,
+            html = "<p>Anh xem giúp em</p>",
+            importance = "HIGH",
+            readReceipt = true,
+        });
+        var draft = await Data(await priya.GetAsync($"/api/v1/mail/drafts/{draftId}"));
+        draft.GetProperty("state").GetProperty("importance").GetString().Should().Be("high");
+
+        var send = await Data(await priya.PostAsJsonAsync($"/api/v1/mail/drafts/{draftId}/send", new { undoSeconds = 5 }));
+        await MakeDue(send.GetProperty("outgoingId").GetGuid());
+        await Dispatcher.RunOnceAsync(default);
+
+        // tomas sees "!" in the list and the request on the message.
+        using var tomas = await Client("tomas@acme.test");
+        var list = await Data(await tomas.GetAsync("/api/v1/mail/conversations?view=all&limit=100"));
+        var conv = list.GetProperty("items").EnumerateArray().First(c => c.GetProperty("subject").GetString() == subject);
+        conv.GetProperty("priority").GetInt16().Should().Be(MessagePriority.High);
+        var thread = await Data(await tomas.GetAsync($"/api/v1/mail/threads/{conv.GetProperty("threadId").GetGuid()}"));
+        var msg = thread.GetProperty("messages")[0].GetProperty("message");
+        msg.GetProperty("readReceiptTo").GetString().Should().Be("priya@acme.test");
+        msg.GetProperty("readReceiptSent").GetBoolean().Should().BeFalse();
+        var messageId = msg.GetProperty("id").GetGuid();
+
+        // The raw message has one MIME-Version (BUG-088) and Outlook's importance headers.
+        var raw = await Db(db => db.Messages.IgnoreQueryFilters().AsNoTracking().FirstAsync(m => m.Id == messageId));
+        await using (var scope = stack.ApiScope())
+        {
+            var bytes = new MemoryStream();
+            await scope.ServiceProvider.GetRequiredService<BlobStore>().ReadAsync(raw.TenantId, raw.BlobSha256, bytes);
+            var parsed = BlueMail.Mime.MimeMessage.Parse(bytes.ToArray());
+            parsed.Headers.All("MIME-Version").Should().ContainSingle();
+            parsed.Headers.Text("Importance").Should().Be("high");
+            parsed.Headers.Text("X-Priority").Should().Be("1 (Highest)");
+            parsed.Headers.Text("Disposition-Notification-To").Should().Be("<priya@acme.test>");
+        }
+
+        // Two clicks at once (two windows): one receipt.
+        var answers = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+            tomas.PostAsJsonAsync($"/api/v1/mail/messages/{messageId}/read-receipt", new { send = true })));
+        var outcomes = new List<string>();
+        foreach (var a in answers)
+        {
+            outcomes.Add((await Data(a)).GetProperty("outcome").GetString()!);
+        }
+
+        outcomes.Count(o => o == "SENT").Should().Be(1);
+        outcomes.Count(o => o == "ALREADY").Should().Be(3);
+        (await Data(await tomas.GetAsync($"/api/v1/mail/threads/{conv.GetProperty("threadId").GetGuid()}")))
+            .GetProperty("messages")[0].GetProperty("message").GetProperty("readReceiptSent").GetBoolean().Should().BeTrue();
+
+        // priya gets one disposition report, threaded to her message; it asks for nothing itself.
+        var receipts = await Db(db => (from m in db.Messages.IgnoreQueryFilters()
+                                       join b in db.Mailboxes.IgnoreQueryFilters() on m.MailboxId equals b.Id
+                                       join u in db.Users.IgnoreQueryFilters() on b.OwnerId equals u.Id
+                                       where u.PrimaryEmail == "priya@acme.test" && m.InReplyTo == raw.RfcMessageId && m.ExpungedAt == null
+                                       select m).AsNoTracking().ToListAsync());
+        receipts.Should().ContainSingle();
+        receipts[0].Subject.Should().EndWith(": " + subject); // "Read: …" / "Đã đọc: …" in tomas's language
+        receipts[0].MdnTo.Should().BeNull();
+
+        // Declining a second request only marks it; a message that asks nothing is refused; Spam never confirms.
+        (await tomas.PostAsJsonAsync($"/api/v1/mail/messages/{receipts[0].Id}/read-receipt", new { send = true })).StatusCode.Should().Be(HttpStatusCode.NotFound,
+            "priya's receipt is not in tomas's mailbox");
+        using var amara = await Client("amara@acme.test");
+        var plain = await SaveDraft(priya, new { to = new[] { new { name = (string?)null, address = "amara@acme.test" } }, subject = subject + " (2)", html = "<p>x</p>", readReceipt = true });
+        await MakeDue((await Data(await priya.PostAsJsonAsync($"/api/v1/mail/drafts/{plain}/send", new { undoSeconds = 5 }))).GetProperty("outgoingId").GetGuid());
+        await Dispatcher.RunOnceAsync(default);
+        var amaraList = await Data(await amara.GetAsync("/api/v1/mail/conversations?view=all&limit=100"));
+        var second = amaraList.GetProperty("items").EnumerateArray().First(c => c.GetProperty("subject").GetString() == subject + " (2)");
+        second.GetProperty("priority").GetInt16().Should().Be(MessagePriority.Normal);
+        var secondId = second.GetProperty("latestMessageId").GetGuid();
+        (await Data(await amara.PostAsJsonAsync("/api/v1/mail/actions", new { action = "spam", messageIds = new[] { secondId } }))).ValueKind.Should().NotBe(JsonValueKind.Null);
+        (await amara.PostAsJsonAsync($"/api/v1/mail/messages/{secondId}/read-receipt", new { send = true })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Data(await amara.PostAsJsonAsync($"/api/v1/mail/messages/{secondId}/read-receipt", new { send = false }))).GetProperty("outcome").GetString().Should().Be("DECLINED");
+        (await Data(await amara.PostAsJsonAsync($"/api/v1/mail/messages/{secondId}/read-receipt", new { send = true }))).GetProperty("outcome").GetString().Should().Be("ALREADY");
+        (await Db(db => db.Messages.IgnoreQueryFilters().CountAsync(m => m.Subject!.EndsWith(": " + subject + " (2)")))).Should().Be(0, "declined: nothing sent");
+    }
+
+    [Fact]
     public async Task Shared_mailbox_is_listed_opened_and_sent_from_on_behalf_with_a_sender_header()
     {
         using var olivia = await Client("olivia@acme.test");

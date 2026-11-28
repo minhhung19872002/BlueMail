@@ -29,6 +29,9 @@ public sealed record MailSettings
     public string AutoAdvance { get; init; } = "LIST";
     public bool DesktopNotifications { get; init; }
 
+    /// <summary>Outlook "Read receipts" for mail that asks for one: ASK each time, ALWAYS send, NEVER send.</summary>
+    public string ReadReceipts { get; init; } = "ASK";
+
     /// <summary>Lists pinned at the top of the folder pane (Outlook "Favorites"): web paths /mail/inbox, /mail/label/{id}.</summary>
     public IReadOnlyList<string> Favorites { get; init; } = ["/mail/inbox", "/mail/sent", "/mail/drafts"];
 
@@ -83,6 +86,7 @@ public sealed record MailSettings
             InboxCategories = Categories.Where(c => c == "PRIMARY" || (s.InboxCategories ?? []).Contains(c)).ToList(),
             Theme = s.Theme is "SYSTEM" or "LIGHT" or "DARK" ? s.Theme : d.Theme,
             AutoAdvance = s.AutoAdvance is "LIST" or "NEWER" or "OLDER" ? s.AutoAdvance : d.AutoAdvance,
+            ReadReceipts = s.ReadReceipts is "ASK" or "ALWAYS" or "NEVER" ? s.ReadReceipts : d.ReadReceipts,
             Favorites = (s.Favorites ?? d.Favorites).Where(f => f is { Length: > 6 and <= 64 } && f.StartsWith("/mail/", StringComparison.Ordinal))
                 .Distinct(StringComparer.Ordinal).Take(MaxFavorites).ToList(),
             QuickSteps = (s.QuickSteps ?? []).Where(q => q is not null && !string.IsNullOrWhiteSpace(q.Name))

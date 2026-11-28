@@ -71,6 +71,7 @@ answer `404` (indistinguishable from "does not exist").
 | GET / POST / DELETE | `/api/v1/mail/forwarding[/{id}]`, `POST …/{id}/verify { code }`, `PUT /api/v1/mail/forwarding/active { id?, keepCopy }` | self | Forwarding addresses: a 6-digit code is mailed to the address (24 h, 5 tries); one active automatic forward |
 | POST | `/api/v1/mail/actions` `action: snooze \| unsnooze` (`snoozeUntil`), `mute` | self | Snooze (one active per conversation, DB rule; new mail wakes it); mute also archives |
 | GET | `/api/v1/mail/snoozed` | self | Active snoozes with their time |
+| POST | `/api/v1/mail/messages/{id}/read-receipt?mailboxId=` | self (Write + SendAs) | `{ send, automatic? }` → `{ outcome: SENT \| DECLINED \| ALREADY }`: MDN (RFC 8098, multipart/report) with a null envelope sender; `$MDNSent` (RFC 3503) is set first so only one receipt goes out; refused for Spam and for messages that ask nothing |
 | POST | `/api/v1/mail/messages/{id}/unsubscribe` | self | `{ outcome: DONE \| OPEN_URL, url }`: RFC 8058 one-click POST (only with DKIM pass), else mailto:, else the page |
 | GET / PUT | `/api/v1/me/settings`, `PUT /api/v1/me/profile` | self | Account settings (normalised server-side) and profile (name, locale, time zone, clock, week start) |
 | GET / POST / PUT | `/api/v1/contacts[/{id}]`, `POST /api/v1/contacts/delete` | self | Contacts (`?q=&groupId=&other=`): emails/phones with labels, org, title, notes |

@@ -87,3 +87,51 @@ test("a contact can be shared, and a meeting started from a contact", async ({ p
   await expect(page).toHaveURL(/\/calendar/);
   await expect(page.getByRole("dialog", { name: "Sự kiện mới" })).toBeVisible();
 });
+
+test("high importance with a read receipt: the reader sees it and the sender gets the receipt", async ({ page, browser }) => {
+  const subject = `Gấp ${tag()} duyệt hợp đồng`;
+  await signIn(page, "minh@bluemail.test");
+  const composeButtons = page.getByRole("button", { name: "Soạn thư" });
+  await ((page.viewportSize()?.width ?? 1366) < 768 ? composeButtons.last() : composeButtons.first()).click();
+  const to = page.getByRole("combobox", { name: "Tới" });
+  await to.fill("hoa@bluemail.test");
+  await to.press("Enter");
+  await page.getByPlaceholder("Tiêu đề").fill(subject);
+  await page.locator(".ProseMirror").first().fill("Chị duyệt giúp em trong hôm nay.");
+  await page.getByRole("button", { name: "Tùy chọn thư" }).click();
+  // The options menu stays open while choosing (several can be on), like Outlook's.
+  await page.getByRole("menuitem", { name: /Mức quan trọng cao/ }).click();
+  await page.getByRole("menuitem", { name: /Yêu cầu xác nhận đã đọc/ }).click();
+  await page.keyboard.press("Escape");
+  await expectNoHorizontalScroll(page);
+  const sent = page.waitForResponse((r) => /\/drafts\/[^/]+\/send$/.test(new URL(r.url()).pathname) && r.request().method() === "POST");
+  await page.getByRole("button", { name: "Gửi", exact: true }).click();
+  expect((await sent).status()).toBe(200);
+
+  // hoa: "!" in the list, the note and the request in the message; she sends the receipt.
+  const reader = await browser.newPage({ viewport: page.viewportSize() ?? undefined });
+  await signIn(reader, "hoa@bluemail.test");
+  const row = reader.locator(".bm-conv", { hasText: subject });
+  await expect(async () => {
+    await reader.reload();
+    await expect(row).toHaveCount(1, { timeout: 3_000 });
+  }).toPass({ timeout: 60_000, intervals: [2_000] });
+  await expect(row.getByRole("img", { name: "Quan trọng cao" })).toBeVisible();
+  await row.locator(".bm-conv-main").click();
+  await expect(reader.getByText("Thư này được gửi với mức quan trọng cao.")).toBeVisible();
+  await expect(reader.getByText("Người gửi yêu cầu xác nhận đã đọc (minh@bluemail.test).")).toBeVisible();
+  await expect(reader.locator(".bm-msg iframe, .bm-msg-text").first()).toBeVisible();
+  await expectNoHorizontalScroll(reader);
+  await reader.screenshot({ path: `out/read-receipt-${reader.viewportSize()?.width}.png` });
+  const answered = reader.waitForResponse((r) => r.url().includes("/read-receipt") && r.request().method() === "POST");
+  await reader.getByRole("button", { name: "Gửi xác nhận" }).click();
+  expect((await answered).ok()).toBeTruthy();
+  await expect(reader.getByText(/Người gửi yêu cầu xác nhận đã đọc/)).toHaveCount(0);
+  await reader.close();
+
+  // minh gets "Đã đọc: …" (hoa's language) in the inbox.
+  await expect(async () => {
+    await page.goto("/mail/inbox");
+    await expect(page.locator(".bm-conv-main", { hasText: `Đã đọc: ${subject}` })).toHaveCount(1, { timeout: 3_000 });
+  }).toPass({ timeout: 60_000, intervals: [2_000] });
+});

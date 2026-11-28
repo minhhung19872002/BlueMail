@@ -296,5 +296,10 @@
   "error.task_not_assignable": "Việc này đã được giao hoặc đã xong.",
   "error.cannot_assign_to_self": "Việc này đã là của bạn.",
   "error.contacts_not_shared": "Danh bạ này không được chia sẻ với bạn.",
-  "error.invalid_period": "Ngày kết thúc phải sau ngày bắt đầu và không quá 62 ngày."
+  "error.invalid_period": "Ngày kết thúc phải sau ngày bắt đầu và không quá 62 ngày.",
+  "mdn.subject": "Đã đọc: {subject}",
+  "mdn.body": "Thư của bạn\r\n\r\n  Đến: {to}\r\n  Chủ đề: {subject}\r\n  Gửi lúc: {sent}\r\n\r\nđã được đọc lúc {read}.\r\n",
+  "error.read_receipt_not_requested": "Thư này không yêu cầu xác nhận đã đọc.",
+  "error.read_receipt_spam": "Không gửi xác nhận đã đọc cho thư trong Thư rác.",
+  "error.read_receipt_unreachable": "Không gửi được xác nhận đã đọc tới người gửi."
 }

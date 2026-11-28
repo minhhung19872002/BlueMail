@@ -21,6 +21,8 @@ export interface MailSettings {
   sendAndArchive: boolean;
   autoAdvance: "LIST" | "NEWER" | "OLDER";
   desktopNotifications: boolean;
+  /** Outlook "Read receipts" for mail that asks for one. */
+  readReceipts: "ASK" | "ALWAYS" | "NEVER";
   /** Lists pinned at the top of the folder pane (paths such as /mail/inbox). */
   favorites: string[];
   /** Outlook "Quick Steps": named sequences of mail actions. */

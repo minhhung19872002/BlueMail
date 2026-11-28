@@ -120,11 +120,11 @@ public sealed partial class PgMailStore
         await Exec(c, tx, ct, """
             INSERT INTO mail.messages (tenant_id, id, mailbox_id, blob_sha256, thread_id, rfc_message_id, in_reply_to, "references", subject, normalized_subject,
                 from_addr, from_name, to_addrs, cc_addrs, bcc_addrs, reply_to, sent_at, received_at, size, snippet, has_attachments, mime_structure,
-                seen, flagged, answered, forwarded, draft, keywords, spam_score, spam_report, auth_results, list_id, list_unsubscribe, category, is_important,
+                seen, flagged, answered, forwarded, draft, keywords, spam_score, spam_report, auth_results, list_id, list_unsubscribe, category, is_important, priority, mdn_to,
                 modseq, legal_hold_count, search_vector, delivered_to, created_at, updated_at)
             VALUES (@t, @id, @mb, @sha, @thread, @mid, @irt, @refs, @subj, @ns, @from, @fromName, @to::jsonb, @cc::jsonb, @bcc::jsonb, @replyTo::jsonb,
                 @sent, @recv, @size, @snippet, @hasAtt, @mime::jsonb, @seen, @flagged, @answered, @forwarded, @draft, @keywords, @spam, @spamReport::jsonb, @auth::jsonb,
-                @listId, @unsub::jsonb, @category, @important, @modseq, compliance.f_mailbox_hold_count(@t, @mb),
+                @listId, @unsub::jsonb, @category, @important, @priority, @mdnTo, @modseq, compliance.f_mailbox_hold_count(@t, @mb),
                 setweight(to_tsvector('simple', public.f_unaccent(@vSubject)), 'A') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vPeople)), 'B') ||
                 setweight(to_tsvector('simple', public.f_unaccent(@vFiles)), 'B') ||
@@ -145,6 +145,7 @@ public sealed partial class PgMailStore
             ("listId", (object?)Trunc(f.ListId, 998) ?? DBNull.Value),
             ("unsub", f.ListUnsubscribe is null ? DBNull.Value : JsonSerializer.Serialize(new { header = f.ListUnsubscribe, post = f.ListUnsubscribePost })),
             ("category", (object?)target.Category ?? DBNull.Value), ("important", target.Important), ("modseq", modseq),
+            ("priority", f.Priority), ("mdnTo", (object?)f.DispositionNotificationTo ?? DBNull.Value),
             ("vSubject", SearchText.Prepare(f.Subject, 4000)), ("vPeople", SearchText.Prepare(people, 20_000)), ("vFiles", SearchText.Prepare(files, 20_000)),
             ("vBody", SearchText.Prepare(f.BodyText)));
 

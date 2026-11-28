@@ -118,6 +118,13 @@ function General() {
           <Radio value="ALWAYS">{t("settings.imagesAlways")}</Radio>
         </Radio.Group>
       </Form.Item>
+      <Form.Item label={t("settings.readReceipts")}>
+        <Radio.Group aria-label={t("settings.readReceipts")} value={s.readReceipts} onChange={(e) => save({ readReceipts: e.target.value as MailSettings["readReceipts"] })}>
+          <Radio value="ASK">{t("settings.receipts.ASK")}</Radio>
+          <Radio value="ALWAYS">{t("settings.receipts.ALWAYS")}</Radio>
+          <Radio value="NEVER">{t("settings.receipts.NEVER")}</Radio>
+        </Radio.Group>
+      </Form.Item>
       <Space direction="vertical">
         <Switch aria-label={t("settings.conversationView")} checked={s.conversationView} onChange={(conversationView) => save({ conversationView })} /> <span>{t("settings.conversationView")}</span>
         <Checkbox checked={s.keyboardShortcuts} onChange={(e) => save({ keyboardShortcuts: e.target.checked })}>{t("settings.shortcuts")}</Checkbox>

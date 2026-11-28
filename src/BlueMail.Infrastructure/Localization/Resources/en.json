@@ -296,5 +296,10 @@
   "error.task_not_assignable": "This task is already assigned or completed.",
   "error.cannot_assign_to_self": "This task is already yours.",
   "error.contacts_not_shared": "These contacts are not shared with you.",
-  "error.invalid_period": "The end must be after the start, at most 62 days later."
+  "error.invalid_period": "The end must be after the start, at most 62 days later.",
+  "mdn.subject": "Read: {subject}",
+  "mdn.body": "Your message\r\n\r\n  To: {to}\r\n  Subject: {subject}\r\n  Sent: {sent}\r\n\r\nwas read on {read}.\r\n",
+  "error.read_receipt_not_requested": "This message does not ask for a read receipt.",
+  "error.read_receipt_spam": "No read receipt is sent for mail in Spam.",
+  "error.read_receipt_unreachable": "The read receipt could not be delivered to the sender."
 }

@@ -22,6 +22,7 @@ import { api, ApiError } from "../../api/client";
 import { authWarnings, domainOf, isExternal, looksLike, senderDetails } from "./mailView";
 const PdfPreview = lazy(() => import("./PdfPreview").then((m) => ({ default: m.PdfPreview })));
 import { SpamReasons } from "./SpamReasons";
+import { ReadReceiptBanner } from "./ReadReceipt";
 import { rulesApi } from "../settings/rulesApi";
 import { composeApi } from "../compose/composeApi";
 import { useCompose } from "../compose/composeStore";
@@ -359,6 +360,12 @@ function MessageItem({ m, open, toggle, inSpam, fromHere, onlyOne, onChanged }: 
       </Typography.Text>
 
       <SpamReasons report={msg.spamReport} inSpam={inSpam} />
+      {msg.readReceiptTo && <ReadReceiptBanner m={msg} threadId={msg.threadId} inSpam={inSpam} />}
+      {msg.priority !== 3 && (
+        <Typography.Paragraph className="bm-importance-note" type={msg.priority === 1 ? "danger" : "secondary"}>
+          {t(msg.priority === 1 ? "mail.importance.sentHigh" : "mail.importance.sentLow")}
+        </Typography.Paragraph>
+      )}
       {warnings.includes("dmarc") && <Alert className="bm-banner" type="error" showIcon icon={<WarningOutlined />} message={t("mail.warn.dmarc", { domain: fromDomain })} />}
       {!warnings.includes("dmarc") && warnings.length > 0 && <Alert className="bm-banner" type="warning" showIcon message={t("mail.warn.auth")} />}
       {imitated && <Alert className="bm-banner" type="error" showIcon message={t("mail.warn.lookalike", { domain: fromDomain, ours: imitated })} />}

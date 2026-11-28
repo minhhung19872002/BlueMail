@@ -23,7 +23,7 @@ for the full specification.
 | 11 | BlueMail.Submission (SMTP 465/587, AUTH PLAIN/LOGIN/XOAUTH2/OAUTHBEARER) and BlueMail.Imap (IMAP4rev1 + IDLE, UIDPLUS, MOVE, SPECIAL-USE, LIST-EXTENDED, CONDSTORE/QRESYNC, LITERAL+, NAMESPACE, ID, ENABLE, COMPRESS=DEFLATE; labels as folders); app passwords, immediate revocation, Thunderbird autoconfig and Outlook autodiscover. Dovecot imaptest: 0/460 base commands failed | done (Thunderbird and Outlook checked; iPhone Mail pending) |
 | 12 | Sending at scale: IP pools with warm-up and PTR checks, VERP return paths, late bounces and ARF complaints through MX, abuse self-lock, TLS-RPT reports; DNSSEC validation in BlueMail.Dns (agrees with dnspython on real zones) and DANE for outgoing SMTP; confidential mode (links with expiry, mailed code, revocation). docs/07 | done (real Gmail/Outlook delivery skipped by the owner until the provider sets PTR) |
 | 13 | Performance (inbox p95 99 ms and search p95 502 ms at 1M messages, 60 msg/s SMTP intake at p95 93 ms, 2,000 IMAP IDLE sessions), accessibility (Lighthouse 100), PWA, full production compose with worker split and sample mail over SMTP, backup/restore drill, long fuzzing, handover docs 01–04 | done (500 concurrent web users: 344 req/s, p95 301 ms, 0 errors) |
-| OL | Outlook on the web parity (owner's request, docs/11): mail list (sort, filter, quick steps, sweep, clean up, follow-up flags, favorites, shared mailboxes, attach as item), calendar (invites, recurrence, scheduling assistant, sharing, publishing, groups, schedule view, e-mail calendar, reminders), To Do (smart lists, categories, assignment, reminders), contacts (sharing, mail merge, meeting / follow-up). Playwright e2e 22/22 at 1366×768 and 375×812 | done |
+| OL | Outlook on the web parity (owner's request, docs/11): mail list (sort, filter, quick steps, sweep, clean up, follow-up flags, favorites, shared mailboxes, attach as item), calendar (invites, recurrence, scheduling assistant, sharing, publishing, groups, schedule view, e-mail calendar, reminders), To Do (smart lists, categories, assignment, reminders), contacts (sharing, mail merge, meeting / follow-up), importance and read receipts (MDN). Playwright e2e 24/24 at 1366×768 and 375×812 | done |
 
 ### Open items (need the owner)
 
@@ -33,7 +33,7 @@ for the full specification.
 | P11-11 | iPhone Mail run: a physical iPhone (Thunderbird and Outlook already pass) |
 | P12-12 | Skipped by the owner: delivery to Gmail/Outlook.com from 14.225.83.93 waits for the provider's PTR record |
 
-Last full run (2026-11-24): unit 867/867, integration 97/97, web 90/90, e2e 22/22.
+Last full run (2026-11-28): unit 891/891, integration 98/98, web 93/93, e2e 24/24.
 
 ## Quick start (development)
 

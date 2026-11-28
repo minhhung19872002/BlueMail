@@ -251,7 +251,19 @@
         "asc": "Kích thước (nhỏ nhất trên cùng)"
       }
     },
-    "replyWithMeeting": "Trả lời bằng cuộc họp"
+    "replyWithMeeting": "Trả lời bằng cuộc họp",
+    "importance": {
+      "high": "Quan trọng cao",
+      "low": "Quan trọng thấp",
+      "sentHigh": "Thư này được gửi với mức quan trọng cao.",
+      "sentLow": "Thư này được gửi với mức quan trọng thấp."
+    },
+    "receipt": {
+      "requested": "Người gửi yêu cầu xác nhận đã đọc ({address}).",
+      "send": "Gửi xác nhận",
+      "decline": "Không gửi",
+      "sent": "Đã gửi xác nhận đã đọc"
+    }
   },
   "sessions": {
     "title": "Bảo mật và thiết bị",
@@ -431,7 +443,13 @@
       "no_recipients": "Hãy thêm ít nhất một người nhận."
     },
     "forwardAttachment": "Chuyển tiếp dưới dạng tệp đính kèm",
-    "onBehalfOf": "Thay mặt {name} <{address}>"
+    "onBehalfOf": "Thay mặt {name} <{address}>",
+    "options": "Tùy chọn thư",
+    "importance": {
+      "high": "Mức quan trọng cao",
+      "low": "Mức quan trọng thấp"
+    },
+    "readReceipt": "Yêu cầu xác nhận đã đọc"
   },
   "signatures": {
     "title": "Chữ ký và mẫu thư",
@@ -794,7 +812,13 @@
     "password": "Mật khẩu",
     "changePassword": "Đổi mật khẩu",
     "storage": "Dung lượng",
-    "appearanceHint": "Các thiết lập này theo bạn trên mọi thiết bị."
+    "appearanceHint": "Các thiết lập này theo bạn trên mọi thiết bị.",
+    "readReceipts": "Xác nhận đã đọc",
+    "receipts": {
+      "ASK": "Hỏi tôi mỗi lần",
+      "ALWAYS": "Luôn gửi",
+      "NEVER": "Không bao giờ gửi"
+    }
   },
   "shortcuts": {
     "title": "Phím tắt",

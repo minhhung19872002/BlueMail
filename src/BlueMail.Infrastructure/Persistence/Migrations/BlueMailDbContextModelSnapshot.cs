@@ -4233,6 +4233,10 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("mailbox_id");
 
+                    b.Property<string>("MdnTo")
+                        .HasColumnType("text")
+                        .HasColumnName("mdn_to");
+
                     b.Property<string>("MimeStructure")
                         .IsRequired()
                         .HasColumnType("jsonb")
@@ -4245,6 +4249,10 @@ namespace BlueMail.Infrastructure.Persistence.Migrations
                     b.Property<string>("NormalizedSubject")
                         .HasColumnType("text")
                         .HasColumnName("normalized_subject");
+
+                    b.Property<short>("Priority")
+                        .HasColumnType("smallint")
+                        .HasColumnName("priority");
 
                     b.Property<DateTimeOffset>("ReceivedAt")
                         .HasColumnType("timestamp with time zone")

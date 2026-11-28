@@ -251,7 +251,19 @@
         "asc": "Size (smallest on top)"
       }
     },
-    "replyWithMeeting": "Reply with meeting"
+    "replyWithMeeting": "Reply with meeting",
+    "importance": {
+      "high": "High importance",
+      "low": "Low importance",
+      "sentHigh": "This message was sent with high importance.",
+      "sentLow": "This message was sent with low importance."
+    },
+    "receipt": {
+      "requested": "The sender asked for a read receipt ({address}).",
+      "send": "Send receipt",
+      "decline": "Don't send",
+      "sent": "Read receipt sent"
+    }
   },
   "sessions": {
     "title": "Security and devices",
@@ -431,7 +443,13 @@
       "no_recipients": "Add at least one recipient."
     },
     "forwardAttachment": "Forward as attachment",
-    "onBehalfOf": "On behalf of {name} <{address}>"
+    "onBehalfOf": "On behalf of {name} <{address}>",
+    "options": "Message options",
+    "importance": {
+      "high": "High importance",
+      "low": "Low importance"
+    },
+    "readReceipt": "Request a read receipt"
   },
   "signatures": {
     "title": "Signatures and templates",
@@ -794,7 +812,13 @@
     "password": "Password",
     "changePassword": "Change password",
     "storage": "Storage",
-    "appearanceHint": "These settings follow you on every device."
+    "appearanceHint": "These settings follow you on every device.",
+    "readReceipts": "Read receipts",
+    "receipts": {
+      "ASK": "Ask me each time",
+      "ALWAYS": "Always send",
+      "NEVER": "Never send"
+    }
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",

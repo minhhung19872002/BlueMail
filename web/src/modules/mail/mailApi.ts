@@ -52,6 +52,14 @@ export interface UnsubscribeResult {
 
 export const unsubscribe = (messageId: string) => api.post<UnsubscribeResult>(`/api/v1/mail/messages/${messageId}/unsubscribe`, {});
 
+export interface ReadReceiptResult {
+  outcome: "SENT" | "DECLINED" | "ALREADY";
+}
+
+/** Send (or decline) the read receipt a message asks for. */
+export const answerReadReceipt = (messageId: string, send: boolean, automatic = false) =>
+  api.post<ReadReceiptResult>(`/api/v1/mail/messages/${messageId}/read-receipt`, { send, automatic });
+
 export const getThread = (id: string) => api.get<Thread>(`/api/v1/mail/threads/${id}`);
 
 export const getBody = (id: string, showImages: boolean) =>

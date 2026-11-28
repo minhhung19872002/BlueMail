@@ -80,6 +80,9 @@ body { background: var(--bm-bg); color: var(--bm-text); }
 .bm-star-on { color: var(--bm-warning); }
 .bm-important-on { color: var(--bm-warning); font-weight: 700; }
 .bm-important-off { color: var(--bm-border); }
+.bm-priority-high { color: var(--bm-danger); margin-inline-end: 4px; }
+.bm-priority-low { color: var(--bm-textMuted); margin-inline-end: 4px; }
+.bm-importance-note { margin-block: 4px 8px; font-size: 13px; }
 
 .bm-split { display: grid; gap: 12px; }
 .bm-split-right { grid-template-columns: minmax(360px, 1fr) minmax(0, 1.3fr); }

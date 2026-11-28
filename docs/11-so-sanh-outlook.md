@@ -27,6 +27,8 @@ Ký hiệu: ✅ có · ⚠️ có một phần · ❌ chưa có · — không á
 | Follow Up (cờ có hạn: Hôm nay, Ngày mai, Tuần này, Tuần sau, Không hạn) | ✅ | Gắn cờ (sao, đồng bộ IMAP `\Flagged`) và tạo việc có hạn liên kết thư; hạn tuần này/tuần sau là thứ Sáu như Outlook |
 | Snooze, Schedule send, Undo send | ✅ | |
 | Encrypt / không chuyển tiếp | ✅ | Chế độ bảo mật |
+| Importance High / Low | ✅ | Nút "Tùy chọn thư" khi soạn: `Importance` + `X-Priority` như Outlook; đọc cả `Priority`; "!" đỏ / mũi tên xuống trong danh sách, ghi chú khi mở |
+| Request a Read Receipt, trả lời yêu cầu | ✅ | `Disposition-Notification-To`; khi nhận: hỏi / luôn gửi / không gửi (cài đặt), MDN RFC 8098, `$MDNSent` dùng chung với IMAP; không gửi cho thư trong Thư rác |
 | Meeting invitation card (Yes / Maybe / No) | ✅ | iMIP, tự vào lịch |
 | Message details (mailed-by, signed-by, TLS) | ✅ | |
 | Search with scope, gợi ý khi gõ | ✅ | |

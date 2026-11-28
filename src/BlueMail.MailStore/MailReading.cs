@@ -54,7 +54,8 @@ public sealed record ConversationSummary(
     bool HasAttachments,
     IReadOnlyList<string> AttachmentNames,
     IReadOnlyList<Guid> LabelIds,
-    bool Muted);
+    bool Muted,
+    short Priority = MessagePriority.Normal);
 
 /// <summary>A page of a list. <see cref="Total"/> is exact when <see cref="TotalExact"/>, otherwise a lower bound.</summary>
 public sealed record ConversationPage(IReadOnlyList<ConversationSummary> Items, string? NextCursor, long Total, bool TotalExact = true, string Sort = ConversationSort.Date);
@@ -86,7 +87,10 @@ public sealed record MessageView(
     string? SpamReport,
     double? SpamScore,
     string? ListUnsubscribe,
-    long Modseq);
+    long Modseq,
+    short Priority = MessagePriority.Normal,
+    string? ReadReceiptTo = null,
+    bool ReadReceiptSent = false);
 
 public sealed record ThreadView(Guid ThreadId, string? Subject, bool Muted, IReadOnlyList<MessageView> Messages);
 
@@ -380,11 +384,11 @@ public sealed partial class PgMailStore
         var c = await OpenConnAsync(ct);
         var key = q.Threads ? "thread_id" : "id";
         var rows = new List<(Guid Key, Guid Id, DateTimeOffset At, string? Subject, string? Snippet, string? FromName, string? FromAddr, bool Seen, bool Flagged,
-            bool Important, bool HasAtt, Guid[] Labels, bool Muted)>();
+            bool Important, bool HasAtt, Guid[] Labels, bool Muted, short Priority)>();
         await using (var cmd = new NpgsqlCommand($"""
             SELECT m.{key}, m.id, m.received_at, m.subject, m.snippet, m.from_name, m.from_addr, m.seen, m.flagged, m.is_important, m.has_attachments,
                    ARRAY(SELECT ml.label_id FROM mail.message_labels ml WHERE ml.tenant_id = m.tenant_id AND ml.message_id = m.id),
-                   coalesce((SELECT t.muted FROM mail.threads t WHERE t.id = m.thread_id), false)
+                   coalesce((SELECT t.muted FROM mail.threads t WHERE t.id = m.thread_id), false), m.priority
             FROM mail.messages m
             WHERE m.tenant_id = @t AND m.mailbox_id = @mb AND m.{key} = ANY(@keys) AND m.deleted_at IS NULL AND m.expunged_at IS NULL
             ORDER BY m.received_at
@@ -398,7 +402,7 @@ public sealed partial class PgMailStore
             {
                 rows.Add((rd.GetGuid(0), rd.GetGuid(1), rd.GetFieldValue<DateTimeOffset>(2), rd.IsDBNull(3) ? null : rd.GetString(3), rd.IsDBNull(4) ? null : rd.GetString(4),
                     rd.IsDBNull(5) ? null : rd.GetString(5), rd.IsDBNull(6) ? null : rd.GetString(6), rd.GetBoolean(7), rd.GetBoolean(8), rd.GetBoolean(9),
-                    rd.GetBoolean(10), rd.GetFieldValue<Guid[]>(11), rd.GetBoolean(12)));
+                    rd.GetBoolean(10), rd.GetFieldValue<Guid[]>(11), rd.GetBoolean(12), rd.GetInt16(13)));
             }
         }
 
@@ -430,7 +434,9 @@ public sealed partial class PgMailStore
                 g.Key, latest.Id, latest.At, latest.Subject, latest.Snippet, participants, g.Count(), g.Count(r => !r.Seen),
                 g.Any(r => r.Flagged), g.Any(r => r.Important), g.Any(r => r.HasAtt),
                 g.SelectMany(r => names.GetValueOrDefault(r.Id) ?? []).Distinct().Take(5).ToList(),
-                g.SelectMany(r => r.Labels).Distinct().ToList(), latest.Muted);
+                g.SelectMany(r => r.Labels).Distinct().ToList(), latest.Muted,
+                // Like Outlook's list: "!" when any message is high importance, the low arrow when the latest one is low.
+                g.Any(r => r.Priority == MessagePriority.High) ? MessagePriority.High : latest.Priority == MessagePriority.Low ? MessagePriority.Low : MessagePriority.Normal);
         }
 
         return result;
@@ -519,7 +525,7 @@ public sealed partial class PgMailStore
                 m.Flagged || (starred is { } s && lids.Contains(s)), m.IsImportant, m.Draft, lids,
                 attachments.Where(a => a.MessageId == m.Id)
                     .Select(a => new AttachmentInfo(a.Id, a.PartPath, a.FileName, a.ContentType, a.Size, a.ContentId, a.IsInline, a.VirusStatus)).ToList(),
-                m.AuthResults, m.SpamReport, m.SpamScore, m.ListUnsubscribe, m.Modseq);
+                m.AuthResults, m.SpamReport, m.SpamScore, m.ListUnsubscribe, m.Modseq, m.Priority, m.MdnTo, m.Keywords.Contains(ReadReceipts.SentKeyword, StringComparer.OrdinalIgnoreCase));
         }).ToList();
     }
 

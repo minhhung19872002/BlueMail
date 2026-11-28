@@ -121,6 +121,13 @@ public class Message : TenantEntity
     public string? ListUnsubscribe { get; set; }
     public string? Category { get; set; }
     public bool IsImportant { get; set; }
+
+    /// <summary>The sender's importance (Importance / X-Priority / Priority headers): 1 high, 3 normal, 5 low.</summary>
+    public short Priority { get; set; } = 3;
+
+    /// <summary>Disposition-Notification-To (RFC 8098): where the sender asks for a read receipt; null = not asked.</summary>
+    public string? MdnTo { get; set; }
+
     public long Modseq { get; set; }
 
     /// <summary>Recomputed from compliance.legal_holds in the same transaction as hold changes.</summary>

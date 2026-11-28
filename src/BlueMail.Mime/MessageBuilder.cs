@@ -47,6 +47,12 @@ public sealed class MessageBuilder
     /// <summary>An iCalendar object sent with iMIP (RFC 6047): added as text/calendar; method=… alternative.</summary>
     public (string Method, string Text)? Calendar { get; init; }
 
+    /// <summary>
+    /// A report (RFC 6522): the body becomes multipart/report; report-type=… with <see cref="TextBody"/> as the readable
+    /// part and this machine-readable part (for example message/disposition-notification, RFC 8098). HTML is ignored.
+    /// </summary>
+    public (string ReportType, string MediaType, string Content)? Report { get; init; }
+
     /// <summary>New globally unique Message-ID (RFC 5322 3.6.4) on the configured host name.</summary>
     public static string NewMessageId(string hostname) =>
         Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16)) + "@" + hostname;
@@ -127,10 +133,19 @@ public sealed class MessageBuilder
 
     private sealed record Leaf(string ContentType, Func<Stream> Open, bool IsText, string? FileName, string? ContentId, bool Inline);
 
-    private sealed record Multipart(string Subtype, IReadOnlyList<Node> Parts);
+    private sealed record Multipart(string Subtype, IReadOnlyList<Node> Parts, string? Parameters = null);
 
     private object BodyNode(List<BuilderAttachment> inline)
     {
+        if (Report is { } report)
+        {
+            // The machine part is US-ASCII header-like fields: written as it is (7bit), without a charset parameter.
+            var bytes = Encoding.UTF8.GetBytes(report.Content.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal));
+            var machine = new Leaf(report.MediaType, () => new MemoryStream(bytes, writable: false), true, null, null, false);
+            return new Multipart("report", [new Node(TextLeaf("text/plain", TextBody ?? "")), new Node(machine)],
+                "report-type=" + report.ReportType);
+        }
+
         Leaf? text = TextBody is null ? null : TextLeaf("text/plain", TextBody);
         Leaf? html = HtmlBody is null ? null : TextLeaf("text/html", HtmlBody);
         object alt = text is not null && html is not null
@@ -172,7 +187,8 @@ public sealed class MessageBuilder
         {
             case Multipart m:
                 var boundary = "=_bm_" + Totp32(RandomNumberGenerator.GetBytes(18));
-                WriteHeader(w, "Content-Type", $"multipart/{m.Subtype}; boundary=\"{boundary}\"" + (m.Subtype == "related" ? "; type=\"multipart/alternative\"" : ""));
+                WriteHeader(w, "Content-Type", $"multipart/{m.Subtype}; " + (m.Parameters is null ? "" : m.Parameters + "; ") + $"boundary=\"{boundary}\""
+                                               + (m.Subtype == "related" ? "; type=\"multipart/alternative\"" : ""));
                 w.WriteLine();
                 foreach (var part in m.Parts)
                 {

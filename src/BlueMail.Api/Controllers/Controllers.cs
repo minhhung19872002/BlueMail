@@ -163,6 +163,15 @@ public sealed class MailController(ISender mediator) : ControllerBase
         CancellationToken ct) =>
         ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Calendar.RespondInviteCommand(mailboxId, id, body.Response, body.SendReply), ct));
 
+    public sealed record ReadReceiptBody(bool Send, bool Automatic = false);
+
+    /// <summary>Send or decline the read receipt a message asks for (RFC 8098 MDN; $MDNSent marks it answered).</summary>
+    [HttpPost("messages/{id:guid}/read-receipt")]
+    [SelfGuarded(Guarded)]
+    public async Task<ApiResponse<BlueMail.Application.Features.Mail.ReadReceiptResult>> ReadReceipt(Guid id, [FromQuery] Guid? mailboxId, [FromBody] ReadReceiptBody body,
+        CancellationToken ct) =>
+        ApiResponses.Ok(await mediator.Send(new BlueMail.Application.Features.Mail.AnswerReadReceiptCommand(mailboxId, id, body.Send, body.Automatic), ct));
+
     [HttpGet("changes")]
     [SelfGuarded(Guarded)]
     public async Task<ApiResponse<BlueMail.MailStore.MailChanges>> Changes([FromQuery] Guid? mailboxId, [FromQuery] long sinceModseq, CancellationToken ct) =>
